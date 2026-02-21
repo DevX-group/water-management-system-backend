@@ -19,4 +19,6 @@ public class AddPaymentRequest {
     public void setStatus(PaymentStatus status) { this.status = status; }
     public PaymentType getPaymentType() { return paymentType; }
     public void setPaymentType(PaymentType paymentType) { this.paymentType = paymentType; }
+
+    public AddPaymentRequest() {}
 }
