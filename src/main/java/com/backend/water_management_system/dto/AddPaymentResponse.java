@@ -33,5 +33,8 @@ public class AddPaymentResponse {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     
+    public AddPaymentResponse(String message) {
+        this.message = message;
+    }
     
 }
