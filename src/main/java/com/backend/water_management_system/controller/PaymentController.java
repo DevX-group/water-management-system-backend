@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.backend.water_management_system.dto.AddPaymentRequest;
 import com.backend.water_management_system.dto.AddPaymentResponse;
+import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
 import com.backend.water_management_system.service.PaymentService;
 
 @RestController
@@ -21,5 +22,11 @@ public class PaymentController {
     public ResponseEntity<AddPaymentResponse> addPayment(@RequestBody AddPaymentRequest request) {
         AddPaymentResponse response = paymentService.addPayment(request);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/customer/{subscriptionNumber}")
+    public ResponseEntity<CustomerPaymentSummaryResponse> getCustomerPaymentSummary(
+            @PathVariable String subscriptionNumber) {
+        return ResponseEntity.ok(paymentService.getCustomerPaymentSummary(subscriptionNumber));
     }
 }

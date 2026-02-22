@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.backend.water_management_system.dto.AddPaymentRequest;
 import com.backend.water_management_system.dto.AddPaymentResponse;
+import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.PaymentStatus;
@@ -149,5 +150,46 @@ public class PaymentService {
 
         return response;
 
+    }
+
+    public CustomerPaymentSummaryResponse getCustomerPaymentSummary(String subscriptionNumber) {
+
+        if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
+            throw new InvalidPaymentException("Subscription number is required");
+        }
+
+        Customer customer = customerRepository.findById(subscriptionNumber)
+                .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
+
+        BigDecimal outstanding = customer.getOutstandingBalance();
+        if (outstanding == null)
+            outstanding = BigDecimal.ZERO;
+
+        // Find latest unpaid bill (monthly due)
+        List<Bill> bills = billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
+
+        BigDecimal monthlyDue = BigDecimal.ZERO;
+        String billStatus = "NO_BILL";
+
+        for (Bill bill : bills) {
+            BigDecimal due = bill.getBalanceDue();
+            boolean hasDue = (due != null && due.compareTo(BigDecimal.ZERO) > 0);
+            boolean notPaid = (bill.getStatus() == null || !bill.getStatus().equalsIgnoreCase("PAID"));
+
+            if (hasDue && notPaid) {
+                monthlyDue = due;
+                billStatus = bill.getStatus() == null ? "PENDING" : bill.getStatus();
+                break;
+            }
+        }
+
+        BigDecimal totalDue = monthlyDue.add(outstanding);
+
+        return new CustomerPaymentSummaryResponse(
+                subscriptionNumber,
+                monthlyDue,
+                outstanding,
+                totalDue,
+                billStatus);
     }
 }
