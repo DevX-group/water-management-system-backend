@@ -11,11 +11,7 @@ public class CustomerPaymentSummaryResponse {
 
     public CustomerPaymentSummaryResponse() {}
 
-    public CustomerPaymentSummaryResponse(String subscriptionNumber,
-                                          BigDecimal monthlyDue,
-                                          BigDecimal outstandingBalance,
-                                          BigDecimal totalDue,
-                                          String billStatus) {
+    public CustomerPaymentSummaryResponse(String subscriptionNumber, BigDecimal monthlyDue, BigDecimal outstandingBalance, BigDecimal totalDue, String billStatus) {
         this.subscriptionNumber = subscriptionNumber;
         this.monthlyDue = monthlyDue;
         this.outstandingBalance = outstandingBalance;
