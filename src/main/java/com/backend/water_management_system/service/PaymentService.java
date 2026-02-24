@@ -50,19 +50,13 @@ public class PaymentService {
             throw new InvalidPaymentException("Payment type is required");
         }
 
-        // NOTE:
-        // We do NOT require request.getStatus() anymore because backend decides FULL/PARTIAL
-        // based on your rule:
-        // FULL = one-shot payment of the entire original bill (no previous payments).
-        // Otherwise = PARTIAL.
-
+        
         String subscriptionNumber = request.getSubscriptionNumber();
         BigDecimal amount = request.getAmount();
 
         BigDecimal oldValue = null;
         BigDecimal newValue = null;
 
-        // This is the status that will be saved into Payment table + returned to frontend
         PaymentStatus recordedStatus = PaymentStatus.PARTIAL; // default
 
         Customer customer = customerRepository.findById(subscriptionNumber)
@@ -99,9 +93,6 @@ public class PaymentService {
                 throw new InvalidPaymentException("Amount cannot be greater than monthly due");
             }
 
-            // ✅ Decide FULL/PARTIAL by your rule:
-            // FULL only if: this is the first payment (oldDue == totalAmount)
-            // AND this payment pays the whole totalAmount in one go.
             BigDecimal total = targetBill.getTotalAmount();
             if (total == null) total = BigDecimal.ZERO;
 
@@ -132,9 +123,7 @@ public class PaymentService {
                 throw new InvalidPaymentException("Amount cannot be greater than outstanding balance");
             }
 
-            // For OUTSTANDING, since we don't have an "original total" like bills,
-            // safest is to record all as PARTIAL (matches your idea of paying in parts).
-            // If you later store an original outstanding total, we can compute FULL similarly.
+            
             recordedStatus = PaymentStatus.PARTIAL;
 
             BigDecimal newBalance = oldBalance.subtract(amount);
@@ -151,7 +140,7 @@ public class PaymentService {
         payment.setPaymentId(UUID.randomUUID().toString());
         payment.setSubscriptionNumber(subscriptionNumber);
         payment.setAmount(amount);
-        payment.setStatus(recordedStatus);                  // ✅ use recordedStatus
+        payment.setStatus(recordedStatus);                  
         payment.setPaymentType(request.getPaymentType());
         payment.setCreatedAt(LocalDateTime.now());
 
@@ -162,7 +151,7 @@ public class PaymentService {
         response.setOldBalance(oldValue);
         response.setNewBalance(newValue);
         response.setPaymentId(payment.getPaymentId());
-        response.setStatus(recordedStatus);                 // ✅ use recordedStatus
+        response.setStatus(recordedStatus);                 
         response.setPaymentType(request.getPaymentType());
         response.setCreatedAt(payment.getCreatedAt());
 
@@ -239,7 +228,7 @@ public class PaymentService {
         List<Bill> bills = billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
 
         if (bills.isEmpty()) {
-            return null; // or throw
+            return null; 
         }
 
         Bill latest = bills.get(0);
