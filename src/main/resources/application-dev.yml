@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/hydropay_db}
+    username: ${SPRING_DATASOURCE_USERNAME:hydropay_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
