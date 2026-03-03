@@ -13,4 +13,6 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
 
     Optional<Bill> findByMeterReading(MeterReading meterReading);
+
+    List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateAsc(String subscriptionNumber);
 }

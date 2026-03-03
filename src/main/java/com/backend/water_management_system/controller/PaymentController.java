@@ -1,0 +1,42 @@
+package com.backend.water_management_system.controller;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.backend.water_management_system.dto.AddPaymentRequest;
+import com.backend.water_management_system.dto.AddPaymentResponse;
+import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
+import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
+import com.backend.water_management_system.service.PaymentService;
+
+@CrossOrigin(origins = "http://localhost:3000")
+@RestController
+@RequestMapping("/api/payments")
+public class PaymentController {
+
+    private final PaymentService paymentService;
+
+    public PaymentController(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+
+    @PostMapping
+    public ResponseEntity<AddPaymentResponse> addPayment(@RequestBody AddPaymentRequest request) {
+        AddPaymentResponse response = paymentService.addPayment(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/customer/{subscriptionNumber}")
+    public ResponseEntity<CustomerPaymentSummaryResponse> getCustomerPaymentSummary(
+            @PathVariable String subscriptionNumber) {
+        return ResponseEntity.ok(paymentService.getCustomerPaymentSummary(subscriptionNumber));
+    }
+
+    @GetMapping("/history/{subscriptionNumber}")
+    public ResponseEntity<List<PaymentHistoryItemResponse>> getPaymentHistory(
+            @PathVariable String subscriptionNumber) {
+        return ResponseEntity.ok(paymentService.getPaymentHistory(subscriptionNumber));
+    }
+}
