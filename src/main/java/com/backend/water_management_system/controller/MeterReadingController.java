@@ -2,10 +2,13 @@ package com.backend.water_management_system.controller;
 
 import com.backend.water_management_system.dto.MeterReadingCreateRequest;
 import com.backend.water_management_system.dto.MeterReadingCreateResponse;
+import com.backend.water_management_system.dto.MeterReadingTodayResponse;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.service.MeterReadingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/meter-readings")
@@ -31,5 +34,9 @@ public class MeterReadingController {
 
         return ResponseEntity.ok(res);
     }
-}
 
+    @GetMapping("/today")
+    public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings() {
+        return ResponseEntity.ok(meterReadingService.getTodaysReadings());
+    }
+}
