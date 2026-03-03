@@ -135,6 +135,57 @@ public class DataSeeder implements CommandLineRunner {
         b5.setStatus("PENDING");
         b5.setGeneratedAt(OffsetDateTime.now());
         billRepository.save(b5);
+
+        // Priyantha De Silva - Outstanding bill (older unpaid bill)
+
+        Bill b5_old1 = new Bill();
+        b5_old1.setCustomer(c5);
+        b5_old1.setBillingPeriod("2026-01");
+        b5_old1.setBillDate(LocalDate.now().minusMonths(1));
+        b5_old1.setDueDate(LocalDate.now().minusMonths(1).plusDays(14));
+        b5_old1.setUsageUnits(120);
+        b5_old1.setBaseCharge(new BigDecimal("50.00"));
+        b5_old1.setUsageCharge(new BigDecimal("1450.00"));
+        b5_old1.setTaxAmount(BigDecimal.ZERO);
+        b5_old1.setTotalAmount(new BigDecimal("1500.00"));
+        b5_old1.setBalanceDue(new BigDecimal("950.00")); // unpaid remaining
+        b5_old1.setStatus("PENDING");
+        b5_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
+        billRepository.save(b5_old1);
+
+        // Supun Perera - Outstanding bills (older unpaid bills)
+
+        // 2026-01 bill (partially unpaid)
+        Bill b2_old1 = new Bill();
+        b2_old1.setCustomer(c2);
+        b2_old1.setBillingPeriod("2026-01");
+        b2_old1.setBillDate(LocalDate.now().minusMonths(1));
+        b2_old1.setDueDate(LocalDate.now().minusMonths(1).plusDays(14));
+        b2_old1.setUsageUnits(160);
+        b2_old1.setBaseCharge(new BigDecimal("50.00"));
+        b2_old1.setUsageCharge(new BigDecimal("1850.00"));
+        b2_old1.setTaxAmount(BigDecimal.ZERO);
+        b2_old1.setTotalAmount(new BigDecimal("1900.00"));
+        b2_old1.setBalanceDue(new BigDecimal("600.00")); // still unpaid
+        b2_old1.setStatus("PENDING");
+        b2_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
+        billRepository.save(b2_old1);
+
+        // 2025-12 bill (fully unpaid)
+        Bill b2_old2 = new Bill();
+        b2_old2.setCustomer(c2);
+        b2_old2.setBillingPeriod("2025-12");
+        b2_old2.setBillDate(LocalDate.now().minusMonths(2));
+        b2_old2.setDueDate(LocalDate.now().minusMonths(2).plusDays(14));
+        b2_old2.setUsageUnits(140);
+        b2_old2.setBaseCharge(new BigDecimal("50.00"));
+        b2_old2.setUsageCharge(new BigDecimal("1600.00"));
+        b2_old2.setTaxAmount(BigDecimal.ZERO);
+        b2_old2.setTotalAmount(new BigDecimal("1650.00"));
+        b2_old2.setBalanceDue(new BigDecimal("1650.00")); // unpaid
+        b2_old2.setStatus("PENDING");
+        b2_old2.setGeneratedAt(OffsetDateTime.now().minusMonths(2));
+        billRepository.save(b2_old2);
     }
 
 }

@@ -115,24 +115,63 @@ public class PaymentService {
 
         } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
 
-            BigDecimal oldBalance = customer.getOutstandingBalance();
-            if (oldBalance == null) oldBalance = BigDecimal.ZERO;
-            oldValue = oldBalance;
-
-            if (amount.compareTo(oldBalance) > 0) {
-                throw new InvalidPaymentException("Amount cannot be greater than outstanding balance");
-            }
-
             
-            recordedStatus = PaymentStatus.PARTIAL;
+    List<Bill> bills = billRepository
+            .findByCustomer_SubscriptionNumberOrderByBillDateAsc(subscriptionNumber);
 
-            BigDecimal newBalance = oldBalance.subtract(amount);
-            newValue = newBalance;
+    if (bills.isEmpty()) {
+        throw new InvalidPaymentException("No bills found for this customer");
+    }
 
-            customer.setOutstandingBalance(newBalance);
-            customerRepository.save(customer);
+    // Exclude latest bill (monthly)
+    Bill latest = bills.get(bills.size() - 1);
 
+    BigDecimal remainingAmount = amount;
+    oldValue = BigDecimal.ZERO;
+
+    for (Bill bill : bills) {
+
+        // Skip latest bill
+        if (bill.getBillId().equals(latest.getBillId())) {
+            continue;
+        }
+
+        BigDecimal due = bill.getBalanceDue();
+        if (due == null || due.compareTo(BigDecimal.ZERO) <= 0) {
+            continue;
+        }
+
+        oldValue = oldValue.add(due);
+
+        if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            break;
+        }
+
+        if (remainingAmount.compareTo(due) >= 0) {
+            // Full pay this bill
+            remainingAmount = remainingAmount.subtract(due);
+            bill.setBalanceDue(BigDecimal.ZERO);
+            bill.setStatus("PAID");
         } else {
+            // Partial pay this bill
+            bill.setBalanceDue(due.subtract(remainingAmount));
+            remainingAmount = BigDecimal.ZERO;
+            bill.setStatus("PENDING");
+        }
+
+        billRepository.save(bill);
+    }
+
+    if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
+        throw new InvalidPaymentException("Amount exceeds total outstanding balance");
+    }
+
+    newValue = BigDecimal.ZERO; // optional for response
+
+    recordedStatus = PaymentStatus.PARTIAL; // outstanding always partial
+}
+
+        else {
             throw new InvalidPaymentException("Unsupported payment type");
         }
 

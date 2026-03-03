@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface BillRepository extends JpaRepository<Bill, Long> {
     List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
+
+    List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateAsc(String subscriptionNumber);
 }
