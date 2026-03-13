@@ -13,6 +13,7 @@ import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
 import com.backend.water_management_system.dto.OutstandingBillItemResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
+import com.backend.water_management_system.dto.PaymentCustomerInfoResponse;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Payment;
@@ -31,8 +32,8 @@ public class PaymentService {
     private final BillRepository billRepository;
 
     public PaymentService(CustomerRepository customerRepository,
-                          PaymentRepository paymentRepository,
-                          BillRepository billRepository) {
+            PaymentRepository paymentRepository,
+            BillRepository billRepository) {
         this.customerRepository = customerRepository;
         this.paymentRepository = paymentRepository;
         this.billRepository = billRepository;
@@ -50,7 +51,6 @@ public class PaymentService {
             throw new InvalidPaymentException("Payment type is required");
         }
 
-        
         String subscriptionNumber = request.getSubscriptionNumber();
         BigDecimal amount = request.getAmount();
 
@@ -59,7 +59,7 @@ public class PaymentService {
 
         PaymentStatus recordedStatus = PaymentStatus.PARTIAL; // default
 
-        Customer customer = customerRepository.findById(subscriptionNumber)
+        customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException(
                         "Customer not found with subscription number: " + subscriptionNumber));
 
@@ -86,7 +86,8 @@ public class PaymentService {
             }
 
             BigDecimal oldDue = targetBill.getBalanceDue();
-            if (oldDue == null) oldDue = BigDecimal.ZERO;
+            if (oldDue == null)
+                oldDue = BigDecimal.ZERO;
             oldValue = oldDue;
 
             if (amount.compareTo(oldDue) > 0) {
@@ -94,10 +95,10 @@ public class PaymentService {
             }
 
             BigDecimal total = targetBill.getTotalAmount();
-            if (total == null) total = BigDecimal.ZERO;
+            if (total == null)
+                total = BigDecimal.ZERO;
 
-            boolean isFullOneShot =
-                    oldDue.compareTo(total) == 0 && amount.compareTo(total) == 0;
+            boolean isFullOneShot = oldDue.compareTo(total) == 0 && amount.compareTo(total) == 0;
 
             recordedStatus = isFullOneShot ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
 
@@ -115,61 +116,60 @@ public class PaymentService {
 
         } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
 
-            
-    List<Bill> bills = billRepository
-            .findByCustomer_SubscriptionNumberOrderByBillDateAsc(subscriptionNumber);
+            List<Bill> bills = billRepository
+                    .findByCustomer_SubscriptionNumberOrderByBillDateAsc(subscriptionNumber);
 
-    if (bills.isEmpty()) {
-        throw new InvalidPaymentException("No bills found for this customer");
-    }
+            if (bills.isEmpty()) {
+                throw new InvalidPaymentException("No bills found for this customer");
+            }
 
-    // Exclude latest bill (monthly)
-    Bill latest = bills.get(bills.size() - 1);
+            // Exclude latest bill (monthly)
+            Bill latest = bills.get(bills.size() - 1);
 
-    BigDecimal remainingAmount = amount;
-    oldValue = BigDecimal.ZERO;
+            BigDecimal remainingAmount = amount;
+            oldValue = BigDecimal.ZERO;
 
-    for (Bill bill : bills) {
+            for (Bill bill : bills) {
 
-        // Skip latest bill
-        if (bill.getBillId().equals(latest.getBillId())) {
-            continue;
+                // Skip latest bill
+                if (bill.getBillId().equals(latest.getBillId())) {
+                    continue;
+                }
+
+                BigDecimal due = bill.getBalanceDue();
+                if (due == null || due.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+
+                oldValue = oldValue.add(due);
+
+                if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                    break;
+                }
+
+                if (remainingAmount.compareTo(due) >= 0) {
+                    // Full pay this bill
+                    remainingAmount = remainingAmount.subtract(due);
+                    bill.setBalanceDue(BigDecimal.ZERO);
+                    bill.setStatus("PAID");
+                } else {
+                    // Partial pay this bill
+                    bill.setBalanceDue(due.subtract(remainingAmount));
+                    remainingAmount = BigDecimal.ZERO;
+                    bill.setStatus("PENDING");
+                }
+
+                billRepository.save(bill);
+            }
+
+            if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
+                throw new InvalidPaymentException("Amount exceeds total outstanding balance");
+            }
+
+            newValue = BigDecimal.ZERO; // optional for response
+
+            recordedStatus = PaymentStatus.PARTIAL; // outstanding always partial
         }
-
-        BigDecimal due = bill.getBalanceDue();
-        if (due == null || due.compareTo(BigDecimal.ZERO) <= 0) {
-            continue;
-        }
-
-        oldValue = oldValue.add(due);
-
-        if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            break;
-        }
-
-        if (remainingAmount.compareTo(due) >= 0) {
-            // Full pay this bill
-            remainingAmount = remainingAmount.subtract(due);
-            bill.setBalanceDue(BigDecimal.ZERO);
-            bill.setStatus("PAID");
-        } else {
-            // Partial pay this bill
-            bill.setBalanceDue(due.subtract(remainingAmount));
-            remainingAmount = BigDecimal.ZERO;
-            bill.setStatus("PENDING");
-        }
-
-        billRepository.save(bill);
-    }
-
-    if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
-        throw new InvalidPaymentException("Amount exceeds total outstanding balance");
-    }
-
-    newValue = BigDecimal.ZERO; // optional for response
-
-    recordedStatus = PaymentStatus.PARTIAL; // outstanding always partial
-}
 
         else {
             throw new InvalidPaymentException("Unsupported payment type");
@@ -179,7 +179,7 @@ public class PaymentService {
         payment.setPaymentId(UUID.randomUUID().toString());
         payment.setSubscriptionNumber(subscriptionNumber);
         payment.setAmount(amount);
-        payment.setStatus(recordedStatus);                  
+        payment.setStatus(recordedStatus);
         payment.setPaymentType(request.getPaymentType());
         payment.setCreatedAt(LocalDateTime.now());
 
@@ -190,7 +190,7 @@ public class PaymentService {
         response.setOldBalance(oldValue);
         response.setNewBalance(newValue);
         response.setPaymentId(payment.getPaymentId());
-        response.setStatus(recordedStatus);                 
+        response.setStatus(recordedStatus);
         response.setPaymentType(request.getPaymentType());
         response.setCreatedAt(payment.getCreatedAt());
 
@@ -207,7 +207,8 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
 
         BigDecimal outstanding = customer.getOutstandingBalance();
-        if (outstanding == null) outstanding = BigDecimal.ZERO;
+        if (outstanding == null)
+            outstanding = BigDecimal.ZERO;
 
         List<Bill> bills = billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
 
@@ -233,8 +234,7 @@ public class PaymentService {
                 monthlyDue,
                 outstanding,
                 totalDue,
-                billStatus
-        );
+                billStatus);
     }
 
     public List<PaymentHistoryItemResponse> getPaymentHistory(String subscriptionNumber) {
@@ -267,7 +267,7 @@ public class PaymentService {
         List<Bill> bills = billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
 
         if (bills.isEmpty()) {
-            return null; 
+            return null;
         }
 
         Bill latest = bills.get(0);
@@ -278,8 +278,7 @@ public class PaymentService {
                 latest.getBillDate(),
                 latest.getTotalAmount() == null ? BigDecimal.ZERO : latest.getTotalAmount(),
                 latest.getBalanceDue() == null ? BigDecimal.ZERO : latest.getBalanceDue(),
-                latest.getStatus() == null ? "PENDING" : latest.getStatus()
-        );
+                latest.getStatus() == null ? "PENDING" : latest.getStatus());
     }
 
     public List<OutstandingBillItemResponse> getOutstandingBills(String subscriptionNumber) {
@@ -304,8 +303,20 @@ public class PaymentService {
                         b.getBillingPeriod(),
                         b.getBillDate(),
                         b.getBalanceDue(),
-                        b.getStatus() == null ? "PENDING" : b.getStatus()
-                ))
+                        b.getStatus() == null ? "PENDING" : b.getStatus()))
                 .toList();
+    }
+
+    public PaymentCustomerInfoResponse getPaymentCustomerInfo(String subscriptionNumber){
+        Customer customer = customerRepository.findById(subscriptionNumber)
+                .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
+
+        return new PaymentCustomerInfoResponse(
+                customer.getSubscriptionNumber(),
+                customer.getAccountHolderName(),
+                customer.getRegion().getRegionName(),
+                customer.getNic()
+        );
+
     }
 }
