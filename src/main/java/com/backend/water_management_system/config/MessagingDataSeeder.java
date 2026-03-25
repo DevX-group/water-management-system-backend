@@ -7,6 +7,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -50,7 +52,7 @@ public class MessagingDataSeeder implements ApplicationRunner {
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("Recurring");
         schedule.setDayOfMonth(20);
-        schedule.setTime("08:00");
+        schedule.setTime(LocalTime.of(8, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = buildDefaultBillTemplate();
@@ -95,7 +97,7 @@ public class MessagingDataSeeder implements ApplicationRunner {
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("Recurring");
         schedule.setDayOfMonth(25);
-        schedule.setTime("09:00");
+        schedule.setTime(LocalTime.of(9, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = new MessageTemplateDto();
@@ -127,8 +129,8 @@ public class MessagingDataSeeder implements ApplicationRunner {
 
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("One-Time");
-        schedule.setDate("2026-01-15");
-        schedule.setTime("10:00");
+        schedule.setDate(LocalDate.parse("2026-01-15"));
+        schedule.setTime(LocalTime.of(10, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = new MessageTemplateDto();
@@ -158,8 +160,8 @@ public class MessagingDataSeeder implements ApplicationRunner {
 
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("One-Time");
-        schedule.setDate("2026-02-01");
-        schedule.setTime("12:00");
+        schedule.setDate(LocalDate.parse("2026-02-01"));
+        schedule.setTime(LocalTime.of(12, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = new MessageTemplateDto();
