@@ -20,8 +20,7 @@ public class MessageTemplate {
 
     private String subject; // used for email templates
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "template_id")
+    @OneToMany(mappedBy = "messageTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sectionOrder ASC")
     private List<TemplateSection> sections = new ArrayList<>();
 
