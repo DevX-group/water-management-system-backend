@@ -2,6 +2,8 @@ package com.backend.water_management_system.service;
 
 import com.backend.water_management_system.entity.MessageTemplate;
 import com.backend.water_management_system.entity.ScheduledMessage;
+import com.backend.water_management_system.entity.SentMessage;
+import com.backend.water_management_system.entity.TemplateSection;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.ScheduledMessageRepository;
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ public class ScheduledEmailDispatcher {
 
     private final ScheduledMessageRepository scheduledMessageRepository;
     private final CustomerRepository customerRepository;
+    private final SentMessageService sentMessageService;
     private final MailSender mailSender;
 
     @Value("${spring.mail.username:}")
@@ -33,9 +36,11 @@ public class ScheduledEmailDispatcher {
 
     public ScheduledEmailDispatcher(ScheduledMessageRepository scheduledMessageRepository,
             CustomerRepository customerRepository,
+            SentMessageService sentMessageService,
             ObjectProvider<MailSender> mailSenderProvider) {
         this.scheduledMessageRepository = scheduledMessageRepository;
         this.customerRepository = customerRepository;
+        this.sentMessageService = sentMessageService;
         this.mailSender = mailSenderProvider.getIfAvailable();
     }
 
@@ -92,6 +97,15 @@ public class ScheduledEmailDispatcher {
             String subject = buildSubject(message);
             String body = buildBody(message);
             int successCount = sendEmailToAll(customerEmails, subject, body);
+            int totalRecipients = customerEmails.size();
+            int failedCount = Math.max(totalRecipients - successCount, 0);
+            double emailSuccessRate = totalRecipients == 0
+                    ? 0.0
+                    : (successCount * 100.0) / totalRecipients;
+
+            sentMessageService
+                    .save(toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
+
             totalSuccess += successCount;
 
             if (successCount > 0) {
@@ -239,5 +253,57 @@ public class ScheduledEmailDispatcher {
                 .filter(content -> !content.isBlank())
                 .reduce((left, right) -> left + "\n\n" + right)
                 .orElse("");
+    }
+
+    private SentMessage toSentMessage(ScheduledMessage scheduledMessage,
+            LocalDateTime now,
+            double emailSuccessRate,
+            int totalSent,
+            int totalFailed,
+            int totalDelivered) {
+        SentMessage sentMessage = new SentMessage();
+        sentMessage.setName(scheduledMessage.getName());
+        sentMessage.setChannels(scheduledMessage.getChannels());
+        sentMessage.setRecipients(scheduledMessage.getRecipients());
+        sentMessage.setDefault(scheduledMessage.isDefault());
+        sentMessage.setSmsTemplate(copyTemplate(scheduledMessage.getSmsTemplate()));
+        sentMessage.setEmailTemplate(copyTemplate(scheduledMessage.getEmailTemplate()));
+        sentMessage.setSentDate(now.toLocalDate());
+        sentMessage.setSentTime(now.toLocalTime());
+        sentMessage.setEmailSuccessRate(emailSuccessRate);
+        sentMessage.setSmsSuccessRate(0.0);
+        sentMessage.setTotalEmailsSent(totalSent);
+        sentMessage.setTotalEmailsFailed(totalFailed);
+        sentMessage.setTotalEmailsDelivered(totalDelivered);
+        sentMessage.setTotalSMSsSent(0);
+        sentMessage.setTotalSMSsFailed(0);
+        sentMessage.setTotalSMSsDelivered(0);
+        return sentMessage;
+    }
+
+    private MessageTemplate copyTemplate(MessageTemplate source) {
+        if (source == null) {
+            return null;
+        }
+
+        MessageTemplate copy = new MessageTemplate();
+        copy.setCustom(source.isCustom());
+        copy.setContent(source.getContent());
+        copy.setSubject(source.getSubject());
+
+        if (source.getSections() != null) {
+            List<TemplateSection> sections = source.getSections().stream().map(section -> {
+                TemplateSection clone = new TemplateSection();
+                clone.setSectionKey(section.getSectionKey());
+                clone.setName(section.getName());
+                clone.setContent(section.getContent());
+                clone.setSectionOrder(section.getSectionOrder());
+                clone.setMessageTemplate(copy);
+                return clone;
+            }).toList();
+            copy.setSections(sections);
+        }
+
+        return copy;
     }
 }
