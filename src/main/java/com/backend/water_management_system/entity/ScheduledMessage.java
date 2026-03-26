@@ -1,6 +1,7 @@
 package com.backend.water_management_system.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import jakarta.persistence.*;
@@ -30,7 +31,13 @@ public class ScheduledMessage {
 
     @Column(name = "schedule_time")
     private LocalTime scheduleTime;
-    
+
+    @Column(name = "last_email_sent_at")
+    private LocalDateTime lastEmailSentAt;
+
+    @Column(name = "one_time_email_sent")
+    private Boolean oneTimeEmailSent;
+
     private String recipients;
 
     @Column(name = "is_default")
@@ -99,6 +106,22 @@ public class ScheduledMessage {
 
     public void setScheduleTime(LocalTime scheduleTime) {
         this.scheduleTime = scheduleTime;
+    }
+
+    public LocalDateTime getLastEmailSentAt() {
+        return lastEmailSentAt;
+    }
+
+    public void setLastEmailSentAt(LocalDateTime lastEmailSentAt) {
+        this.lastEmailSentAt = lastEmailSentAt;
+    }
+
+    public Boolean getOneTimeEmailSent() {
+        return oneTimeEmailSent;
+    }
+
+    public void setOneTimeEmailSent(Boolean oneTimeEmailSent) {
+        this.oneTimeEmailSent = oneTimeEmailSent;
     }
 
     public String getRecipients() {
