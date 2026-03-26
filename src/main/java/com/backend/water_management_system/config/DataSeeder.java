@@ -44,11 +44,25 @@ public class DataSeeder implements CommandLineRunner {
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
 
-        Customer c1 = new Customer("SK-2341", "Sanjeewa Kumara", northRegion, new BigDecimal("0.00"), "198756432108");
-        Customer c2 = new Customer("SP-4589", "Supun Perera", southRegion, new BigDecimal("500.00"),"200123456789");
-        Customer c3 = new Customer("KS-7892", "Kamani Silva", northRegion, new BigDecimal("1200.00"),"197234567890");
-        Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", eastRegion, new BigDecimal("2750.00"), "199087654321");
-        Customer c5 = new Customer("PD-5678", "Priyantha De Silva", westRegion, new BigDecimal("0.00"), "196543210987");
+        Customer c1 = new Customer("SK-2341", "Sanjeewa Kumara", "921234567V", "sanjeewa@example.com", "0711234567",
+            "12 Lake Road, Colombo", "metered", northRegion);
+        c1.setOutstandingBalance(new BigDecimal("0.00"));
+
+        Customer c2 = new Customer("SP-4589", "Supun Perera", "881234568V", "supun@example.com", "0721234568",
+            "45 Temple Street, Galle", "metered", southRegion);
+        c2.setOutstandingBalance(new BigDecimal("500.00"));
+
+        Customer c3 = new Customer("KS-7892", "Kamani Silva", "901234569V", "kamani@example.com", "0771234569",
+            "78 Main Street, Kandy", "non-metered", northRegion);
+        c3.setOutstandingBalance(new BigDecimal("1200.00"));
+
+        Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", "851234570V", "ruwan@example.com", "0751234570",
+            "101 Beach Road, Trincomalee", "metered", eastRegion);
+        c4.setOutstandingBalance(new BigDecimal("2750.00"));
+
+        Customer c5 = new Customer("PD-5678", "Priyantha De Silva", "931234571V", "priyantha@example.com", "0761234571",
+            "22 Forest Avenue, Kurunegala", "non-metered", westRegion);
+        c5.setOutstandingBalance(new BigDecimal("0.00"));
 
         customerRepository.save(c1);
         customerRepository.save(c2);
