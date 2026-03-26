@@ -65,4 +65,12 @@ public class TemplateSection {
     public void setSectionOrder(Integer sectionOrder) {
         this.sectionOrder = sectionOrder;
     }
+
+    public MessageTemplate getMessageTemplate() {
+        return messageTemplate;
+    }
+
+    public void setMessageTemplate(MessageTemplate messageTemplate) {
+        this.messageTemplate = messageTemplate;
+    }
 }
