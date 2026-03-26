@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -123,6 +124,13 @@ public class ScheduledMessageService {
     }
 
     private void updateEntity(ScheduledMessage e, ScheduledMessageDto dto) {
+        String oldScheduleType = e.getScheduleType();
+        Integer oldDayOfMonth = e.getScheduleDayOfMonth();
+        java.time.LocalDate oldDate = e.getScheduleDate();
+        java.time.LocalTime oldTime = e.getScheduleTime();
+        String oldChannels = e.getChannels();
+        String oldRecipients = e.getRecipients();
+
         e.setName(dto.getName());
         e.setRecipients(dto.getRecipients());
         e.setDefault(dto.getIsDefault() != null && dto.getIsDefault());
@@ -146,6 +154,18 @@ public class ScheduledMessageService {
             e.setSmsTemplate(toTemplateEntity(dto.getTemplates().getSms()));
             e.setEmailTemplate(toTemplateEntity(dto.getTemplates().getEmail()));
         }
+
+        boolean scheduleOrTargetingChanged = !Objects.equals(oldScheduleType, e.getScheduleType())
+                || !Objects.equals(oldDayOfMonth, e.getScheduleDayOfMonth())
+                || !Objects.equals(oldDate, e.getScheduleDate())
+                || !Objects.equals(oldTime, e.getScheduleTime())
+                || !Objects.equals(oldChannels, e.getChannels())
+                || !Objects.equals(oldRecipients, e.getRecipients());
+
+        if (scheduleOrTargetingChanged) {
+            e.setLastEmailSentAt(null);
+            e.setOneTimeEmailSent(false);
+        }
     }
 
     private MessageTemplate toTemplateEntity(MessageTemplateDto dto) {
@@ -167,7 +187,7 @@ public class ScheduledMessageService {
                         section.setSectionOrder(i);
 
                         section.setMessageTemplate(t);
-                        
+
                         return section;
                     })
                     .collect(Collectors.toList());

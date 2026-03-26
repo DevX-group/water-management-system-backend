@@ -49,6 +49,7 @@ public class ScheduledEmailDispatcher {
 
         List<ScheduledMessage> candidates = scheduledMessageRepository.findAllEmailSchedulable();
         if (candidates.isEmpty()) {
+            log.debug("No schedulable email messages found");
             return;
         }
 
@@ -60,19 +61,38 @@ public class ScheduledEmailDispatcher {
                 .toList();
 
         if (customerEmails.isEmpty()) {
+            log.warn("No customer emails found; skipping scheduled email dispatch");
             return;
         }
 
         LocalDateTime now = LocalDateTime.now();
+        int dueCount = 0;
+        int totalSuccess = 0;
 
         for (ScheduledMessage message : candidates) {
-            if (!isDue(message, now)) {
+            boolean due = isDue(message, now);
+            log.info(
+                    "Message due check: id={}, name='{}', type='{}', dayOfMonth={}, date={}, time={}, lastEmailSentAt={}, oneTimeEmailSent={}, due={}",
+                    message.getId(),
+                    message.getName(),
+                    message.getScheduleType(),
+                    message.getScheduleDayOfMonth(),
+                    message.getScheduleDate(),
+                    message.getScheduleTime(),
+                    message.getLastEmailSentAt(),
+                    message.getOneTimeEmailSent(),
+                    due);
+
+            if (!due) {
                 continue;
             }
+
+            dueCount++;
 
             String subject = buildSubject(message);
             String body = buildBody(message);
             int successCount = sendEmailToAll(customerEmails, subject, body);
+            totalSuccess += successCount;
 
             if (successCount > 0) {
                 message.setLastEmailSentAt(now);
@@ -81,6 +101,9 @@ public class ScheduledEmailDispatcher {
                 }
             }
         }
+
+        log.info("Scheduled email tick: candidates={}, due={}, recipients={}, successfulSends={}",
+                candidates.size(), dueCount, customerEmails.size(), totalSuccess);
     }
 
     private int sendEmailToAll(List<String> customerEmails, String subject, String body) {
@@ -122,7 +145,7 @@ public class ScheduledEmailDispatcher {
 
         if (isRecurring(message)) {
             Integer dayOfMonth = message.getScheduleDayOfMonth();
-            if (dayOfMonth == null || now.getDayOfMonth() != dayOfMonth) {
+            if (dayOfMonth == null) {
                 return false;
             }
 
@@ -130,25 +153,54 @@ public class ScheduledEmailDispatcher {
                     ? message.getLastEmailSentAt().toLocalDate()
                     : null;
 
-            return !now.toLocalTime().isBefore(message.getScheduleTime())
-                    && (lastSentDate == null || !lastSentDate.equals(now.toLocalDate()));
+            if (lastSentDate != null
+                    && lastSentDate.getYear() == now.getYear()
+                    && lastSentDate.getMonthValue() == now.getMonthValue()) {
+                return false;
+            }
+
+            if (now.getDayOfMonth() < dayOfMonth) {
+                return false;
+            }
+
+            if (now.getDayOfMonth() == dayOfMonth) {
+                return !now.toLocalTime().isBefore(message.getScheduleTime());
+            }
+
+            return true;
         }
 
         return false;
     }
 
     private boolean isOneTime(ScheduledMessage message) {
-        return "one-time".equalsIgnoreCase(message.getScheduleType());
+        String scheduleType = normalizeScheduleType(message.getScheduleType());
+        return "one-time".equals(scheduleType)
+                || "one time".equals(scheduleType)
+                || "onetime".equals(scheduleType)
+                || "one_time".equals(scheduleType);
     }
 
     private boolean isRecurring(ScheduledMessage message) {
-        return "recurring".equalsIgnoreCase(message.getScheduleType());
+        return "recurring".equals(normalizeScheduleType(message.getScheduleType()));
+    }
+
+    private String normalizeScheduleType(String scheduleType) {
+        if (scheduleType == null) {
+            return "";
+        }
+        return scheduleType.trim().toLowerCase();
     }
 
     private String buildSubject(ScheduledMessage message) {
         MessageTemplate emailTemplate = message.getEmailTemplate();
         if (emailTemplate != null && emailTemplate.getSubject() != null && !emailTemplate.getSubject().isBlank()) {
             return emailTemplate.getSubject();
+        }
+
+        MessageTemplate smsTemplate = message.getSmsTemplate();
+        if (smsTemplate != null && smsTemplate.getSubject() != null && !smsTemplate.getSubject().isBlank()) {
+            return smsTemplate.getSubject();
         }
 
         if (message.getName() != null && !message.getName().isBlank()) {
@@ -160,19 +212,29 @@ public class ScheduledEmailDispatcher {
 
     private String buildBody(ScheduledMessage message) {
         MessageTemplate emailTemplate = message.getEmailTemplate();
-        if (emailTemplate == null) {
+        String emailBody = buildBodyFromTemplate(emailTemplate);
+        if (!emailBody.isBlank()) {
+            return emailBody;
+        }
+
+        MessageTemplate smsTemplate = message.getSmsTemplate();
+        return buildBodyFromTemplate(smsTemplate);
+    }
+
+    private String buildBodyFromTemplate(MessageTemplate template) {
+        if (template == null) {
             return "";
         }
 
-        if (emailTemplate.getContent() != null && !emailTemplate.getContent().isBlank()) {
-            return emailTemplate.getContent();
+        if (template.getContent() != null && !template.getContent().isBlank()) {
+            return template.getContent();
         }
 
-        if (emailTemplate.getSections() == null || emailTemplate.getSections().isEmpty()) {
+        if (template.getSections() == null || template.getSections().isEmpty()) {
             return "";
         }
 
-        return emailTemplate.getSections().stream()
+        return template.getSections().stream()
                 .map(section -> section.getContent() == null ? "" : section.getContent())
                 .filter(content -> !content.isBlank())
                 .reduce((left, right) -> left + "\n\n" + right)
