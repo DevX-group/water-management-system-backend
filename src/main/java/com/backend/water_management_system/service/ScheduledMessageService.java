@@ -165,6 +165,9 @@ public class ScheduledMessageService {
                         section.setName(sd.getName());
                         section.setContent(sd.getContent());
                         section.setSectionOrder(i);
+
+                        section.setMessageTemplate(t);
+                        
                         return section;
                     })
                     .collect(Collectors.toList());

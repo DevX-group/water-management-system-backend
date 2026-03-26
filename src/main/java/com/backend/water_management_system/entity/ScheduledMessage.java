@@ -1,5 +1,8 @@
 package com.backend.water_management_system.entity;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -23,11 +26,11 @@ public class ScheduledMessage {
     private Integer scheduleDayOfMonth;
 
     @Column(name = "schedule_date")
-    private String scheduleDate;
+    private LocalDate scheduleDate;
 
     @Column(name = "schedule_time")
-    private String scheduleTime;
-
+    private LocalTime scheduleTime;
+    
     private String recipients;
 
     @Column(name = "is_default")
@@ -82,19 +85,19 @@ public class ScheduledMessage {
         this.scheduleDayOfMonth = scheduleDayOfMonth;
     }
 
-    public String getScheduleDate() {
+    public LocalDate getScheduleDate() {
         return scheduleDate;
     }
 
-    public void setScheduleDate(String scheduleDate) {
+    public void setScheduleDate(LocalDate scheduleDate) {
         this.scheduleDate = scheduleDate;
     }
 
-    public String getScheduleTime() {
+    public LocalTime getScheduleTime() {
         return scheduleTime;
     }
 
-    public void setScheduleTime(String scheduleTime) {
+    public void setScheduleTime(LocalTime scheduleTime) {
         this.scheduleTime = scheduleTime;
     }
 
