@@ -5,6 +5,7 @@ import com.backend.water_management_system.entity.SentMessage;
 import com.backend.water_management_system.repository.SentMessageRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -18,6 +19,13 @@ public class SentMessageService {
 
     public SentMessage save(SentMessage sentMessage) {
         return sentMessageRepository.save(sentMessage);
+    }
+
+    public boolean existsForScheduledMessageOnDate(Long scheduledMessageId, LocalDate sentDate) {
+        if (scheduledMessageId == null || sentDate == null) {
+            return false;
+        }
+        return sentMessageRepository.existsBySourceScheduledMessageIdAndSentDate(scheduledMessageId, sentDate);
     }
 
     public List<SentMessageHistoryDto> getHistory() {

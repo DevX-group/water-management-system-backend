@@ -103,8 +103,19 @@ public class ScheduledEmailDispatcher {
                     ? 0.0
                     : (successCount * 100.0) / totalRecipients;
 
-            sentMessageService
-                    .save(toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
+            if (successCount > 0) {
+                boolean alreadyRecorded = sentMessageService.existsForScheduledMessageOnDate(
+                        message.getId(),
+                        now.toLocalDate());
+
+                if (!alreadyRecorded) {
+                    sentMessageService.save(
+                            toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
+                } else {
+                    log.info("Skipped duplicate sent history row for scheduledMessageId={} on {}",
+                            message.getId(), now.toLocalDate());
+                }
+            }
 
             totalSuccess += successCount;
 
@@ -262,6 +273,7 @@ public class ScheduledEmailDispatcher {
             int totalFailed,
             int totalDelivered) {
         SentMessage sentMessage = new SentMessage();
+        sentMessage.setSourceScheduledMessageId(scheduledMessage.getId());
         sentMessage.setName(scheduledMessage.getName());
         sentMessage.setChannels(scheduledMessage.getChannels());
         sentMessage.setRecipients(scheduledMessage.getRecipients());

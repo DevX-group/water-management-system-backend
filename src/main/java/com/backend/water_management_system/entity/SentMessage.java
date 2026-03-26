@@ -11,6 +11,9 @@ import java.time.LocalTime;
 @Table(name = "sent_messages")
 public class SentMessage extends Message {
 
+    @Column(name = "source_scheduled_message_id")
+    private Long sourceScheduledMessageId;
+
     @Column(name = "sent_date")
     private LocalDate sentDate;
 
@@ -43,6 +46,14 @@ public class SentMessage extends Message {
 
     public LocalDate getSentDate() {
         return sentDate;
+    }
+
+    public Long getSourceScheduledMessageId() {
+        return sourceScheduledMessageId;
+    }
+
+    public void setSourceScheduledMessageId(Long sourceScheduledMessageId) {
+        this.sourceScheduledMessageId = sourceScheduledMessageId;
     }
 
     public void setSentDate(LocalDate sentDate) {
