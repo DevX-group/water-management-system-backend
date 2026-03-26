@@ -12,6 +12,7 @@ public class Customer {
 
     private String accountHolderName;
     private BigDecimal outstandingBalance;
+    private String nic;
 
     @ManyToOne
     @JoinColumn(name = "region_code")
@@ -50,15 +51,25 @@ public class Customer {
         this.outstandingBalance = outstandingBalance;
     }
 
+    public String getNic() {
+        return nic;
+    }
+
+    public void setNic(String nic) {
+        this.nic = nic;
+    }
+
     public Customer() {}
 
     public Customer(String subscriptionNumber,
             String accountHolderName,
             Region region,
-            BigDecimal outstandingBalance) {
+            BigDecimal outstandingBalance,
+            String nic) {
         this.subscriptionNumber = subscriptionNumber;
         this.accountHolderName = accountHolderName;
         this.region = region;
         this.outstandingBalance = outstandingBalance;
+        this.nic = nic;
     }
 }

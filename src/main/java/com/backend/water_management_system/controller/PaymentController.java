@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import com.backend.water_management_system.dto.AddPaymentRequest;
 import com.backend.water_management_system.dto.AddPaymentResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
+import com.backend.water_management_system.dto.PaymentCustomerInfoResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.service.PaymentService;
 
@@ -38,5 +39,10 @@ public class PaymentController {
     public ResponseEntity<List<PaymentHistoryItemResponse>> getPaymentHistory(
             @PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(paymentService.getPaymentHistory(subscriptionNumber));
+    }
+
+    @GetMapping("/customerInfo/{subscriptionNumber}")
+    public ResponseEntity<PaymentCustomerInfoResponse> getPaymentCustomerInfo(@PathVariable String subscriptionNumber) {
+        return ResponseEntity.ok(paymentService.getPaymentCustomerInfo(subscriptionNumber));
     }
 }
