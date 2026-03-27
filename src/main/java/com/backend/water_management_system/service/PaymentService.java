@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.query.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import com.backend.water_management_system.dto.AddPaymentRequest;
@@ -13,6 +16,7 @@ import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
 import com.backend.water_management_system.dto.OutstandingBillItemResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
+import com.backend.water_management_system.dto.RecentPaymentResponse;
 import com.backend.water_management_system.dto.PaymentCustomerInfoResponse;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
@@ -318,5 +322,27 @@ public class PaymentService {
                 customer.getNic()
         );
 
+    }
+
+    public List<RecentPaymentResponse> getRecentPayments(int limit){
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Payment> payments = paymentRepository.findAllByOrderByCreatedAtDesc(pageable);
+        return payments.stream()
+                .map(p -> {
+                    RecentPaymentResponse res = new RecentPaymentResponse();
+                    res.setSubscriptionNumber(p.getSubscriptionNumber());
+                    res.setAmountPaid(p.getAmount());
+                    res.setStatus(p.getStatus().name());
+                    res.setCreatedAt(p.getCreatedAt());
+
+                    Customer customer = customerRepository.findBySubscriptionNumber(p.getSubscriptionNumber())
+                            .orElse(null);
+                    
+                    res.setAccountHolderName(
+                        customer != null ? customer.getAccountHolderName() : "Unknown");
+                    
+                    return res;
+                })
+                .toList();
     }
 }

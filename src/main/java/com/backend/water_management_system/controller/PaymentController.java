@@ -10,6 +10,7 @@ import com.backend.water_management_system.dto.AddPaymentResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
 import com.backend.water_management_system.dto.PaymentCustomerInfoResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
+import com.backend.water_management_system.dto.RecentPaymentResponse;
 import com.backend.water_management_system.service.PaymentService;
 
 @CrossOrigin(origins = "http://localhost:3000")
@@ -44,5 +45,10 @@ public class PaymentController {
     @GetMapping("/customerInfo/{subscriptionNumber}")
     public ResponseEntity<PaymentCustomerInfoResponse> getPaymentCustomerInfo(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(paymentService.getPaymentCustomerInfo(subscriptionNumber));
+    }
+
+    @GetMapping("/recent")
+    public ResponseEntity<List<RecentPaymentResponse>> getRecentPayments(@RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(paymentService.getRecentPayments(limit));
     }
 }
