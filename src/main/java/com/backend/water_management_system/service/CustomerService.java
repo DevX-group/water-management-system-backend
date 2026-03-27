@@ -23,4 +23,14 @@ public class CustomerService {
                 .map(c -> new CustomerSearchResponse(c.getSubscriptionNumber(), c.getAccountHolderName()))
                 .toList();
     }
+
+    public List<Customer> getAllCustomers() 
+    {
+        return customerRepository.findAll();
+    }
+
+    public Customer getCustomerById(String subscriptionNumber)
+    {
+        return customerRepository.findById(subscriptionNumber).orElseThrow(() -> new RuntimeException("Customer not found by subscription number " + subscriptionNumber));
+    }
 }

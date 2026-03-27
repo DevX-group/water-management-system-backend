@@ -1,23 +1,14 @@
 package com.backend.water_management_system.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "scheduled_messages")
-public class ScheduledMessage {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String name;
-
-    // Stored as comma-separated string e.g. "SMS,Email"
-    @Column(name = "channels")
-    private String channels;
+public class ScheduledMessage extends Message {
 
     @Column(name = "schedule_type")
     private String scheduleType; // "Recurring" | "One-Time"
@@ -30,44 +21,14 @@ public class ScheduledMessage {
 
     @Column(name = "schedule_time")
     private LocalTime scheduleTime;
-    
-    private String recipients;
 
-    @Column(name = "is_default")
-    private boolean isDefault;
+    @Column(name = "last_email_sent_at")
+    private LocalDateTime lastEmailSentAt;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "sms_template_id")
-    private MessageTemplate smsTemplate;
-
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "email_template_id")
-    private MessageTemplate emailTemplate;
+    @Column(name = "one_time_email_sent")
+    private Boolean oneTimeEmailSent;
 
     // getters/setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getChannels() {
-        return channels;
-    }
-
-    public void setChannels(String channels) {
-        this.channels = channels;
-    }
 
     public String getScheduleType() {
         return scheduleType;
@@ -101,35 +62,20 @@ public class ScheduledMessage {
         this.scheduleTime = scheduleTime;
     }
 
-    public String getRecipients() {
-        return recipients;
+    public LocalDateTime getLastEmailSentAt() {
+        return lastEmailSentAt;
     }
 
-    public void setRecipients(String recipients) {
-        this.recipients = recipients;
+    public void setLastEmailSentAt(LocalDateTime lastEmailSentAt) {
+        this.lastEmailSentAt = lastEmailSentAt;
     }
 
-    public boolean isDefault() {
-        return isDefault;
+    public Boolean getOneTimeEmailSent() {
+        return oneTimeEmailSent;
     }
 
-    public void setDefault(boolean isDefault) {
-        this.isDefault = isDefault;
+    public void setOneTimeEmailSent(Boolean oneTimeEmailSent) {
+        this.oneTimeEmailSent = oneTimeEmailSent;
     }
 
-    public MessageTemplate getSmsTemplate() {
-        return smsTemplate;
-    }
-
-    public void setSmsTemplate(MessageTemplate smsTemplate) {
-        this.smsTemplate = smsTemplate;
-    }
-
-    public MessageTemplate getEmailTemplate() {
-        return emailTemplate;
-    }
-
-    public void setEmailTemplate(MessageTemplate emailTemplate) {
-        this.emailTemplate = emailTemplate;
-    }
 }

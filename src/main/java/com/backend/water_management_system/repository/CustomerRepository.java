@@ -14,6 +14,12 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
             WHERE LOWER(c.accountHolderName) LIKE LOWER(CONCAT('%', :query, '%'))
             OR LOWER(c.subscriptionNumber) LIKE LOWER(CONCAT('%', :query, '%'))
             """)
-            List<Customer> searchCustomers(@Param("query") String query);
-}
+    List<Customer> searchCustomers(@Param("query") String query);
 
+    @Query("""
+            SELECT c.email FROM Customer c
+            WHERE c.email IS NOT NULL
+              AND TRIM(c.email) <> ''
+            """)
+    List<String> findAllCustomerEmails();
+}

@@ -44,11 +44,11 @@ public class DataSeeder implements CommandLineRunner {
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
 
-        Customer c1 = new Customer("SK-2341", "Sanjeewa Kumara", "921234567V", "sanjeewa@example.com", "0711234567",
+        Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", "921234567V", "hansana47@gmail.com", "0711234567",
             "12 Lake Road, Colombo", "metered", northRegion);
         c1.setOutstandingBalance(new BigDecimal("0.00"));
 
-        Customer c2 = new Customer("SP-4589", "Supun Perera", "881234568V", "supun@example.com", "0721234568",
+        Customer c2 = new Customer("SP-4589", "Hansana Malshan", "881234568V", "hanz4739@gmail.com", "0721234568",
             "45 Temple Street, Galle", "metered", southRegion);
         c2.setOutstandingBalance(new BigDecimal("500.00"));
 
