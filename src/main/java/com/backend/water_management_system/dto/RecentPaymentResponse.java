@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class RecentPaymentResponse {
+    private String paymentId;
     private String subscriptionNumber;
     private String accountHolderName;
     private BigDecimal amountPaid;
@@ -14,7 +15,8 @@ public class RecentPaymentResponse {
     public RecentPaymentResponse() {
     }
 
-    public RecentPaymentResponse(String subscriptionNumber, String accountHolderName, BigDecimal amountPaid, String status, LocalDateTime createdAt) {
+    public RecentPaymentResponse(String paymentId, String subscriptionNumber, String accountHolderName, BigDecimal amountPaid, String status, LocalDateTime createdAt) {
+        this.paymentId = paymentId;
         this.subscriptionNumber = subscriptionNumber;
         this.accountHolderName = accountHolderName;
         this.amountPaid = amountPaid;
@@ -23,6 +25,14 @@ public class RecentPaymentResponse {
     }
 
     // Getters and Setters
+    public String getPaymentId() {
+        return paymentId;
+    }
+
+    public void setPaymentId(String paymentId) {
+        this.paymentId = paymentId;
+    }
+
     public String getSubscriptionNumber() {
         return subscriptionNumber;
     }

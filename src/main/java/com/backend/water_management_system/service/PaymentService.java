@@ -330,6 +330,7 @@ public class PaymentService {
         return payments.stream()
                 .map(p -> {
                     RecentPaymentResponse res = new RecentPaymentResponse();
+                    res.setPaymentId(p.getPaymentId());
                     res.setSubscriptionNumber(p.getSubscriptionNumber());
                     res.setAmountPaid(p.getAmount());
                     res.setStatus(p.getStatus().name());
