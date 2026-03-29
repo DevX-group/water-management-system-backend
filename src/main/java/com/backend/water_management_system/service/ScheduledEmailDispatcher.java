@@ -241,11 +241,7 @@ public class ScheduledEmailDispatcher {
             return emailTemplate.getSubject();
         }
 
-        MessageTemplate smsTemplate = message.getSmsTemplate();
-        if (smsTemplate != null && smsTemplate.getSubject() != null && !smsTemplate.getSubject().isBlank()) {
-            return smsTemplate.getSubject();
-        }
-
+        //if there is no subject entered, return the message name as the subject
         if (message.getName() != null && !message.getName().isBlank()) {
             return message.getName();
         }
