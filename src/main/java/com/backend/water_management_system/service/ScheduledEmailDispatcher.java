@@ -44,6 +44,14 @@ public class ScheduledEmailDispatcher {
         this.mailSender = mailSenderProvider.getIfAvailable();
     }
 
+    public String getFromAddress() {
+        return fromAddress;
+    }
+
+    public void setFromAddress(String fromAddress) {
+        this.fromAddress = fromAddress;
+    }
+
     @Scheduled(fixedDelayString = "${app.messaging.scheduler-delay-ms:60000}")
     @Transactional
     public void sendDueScheduledEmails() {
@@ -138,15 +146,14 @@ public class ScheduledEmailDispatcher {
     //sends a due email to all the customers and returns the number of successful sends
     private int sendEmailToAll(List<String> customerEmails, String subject, String body) {
         int successCount = 0;
+        
+        String fromAdressForMail = setFromAdreesForMail(getFromAddress());
 
         for (String email : customerEmails) {
             try {
                 SimpleMailMessage mail = new SimpleMailMessage();
                 
-                if (fromAddress != null && !fromAddress.isBlank()) {
-                    mail.setFrom(fromAddress.trim());
-                }
-
+                mail.setFrom(fromAdressForMail);
                 mail.setTo(email);
                 mail.setSubject(subject);
                 mail.setText(body);
@@ -160,6 +167,14 @@ public class ScheduledEmailDispatcher {
         }
 
         return successCount;
+    }
+
+    public String setFromAdreesForMail(String fromAdress)
+    {
+        if (fromAddress != null && !fromAddress.isBlank())
+            return getFromAddress().trim();
+        
+        return "";
     }
 
     //returns whether the actual date and time the message should be sent is passed
