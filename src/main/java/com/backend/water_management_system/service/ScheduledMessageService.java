@@ -155,6 +155,7 @@ public class ScheduledMessageService {
             e.setEmailTemplate(toTemplateEntity(dto.getTemplates().getEmail()));
         }
 
+        // checks if something related to scheduling is updated (either in a recurring or one-time message)
         boolean scheduleOrTargetingChanged = !Objects.equals(oldScheduleType, e.getScheduleType())
                 || !Objects.equals(oldDayOfMonth, e.getScheduleDayOfMonth())
                 || !Objects.equals(oldDate, e.getScheduleDate())
@@ -162,6 +163,7 @@ public class ScheduledMessageService {
                 || !Objects.equals(oldChannels, e.getChannels())
                 || !Objects.equals(oldRecipients, e.getRecipients());
 
+        // if yes, reset lastEmailSentAt or oneTimeEmailSent properties
         if (scheduleOrTargetingChanged) {
             e.setLastEmailSentAt(null);
             e.setOneTimeEmailSent(false);

@@ -23,9 +23,9 @@ public class ScheduledMessage extends Message {
     private LocalTime scheduleTime;
 
     @Column(name = "last_email_sent_at")
-    private LocalDateTime lastEmailSentAt;
+    private LocalDateTime lastEmailSentAt;  //for recurring messages
 
-    @Column(name = "one_time_email_sent")
+    @Column(name = "one_time_email_sent")   //for one-time messages
     private Boolean oneTimeEmailSent;
 
     // getters/setters

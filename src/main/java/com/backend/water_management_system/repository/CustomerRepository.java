@@ -23,5 +23,5 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
                 WHERE c.email IS NOT NULL
                         AND TRIM(c.email) <> ''
         """)
-    List<String> findAllCustomerEmails();
+    List<String> findAllCustomerEmails(); //finds all emails of all customers whose email field is not NULL
 }

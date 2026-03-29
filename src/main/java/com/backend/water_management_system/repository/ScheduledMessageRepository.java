@@ -12,7 +12,7 @@ public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessa
     @Query("""
                 SELECT sm 
                 FROM ScheduledMessage sm
-                WHERE sm.scheduleTime IS NOT NULL
+                WHERE sm.scheduleTime IS NOT NULL   
                         AND (
                                 (LOWER(TRIM(sm.scheduleType)) IN ('one-time', 'one time', 'onetime', 'one_time')
                                     AND COALESCE(sm.oneTimeEmailSent, false) = false)
@@ -20,4 +20,5 @@ public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessa
                             )
         """)
     List<ScheduledMessage> findAllEmailSchedulable(); //selects scheduled messages whose scheduleTime is not NULL and scheduleType is (recurring or if onetime -> not sent)
+                                                      //it doesn't check scheduleDate is not NULL because in recurring messages it is NULL
 }
