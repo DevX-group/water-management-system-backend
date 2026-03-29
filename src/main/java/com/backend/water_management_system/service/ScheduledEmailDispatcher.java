@@ -171,7 +171,7 @@ public class ScheduledEmailDispatcher {
         //if it is one-time, return whether the current date and time is after the scheduled date and time
         if (isOneTime(message)) {
             LocalDate scheduledDate = message.getScheduleDate();
-            if (scheduledDate == null || Boolean.TRUE.equals(message.getOneTimeEmailSent())) {
+            if (scheduledDate == null) {
                 return false;
             }
 
