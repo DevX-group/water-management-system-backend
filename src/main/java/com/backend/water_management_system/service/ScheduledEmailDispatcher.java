@@ -60,7 +60,7 @@ public class ScheduledEmailDispatcher {
             return;
         }
 
-        List<ScheduledMessage> candidates = scheduledMessageRepository.findAllEmailSchedulable();
+        List<ScheduledMessage> candidates = scheduledMessageRepository.findAllEmailSchedulableWithLock();
         if (candidates.isEmpty()) {
             log.debug("No schedulable email messages found");
             return;
@@ -113,18 +113,10 @@ public class ScheduledEmailDispatcher {
                     ? 0.0
                     : (successCount * 100.0) / totalRecipients;
 
+            //if at least one email is successfully sent, save the message as a sent message in the database
             if (successCount > 0) {
-                boolean alreadyRecorded = sentMessageService.existsForScheduledMessageOnDate(
-                        message.getId(),
-                        now.toLocalDate());
-
-                if (!alreadyRecorded) {
-                    sentMessageService.save(
+                sentMessageService.save(
                             toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
-                } else {
-                    log.info("Skipped duplicate sent history row for scheduledMessageId={} on {}",
-                            message.getId(), now.toLocalDate());
-                }
             }
 
             totalSuccess += successCount;
