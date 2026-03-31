@@ -21,13 +21,6 @@ public class SentMessageService {
         return sentMessageRepository.save(sentMessage);
     }
 
-    public boolean existsForScheduledMessageOnDate(Long scheduledMessageId, LocalDate sentDate) {
-        if (scheduledMessageId == null || sentDate == null) {
-            return false;
-        }
-        return sentMessageRepository.existsBySourceScheduledMessageIdAndSentDate(scheduledMessageId, sentDate);
-    }
-
     public List<SentMessageHistoryDto> getHistory() {
         return sentMessageRepository.findAllByOrderBySentDateDescSentTimeDescIdDesc()
                 .stream()

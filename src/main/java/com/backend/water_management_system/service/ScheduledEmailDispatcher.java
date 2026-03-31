@@ -44,6 +44,14 @@ public class ScheduledEmailDispatcher {
         this.mailSender = mailSenderProvider.getIfAvailable();
     }
 
+    public String getFromAddress() {
+        return fromAddress;
+    }
+
+    public void setFromAddress(String fromAddress) {
+        this.fromAddress = fromAddress;
+    }
+
     @Scheduled(fixedDelayString = "${app.messaging.scheduler-delay-ms:60000}")
     @Transactional
     public void sendDueScheduledEmails() {
@@ -52,7 +60,7 @@ public class ScheduledEmailDispatcher {
             return;
         }
 
-        List<ScheduledMessage> candidates = scheduledMessageRepository.findAllEmailSchedulable();
+        List<ScheduledMessage> candidates = scheduledMessageRepository.findAllEmailSchedulableWithLock();
         if (candidates.isEmpty()) {
             log.debug("No schedulable email messages found");
             return;
@@ -96,29 +104,24 @@ public class ScheduledEmailDispatcher {
 
             String subject = buildSubject(message);
             String body = buildBody(message);
+            
             int successCount = sendEmailToAll(customerEmails, subject, body);
+            
             int totalRecipients = customerEmails.size();
             int failedCount = Math.max(totalRecipients - successCount, 0);
             double emailSuccessRate = totalRecipients == 0
                     ? 0.0
                     : (successCount * 100.0) / totalRecipients;
 
+            //if at least one email is successfully sent, save the message as a sent message in the database
             if (successCount > 0) {
-                boolean alreadyRecorded = sentMessageService.existsForScheduledMessageOnDate(
-                        message.getId(),
-                        now.toLocalDate());
-
-                if (!alreadyRecorded) {
-                    sentMessageService.save(
+                sentMessageService.save(
                             toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
-                } else {
-                    log.info("Skipped duplicate sent history row for scheduledMessageId={} on {}",
-                            message.getId(), now.toLocalDate());
-                }
             }
 
             totalSuccess += successCount;
 
+            //if at least one email is successfully sent, update lastEmailSentAt or oneTimeEmailSent properties
             if (successCount > 0) {
                 message.setLastEmailSentAt(now);
                 if (isOneTime(message)) {
@@ -127,23 +130,28 @@ public class ScheduledEmailDispatcher {
             }
         }
 
+        //after all the due messages are processed, log the summary of this tick
         log.info("Scheduled email tick: candidates={}, due={}, recipients={}, successfulSends={}",
                 candidates.size(), dueCount, customerEmails.size(), totalSuccess);
     }
 
+    //sends a due email to all the customers and returns the number of successful sends
     private int sendEmailToAll(List<String> customerEmails, String subject, String body) {
         int successCount = 0;
+        
+        String fromAdressForMail = setFromAdreesForMail(getFromAddress());
 
         for (String email : customerEmails) {
             try {
                 SimpleMailMessage mail = new SimpleMailMessage();
-                if (fromAddress != null && !fromAddress.isBlank()) {
-                    mail.setFrom(fromAddress.trim());
-                }
+                
+                mail.setFrom(fromAdressForMail);
                 mail.setTo(email);
                 mail.setSubject(subject);
                 mail.setText(body);
+
                 mailSender.send(mail);
+
                 successCount++;
             } catch (Exception ex) {
                 log.warn("Failed to send scheduled email to {}: {}", email, ex.getMessage());
@@ -153,14 +161,24 @@ public class ScheduledEmailDispatcher {
         return successCount;
     }
 
+    public String setFromAdreesForMail(String fromAdress)
+    {
+        if (fromAddress != null && !fromAddress.isBlank())
+            return getFromAddress().trim();
+        
+        return "";
+    }
+
+    //returns whether the actual date and time the message should be sent is passed
     private boolean isDue(ScheduledMessage message, LocalDateTime now) {
         if (message.getScheduleType() == null || message.getScheduleTime() == null) {
             return false;
         }
 
+        //if it is one-time, return whether the current date and time is after the scheduled date and time
         if (isOneTime(message)) {
             LocalDate scheduledDate = message.getScheduleDate();
-            if (scheduledDate == null || Boolean.TRUE.equals(message.getOneTimeEmailSent())) {
+            if (scheduledDate == null) {
                 return false;
             }
 
@@ -168,8 +186,11 @@ public class ScheduledEmailDispatcher {
                     && !now.toLocalTime().isBefore(message.getScheduleTime());
         }
 
+        //if it is recurring,
         if (isRecurring(message)) {
             Integer dayOfMonth = message.getScheduleDayOfMonth();
+            
+            //if scheduled day of month is not set, return false
             if (dayOfMonth == null) {
                 return false;
             }
@@ -178,20 +199,24 @@ public class ScheduledEmailDispatcher {
                     ? message.getLastEmailSentAt().toLocalDate()
                     : null;
 
+            //if it is at least sent once and the last sent date is within this month this year, return false
             if (lastSentDate != null
                     && lastSentDate.getYear() == now.getYear()
                     && lastSentDate.getMonthValue() == now.getMonthValue()) {
                 return false;
             }
 
+            //if the current day of month is before the scheduled day of month, return false
             if (now.getDayOfMonth() < dayOfMonth) {
                 return false;
             }
 
+            //if the current day of month is the scheduled day of month, return whether the current time is before the scheduled time 
             if (now.getDayOfMonth() == dayOfMonth) {
                 return !now.toLocalTime().isBefore(message.getScheduleTime());
             }
 
+            //if the current date is after the scheduled date, or if it is today and the time is after the scheduled time, return true
             return true;
         }
 
@@ -223,16 +248,12 @@ public class ScheduledEmailDispatcher {
             return emailTemplate.getSubject();
         }
 
-        MessageTemplate smsTemplate = message.getSmsTemplate();
-        if (smsTemplate != null && smsTemplate.getSubject() != null && !smsTemplate.getSubject().isBlank()) {
-            return smsTemplate.getSubject();
-        }
-
+        //if there is no subject entered, return the message name as the subject
         if (message.getName() != null && !message.getName().isBlank()) {
             return message.getName();
         }
 
-        return "Water Bill Message";
+        return "Pradeshiya Sabha Water Bill";
     }
 
     private String buildBody(ScheduledMessage message) {
@@ -251,10 +272,12 @@ public class ScheduledEmailDispatcher {
             return "";
         }
 
+        //if it is a custom template, return the content
         if (template.getContent() != null && !template.getContent().isBlank()) {
             return template.getContent();
         }
 
+        //if there is nothing in content, but there are no template sections, return empty string
         if (template.getSections() == null || template.getSections().isEmpty()) {
             return "";
         }
