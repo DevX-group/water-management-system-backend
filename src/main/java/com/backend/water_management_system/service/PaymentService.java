@@ -21,11 +21,13 @@ import com.backend.water_management_system.dto.PaymentCustomerInfoResponse;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Payment;
+import com.backend.water_management_system.entity.PaymentAllocation;
 import com.backend.water_management_system.entity.PaymentStatus;
 import com.backend.water_management_system.entity.PaymentType;
 import com.backend.water_management_system.exception.InvalidPaymentException;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
+import com.backend.water_management_system.repository.PaymentAllocationRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
 @Service
@@ -34,13 +36,16 @@ public class PaymentService {
     private final CustomerRepository customerRepository;
     private final PaymentRepository paymentRepository;
     private final BillRepository billRepository;
+    private final PaymentAllocationRepository paymentAllocationRepository;
 
     public PaymentService(CustomerRepository customerRepository,
             PaymentRepository paymentRepository,
-            BillRepository billRepository) {
+            BillRepository billRepository,
+            PaymentAllocationRepository paymentAllocationRepository) {
         this.customerRepository = customerRepository;
         this.paymentRepository = paymentRepository;
         this.billRepository = billRepository;
+        this.paymentAllocationRepository = paymentAllocationRepository;
     }
 
     public AddPaymentResponse addPayment(AddPaymentRequest request) {
@@ -66,6 +71,14 @@ public class PaymentService {
         customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException(
                         "Customer not found with subscription number: " + subscriptionNumber));
+
+        Payment payment = new Payment();
+        payment.setPaymentId(UUID.randomUUID().toString());
+        payment.setSubscriptionNumber(subscriptionNumber);
+        payment.setAmount(amount);
+        payment.setStatus(recordedStatus);
+        payment.setPaymentType(request.getPaymentType());
+        payment.setCreatedAt(LocalDateTime.now());
 
         if (request.getPaymentType() == PaymentType.MONTHLY) {
 
@@ -118,6 +131,14 @@ public class PaymentService {
 
             billRepository.save(targetBill);
 
+            PaymentAllocation allocation = new PaymentAllocation();
+            allocation.setPaymentId(UUID.randomUUID().toString());
+            allocation.setPaymentId(payment.getPaymentId());
+            allocation.setBillId(targetBill.getBillId());
+            allocation.setAmount(amount);
+
+            paymentAllocationRepository.save(allocation);
+
         } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
 
             List<Bill> bills = billRepository
@@ -151,19 +172,31 @@ public class PaymentService {
                     break;
                 }
 
+                BigDecimal appliedAmount;
+
                 if (remainingAmount.compareTo(due) >= 0) {
                     // Full pay this bill
+                    appliedAmount = due;
                     remainingAmount = remainingAmount.subtract(due);
                     bill.setBalanceDue(BigDecimal.ZERO);
                     bill.setStatus("PAID");
                 } else {
                     // Partial pay this bill
+                    appliedAmount = remainingAmount;
                     bill.setBalanceDue(due.subtract(remainingAmount));
                     remainingAmount = BigDecimal.ZERO;
                     bill.setStatus("PENDING");
                 }
 
                 billRepository.save(bill);
+
+                PaymentAllocation allocation = new PaymentAllocation();
+                allocation.setPaymentId(UUID.randomUUID().toString());
+                allocation.setPaymentId(payment.getPaymentId());
+                allocation.setBillId(bill.getBillId());
+                allocation.setAmount(appliedAmount);
+
+                paymentAllocationRepository.save(allocation);
             }
 
             if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
@@ -178,14 +211,6 @@ public class PaymentService {
         else {
             throw new InvalidPaymentException("Unsupported payment type");
         }
-
-        Payment payment = new Payment();
-        payment.setPaymentId(UUID.randomUUID().toString());
-        payment.setSubscriptionNumber(subscriptionNumber);
-        payment.setAmount(amount);
-        payment.setStatus(recordedStatus);
-        payment.setPaymentType(request.getPaymentType());
-        payment.setCreatedAt(LocalDateTime.now());
 
         paymentRepository.save(payment);
 
@@ -311,7 +336,7 @@ public class PaymentService {
                 .toList();
     }
 
-    public PaymentCustomerInfoResponse getPaymentCustomerInfo(String subscriptionNumber){
+    public PaymentCustomerInfoResponse getPaymentCustomerInfo(String subscriptionNumber) {
         Customer customer = customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
 
@@ -319,12 +344,11 @@ public class PaymentService {
                 customer.getSubscriptionNumber(),
                 customer.getAccountHolderName(),
                 customer.getRegion().getRegionName(),
-                customer.getNic()
-        );
+                customer.getNic());
 
     }
 
-    public List<RecentPaymentResponse> getRecentPayments(int limit){
+    public List<RecentPaymentResponse> getRecentPayments(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         List<Payment> payments = paymentRepository.findAllByOrderByCreatedAtDesc(pageable);
         return payments.stream()
@@ -338,12 +362,157 @@ public class PaymentService {
 
                     Customer customer = customerRepository.findBySubscriptionNumber(p.getSubscriptionNumber())
                             .orElse(null);
-                    
+
                     res.setAccountHolderName(
-                        customer != null ? customer.getAccountHolderName() : "Unknown");
-                    
+                            customer != null ? customer.getAccountHolderName() : "Unknown");
+
                     return res;
                 })
                 .toList();
+    }
+
+    public AddPaymentResponse updatePayment(String paymentId, BigDecimal newAmount) {
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
+
+        if (newAmount == null || newAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidPaymentException("Payment amount must be greater than zero");
+        }
+
+        String subscriptionNumber = payment.getSubscriptionNumber();
+
+        BigDecimal oldBalance = BigDecimal.ZERO;
+        BigDecimal newBalance = BigDecimal.ZERO;
+
+        reversePaymentEffect(payment);
+
+        payment.setAmount(newAmount);
+
+        PaymentStatus newStatus;
+
+        newStatus = applyPaymentEffect(payment);
+
+        payment.setStatus(newStatus);
+
+        paymentRepository.save(payment);
+
+        AddPaymentResponse response = new AddPaymentResponse("Payment updated successfully");
+        response.setSubscriptionNumber(subscriptionNumber);
+        response.setOldBalance(oldBalance);
+        response.setNewBalance(newBalance);
+        response.setPaymentId(payment.getPaymentId());
+        response.setStatus(payment.getStatus());
+        response.setPaymentType(payment.getPaymentType());
+        response.setCreatedAt(payment.getCreatedAt());
+
+        return response;
+    }
+
+    private void reversePaymentEffect(Payment payment) {
+
+        List<PaymentAllocation> allocations = paymentAllocationRepository.findByPaymentId(payment.getPaymentId());
+
+        for (PaymentAllocation alloc : allocations) {
+
+            Bill bill = billRepository.findById(alloc.getBillId())
+                    .orElseThrow(() -> new RuntimeException("Bill not found"));
+
+            BigDecimal currentDue = bill.getBalanceDue();
+
+            bill.setBalanceDue(currentDue.add(alloc.getAmount()));
+            bill.setStatus("PENDING");
+
+            billRepository.save(bill);
+        }
+
+        paymentAllocationRepository.deleteAll(allocations);
+    }
+
+    public PaymentStatus applyPaymentEffect(Payment payment) {
+        if (payment.getPaymentType() == PaymentType.MONTHLY) {
+
+            List<Bill> bills = billRepository
+                    .findByCustomer_SubscriptionNumberOrderByBillDateDesc(
+                            payment.getSubscriptionNumber());
+
+            if (bills.isEmpty()) {
+                throw new RuntimeException("No bills found");
+            }
+
+            Bill latest = bills.get(0);
+
+            BigDecimal due = latest.getBalanceDue();
+            BigDecimal amount = payment.getAmount();
+
+            BigDecimal appliedAmount = amount.min(due);
+
+            latest.setBalanceDue(due.subtract(appliedAmount));
+
+            latest.setStatus(latest.getBalanceDue().compareTo(BigDecimal.ZERO) == 0 ? "PAID" : "PENDING");
+
+            PaymentAllocation allocation = new PaymentAllocation();
+            allocation.setPaymentId(payment.getPaymentId());
+            allocation.setBillId(latest.getBillId());
+            allocation.setAmount(appliedAmount);
+
+            paymentAllocationRepository.save(allocation);
+
+            billRepository.save(latest);
+
+            return (latest.getBalanceDue().compareTo(BigDecimal.ZERO) == 0)
+                    ? PaymentStatus.FULL
+                    : PaymentStatus.PARTIAL;
+
+        } else if (payment.getPaymentType() == PaymentType.OUTSTANDING) {
+            BigDecimal remaining = payment.getAmount();
+
+            List<Bill> bills = billRepository
+                    .findByCustomer_SubscriptionNumberOrderByBillDateAsc(
+                            payment.getSubscriptionNumber());
+
+            boolean allCleared = true;
+
+            for (Bill bill : bills) {
+
+                if (remaining.compareTo(BigDecimal.ZERO) <= 0)
+                    break;
+
+                BigDecimal due = bill.getBalanceDue();
+
+                if (due.compareTo(BigDecimal.ZERO) <= 0)
+                    continue;
+
+                BigDecimal appliedAmount;
+
+                if (remaining.compareTo(due) >= 0) {
+                    // fully pay this bill
+                    appliedAmount = due;
+                    bill.setBalanceDue(BigDecimal.ZERO);
+                    bill.setStatus("PAID");
+                } else {
+                    // partial payment
+                    appliedAmount = remaining;
+                    bill.setBalanceDue(due.subtract(remaining));
+                    bill.setStatus("PENDING");
+                    allCleared = false;
+                }
+
+                PaymentAllocation allocation = new PaymentAllocation();
+                allocation.setPaymentId(payment.getPaymentId());
+                allocation.setBillId(bill.getBillId());
+                allocation.setAmount(appliedAmount);
+
+                paymentAllocationRepository.save(allocation);
+
+                remaining = remaining.subtract(appliedAmount);
+
+                billRepository.save(bill);
+            }
+
+            return allCleared ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
+        }
+
+        throw new RuntimeException("Unsupported payment type");
     }
 }
