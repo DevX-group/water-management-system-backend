@@ -1,9 +1,12 @@
 package com.backend.water_management_system.service;
 
 import com.backend.water_management_system.entity.MessageTemplate;
+import com.backend.water_management_system.entity.Bill;
+import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.ScheduledMessage;
 import com.backend.water_management_system.entity.SentMessage;
 import com.backend.water_management_system.entity.TemplateSection;
+import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.ScheduledMessageRepository;
 import org.slf4j.Logger;
@@ -16,9 +19,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -28,6 +34,7 @@ public class ScheduledEmailDispatcher {
 
     private final ScheduledMessageRepository scheduledMessageRepository;
     private final CustomerRepository customerRepository;
+    private final BillRepository billRepository;
     private final SentMessageService sentMessageService;
     private final MailSender mailSender;
 
@@ -36,10 +43,12 @@ public class ScheduledEmailDispatcher {
 
     public ScheduledEmailDispatcher(ScheduledMessageRepository scheduledMessageRepository,
             CustomerRepository customerRepository,
+            BillRepository billRepository,
             SentMessageService sentMessageService,
             ObjectProvider<MailSender> mailSenderProvider) {
         this.scheduledMessageRepository = scheduledMessageRepository;
         this.customerRepository = customerRepository;
+        this.billRepository = billRepository;
         this.sentMessageService = sentMessageService;
         this.mailSender = mailSenderProvider.getIfAvailable();
     }
@@ -66,14 +75,13 @@ public class ScheduledEmailDispatcher {
             return;
         }
 
-        List<String> customerEmails = customerRepository.findAllCustomerEmails().stream()
+        //make a list of all customers who has an email address
+        List<Customer> customers = customerRepository.findAllCustomersWithEmail().stream()
                 .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(email -> !email.isEmpty())
-                .distinct()
+                .filter(customer -> customer.getEmail() != null && !customer.getEmail().isBlank())
                 .toList();
 
-        if (customerEmails.isEmpty()) {
+        if (customers.isEmpty()) {
             log.warn("No customer emails found; skipping scheduled email dispatch");
             return;
         }
@@ -104,24 +112,26 @@ public class ScheduledEmailDispatcher {
 
             String subject = buildSubject(message);
             String body = buildBody(message);
-            
-            int successCount = sendEmailToAll(customerEmails, subject, body);
-            
-            int totalRecipients = customerEmails.size();
+
+            int successCount = sendEmailToAll(customers, subject, body);
+
+            int totalRecipients = customers.size();
             int failedCount = Math.max(totalRecipients - successCount, 0);
             double emailSuccessRate = totalRecipients == 0
                     ? 0.0
                     : (successCount * 100.0) / totalRecipients;
 
-            //if at least one email is successfully sent, save the message as a sent message in the database
+            // if at least one email is successfully sent, save the message as a sent
+            // message in the database
             if (successCount > 0) {
                 sentMessageService.save(
-                            toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
+                        toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
             }
 
             totalSuccess += successCount;
 
-            //if at least one email is successfully sent, update lastEmailSentAt or oneTimeEmailSent properties
+            // if at least one email is successfully sent, update lastEmailSentAt or
+            // oneTimeEmailSent properties
             if (successCount > 0) {
                 message.setLastEmailSentAt(now);
                 if (isOneTime(message)) {
@@ -130,23 +140,36 @@ public class ScheduledEmailDispatcher {
             }
         }
 
-        //after all the due messages are processed, log the summary of this tick
+        // after all the due messages are processed, log the summary of this tick
         log.info("Scheduled email tick: candidates={}, due={}, recipients={}, successfulSends={}",
-                candidates.size(), dueCount, customerEmails.size(), totalSuccess);
+                candidates.size(), dueCount, customers.size(), totalSuccess);
     }
 
-    //sends a due email to all the customers and returns the number of successful sends
-    private int sendEmailToAll(List<String> customerEmails, String subject, String body) {
+    // sends the due email to each of all the customers and returns the number of successful sends
+    private int sendEmailToAll(List<Customer> customers, String subjectTemplate, String bodyTemplate) {
         int successCount = 0;
-        
-        String fromAdressForMail = setFromAdreesForMail(getFromAddress());
 
-        for (String email : customerEmails) {
+        String fromAddressForMail = resolveFromAddress();
+
+        for (Customer customer : customers) {
+            String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
+            if (toEmail.isEmpty()) {
+                continue;
+            }
+
+            //get the current bill of the relevant customer to replace placeholders in the email template
+            Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
+            
+            String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
+            String body = replacePlaceholders(bodyTemplate, customer, currentBill);
+
             try {
                 SimpleMailMessage mail = new SimpleMailMessage();
-                
-                mail.setFrom(fromAdressForMail);
-                mail.setTo(email);
+
+                if (!fromAddressForMail.isBlank()) {
+                    mail.setFrom(fromAddressForMail);
+                }
+                mail.setTo(toEmail);
                 mail.setSubject(subject);
                 mail.setText(body);
 
@@ -154,28 +177,73 @@ public class ScheduledEmailDispatcher {
 
                 successCount++;
             } catch (Exception ex) {
-                log.warn("Failed to send scheduled email to {}: {}", email, ex.getMessage());
+                log.warn("Failed to send scheduled email to {}: {}", toEmail, ex.getMessage());
             }
         }
 
         return successCount;
     }
 
-    public String setFromAdreesForMail(String fromAdress)
-    {
+    private String resolveFromAddress() {
         if (fromAddress != null && !fromAddress.isBlank())
             return getFromAddress().trim();
-        
+
         return "";
     }
 
-    //returns whether the actual date and time the message should be sent is passed
+    //replaces placeholders in the template with actual values from the relevant customer and their current bill, if available.
+    private String replacePlaceholders(String template, Customer customer, Bill currentBill) {
+        if (template == null || template.isBlank()) {
+            return "";
+        }
+
+        Map<String, String> values = new HashMap<>();
+        values.put("customer_name", safe(customer != null ? customer.getAccountHolderName() : null));
+        values.put("customer_number", safe(customer != null ? customer.getSubscriptionNumber() : null));
+        values.put("outstanding_balance", formatNumber(customer != null ? customer.getOutstandingBalance() : null));
+        values.put("outstanding balance", formatNumber(customer != null ? customer.getOutstandingBalance() : null));
+
+        values.put("billing_period", safe(currentBill != null ? currentBill.getBillingPeriod() : null));
+        values.put("bill_date", formatDate(currentBill != null ? currentBill.getBillDate() : null));
+        values.put("base_charge", formatNumber(currentBill != null ? currentBill.getBaseCharge() : null));
+        values.put("usage_units", formatInt(currentBill != null ? currentBill.getUsageUnits() : null));
+        values.put("usage_charge", formatNumber(currentBill != null ? currentBill.getUsageCharge() : null));
+        values.put("tax_amount", formatNumber(currentBill != null ? currentBill.getTaxAmount() : null));
+        values.put("monthly_fee", formatNumber(currentBill != null ? currentBill.getTotalAmount() : null));
+        values.put("total_balance", formatNumber(currentBill != null ? currentBill.getBalanceDue() : null));
+        values.put("due_date", formatDate(currentBill != null ? currentBill.getDueDate() : null));
+
+        String result = template;
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            result = result.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+        return result;
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String formatDate(LocalDate date) {
+        return date == null ? "" : date.toString();
+    }
+
+    private String formatNumber(BigDecimal value) {
+        return value == null ? "" : value.stripTrailingZeros().toPlainString();
+    }
+
+    private String formatInt(Integer value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    // returns whether the actual date and time the message should be sent is passed
     private boolean isDue(ScheduledMessage message, LocalDateTime now) {
         if (message.getScheduleType() == null || message.getScheduleTime() == null) {
             return false;
         }
 
-        //if it is one-time, return whether the current date and time is after the scheduled date and time
+        // if it is one-time, return whether the current date and time is after the
+        // scheduled date and time
         if (isOneTime(message)) {
             LocalDate scheduledDate = message.getScheduleDate();
             if (scheduledDate == null) {
@@ -186,11 +254,11 @@ public class ScheduledEmailDispatcher {
                     && !now.toLocalTime().isBefore(message.getScheduleTime());
         }
 
-        //if it is recurring,
+        // if it is recurring,
         if (isRecurring(message)) {
             Integer dayOfMonth = message.getScheduleDayOfMonth();
-            
-            //if scheduled day of month is not set, return false
+
+            // if scheduled day of month is not set, return false
             if (dayOfMonth == null) {
                 return false;
             }
@@ -199,24 +267,28 @@ public class ScheduledEmailDispatcher {
                     ? message.getLastEmailSentAt().toLocalDate()
                     : null;
 
-            //if it is at least sent once and the last sent date is within this month this year, return false
+            // if it is at least sent once and the last sent date is within this month this
+            // year, return false
             if (lastSentDate != null
                     && lastSentDate.getYear() == now.getYear()
                     && lastSentDate.getMonthValue() == now.getMonthValue()) {
                 return false;
             }
 
-            //if the current day of month is before the scheduled day of month, return false
+            // if the current day of month is before the scheduled day of month, return
+            // false
             if (now.getDayOfMonth() < dayOfMonth) {
                 return false;
             }
 
-            //if the current day of month is the scheduled day of month, return whether the current time is before the scheduled time 
+            // if the current day of month is the scheduled day of month, return whether the
+            // current time is before the scheduled time
             if (now.getDayOfMonth() == dayOfMonth) {
                 return !now.toLocalTime().isBefore(message.getScheduleTime());
             }
 
-            //if the current date is after the scheduled date, or if it is today and the time is after the scheduled time, return true
+            // if the current date is after the scheduled date, or if it is today and the
+            // time is after the scheduled time, return true
             return true;
         }
 
@@ -248,7 +320,7 @@ public class ScheduledEmailDispatcher {
             return emailTemplate.getSubject();
         }
 
-        //if there is no subject entered, return the message name as the subject
+        // if there is no subject entered, return the message name as the subject
         if (message.getName() != null && !message.getName().isBlank()) {
             return message.getName();
         }
@@ -272,12 +344,13 @@ public class ScheduledEmailDispatcher {
             return "";
         }
 
-        //if it is a custom template, return the content
+        // if it is a custom template, return the content
         if (template.getContent() != null && !template.getContent().isBlank()) {
             return template.getContent();
         }
 
-        //if there is nothing in content, but there are no template sections, return empty string
+        // if there is nothing in content, but there are no template sections, return
+        // empty string
         if (template.getSections() == null || template.getSections().isEmpty()) {
             return "";
         }
