@@ -58,4 +58,10 @@ public class PaymentController {
         AddPaymentResponse response = paymentService.updatePayment(paymentId, request.getAmount());
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{paymentId}")
+    public ResponseEntity<Void> deletePayment(@PathVariable String paymentId) {
+        paymentService.deletePayment(paymentId);
+        return ResponseEntity.noContent().build();
+    }
 }

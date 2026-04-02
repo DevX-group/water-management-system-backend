@@ -30,6 +30,8 @@ import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentAllocationRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class PaymentService {
 
@@ -48,6 +50,7 @@ public class PaymentService {
         this.paymentAllocationRepository = paymentAllocationRepository;
     }
 
+    @Transactional
     public AddPaymentResponse addPayment(AddPaymentRequest request) {
 
         if (request.getSubscriptionNumber() == null || request.getSubscriptionNumber().isBlank()) {
@@ -371,6 +374,7 @@ public class PaymentService {
                 .toList();
     }
 
+    @Transactional
     public AddPaymentResponse updatePayment(String paymentId, BigDecimal newAmount) {
 
         Payment payment = paymentRepository.findById(paymentId)
@@ -429,6 +433,7 @@ public class PaymentService {
         paymentAllocationRepository.deleteAll(allocations);
     }
 
+    
     public PaymentStatus applyPaymentEffect(Payment payment) {
         if (payment.getPaymentType() == PaymentType.MONTHLY) {
 
@@ -514,5 +519,14 @@ public class PaymentService {
         }
 
         throw new RuntimeException("Unsupported payment type");
+    }
+
+    @Transactional
+    public void deletePayment(String paymentId){
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
+
+        reversePaymentEffect(payment);
+        paymentRepository.delete(payment);
     }
 }
