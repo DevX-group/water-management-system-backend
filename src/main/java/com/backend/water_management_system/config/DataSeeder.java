@@ -148,7 +148,7 @@ public class DataSeeder implements CommandLineRunner {
         b5_old1.setUsageCharge(new BigDecimal("1450.00"));
         b5_old1.setTaxAmount(BigDecimal.ZERO);
         b5_old1.setTotalAmount(new BigDecimal("1500.00"));
-        b5_old1.setBalanceDue(new BigDecimal("950.00")); // unpaid remaining
+        b5_old1.setBalanceDue(new BigDecimal("1500.00")); 
         b5_old1.setStatus("PENDING");
         b5_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
         billRepository.save(b5_old1);
@@ -166,7 +166,7 @@ public class DataSeeder implements CommandLineRunner {
         b2_old1.setUsageCharge(new BigDecimal("1850.00"));
         b2_old1.setTaxAmount(BigDecimal.ZERO);
         b2_old1.setTotalAmount(new BigDecimal("1900.00"));
-        b2_old1.setBalanceDue(new BigDecimal("600.00")); // still unpaid
+        b2_old1.setBalanceDue(new BigDecimal("1900.00")); // still unpaid
         b2_old1.setStatus("PENDING");
         b2_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
         billRepository.save(b2_old1);
