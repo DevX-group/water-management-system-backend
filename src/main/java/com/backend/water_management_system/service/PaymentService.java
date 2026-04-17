@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.hibernate.query.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -16,6 +15,7 @@ import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
 import com.backend.water_management_system.dto.OutstandingBillItemResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
+import com.backend.water_management_system.dto.PaymentResult;
 import com.backend.water_management_system.dto.RecentPaymentResponse;
 import com.backend.water_management_system.dto.PaymentCustomerInfoResponse;
 import com.backend.water_management_system.entity.Bill;
@@ -31,8 +31,10 @@ import com.backend.water_management_system.repository.PaymentAllocationRepositor
 import com.backend.water_management_system.repository.PaymentRepository;
 
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentService {
 
     private final CustomerRepository customerRepository;
@@ -40,19 +42,38 @@ public class PaymentService {
     private final BillRepository billRepository;
     private final PaymentAllocationRepository paymentAllocationRepository;
 
-    public PaymentService(CustomerRepository customerRepository,
-            PaymentRepository paymentRepository,
-            BillRepository billRepository,
-            PaymentAllocationRepository paymentAllocationRepository) {
-        this.customerRepository = customerRepository;
-        this.paymentRepository = paymentRepository;
-        this.billRepository = billRepository;
-        this.paymentAllocationRepository = paymentAllocationRepository;
-    }
-
+    
     @Transactional
     public AddPaymentResponse addPayment(AddPaymentRequest request) {
 
+        validateRequest(request);
+
+        String subscriptionNumber = request.getSubscriptionNumber();
+        BigDecimal amount = request.getAmount();
+
+        customerRepository.findById(subscriptionNumber)
+                .orElseThrow(() -> new RuntimeException(
+                        "Customer not found with subscription number: " + subscriptionNumber));
+
+        Payment payment = createPaymentEntity(request);
+
+        PaymentResult result;
+
+        if (request.getPaymentType() == PaymentType.MONTHLY) {
+            result = processMonthlyPayment(payment, amount, subscriptionNumber);
+        } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
+            result = processOutstandingPayment(payment, amount, subscriptionNumber);
+        } else {
+            throw new InvalidPaymentException("Unsupported payment type");
+        }
+
+        payment.setStatus(result.getStatus());
+        paymentRepository.save(payment);
+
+        return buildResponse(payment, result, subscriptionNumber, request.getPaymentType());
+    }
+
+    private void validateRequest(AddPaymentRequest request) {
         if (request.getSubscriptionNumber() == null || request.getSubscriptionNumber().isBlank()) {
             throw new InvalidPaymentException("Subscription number is required");
         }
@@ -62,164 +83,141 @@ public class PaymentService {
         if (request.getPaymentType() == null) {
             throw new InvalidPaymentException("Payment type is required");
         }
+    }
 
-        String subscriptionNumber = request.getSubscriptionNumber();
-        BigDecimal amount = request.getAmount();
-
-        BigDecimal oldValue = null;
-        BigDecimal newValue = null;
-
-        PaymentStatus recordedStatus = PaymentStatus.PARTIAL; // default
-
-        customerRepository.findById(subscriptionNumber)
-                .orElseThrow(() -> new RuntimeException(
-                        "Customer not found with subscription number: " + subscriptionNumber));
-
+    private Payment createPaymentEntity(AddPaymentRequest request) {
         Payment payment = new Payment();
         payment.setPaymentId(UUID.randomUUID().toString());
-        payment.setSubscriptionNumber(subscriptionNumber);
-        payment.setAmount(amount);
+        payment.setSubscriptionNumber(request.getSubscriptionNumber());
+        payment.setAmount(request.getAmount());
         payment.setPaymentType(request.getPaymentType());
         payment.setCreatedAt(LocalDateTime.now());
+        return payment;
+    }
 
-        if (request.getPaymentType() == PaymentType.MONTHLY) {
+    private Bill getLatestMonthlyBill(String subscriptionNumber) {
+        return billRepository
+                .findTopByCustomer_SubscriptionNumberAndBalanceDueGreaterThanOrderByBillDateDesc(
+                        subscriptionNumber, BigDecimal.ZERO)
+                .orElseThrow(() -> new InvalidPaymentException("No unpaid monthly bill found"));
+    }
 
-            Bill targetBill = billRepository
-                    .findTopByCustomer_SubscriptionNumberAndBalanceDueGreaterThanOrderByBillDateDesc(
-                            subscriptionNumber,
-                            BigDecimal.ZERO)
-                    .orElseThrow(() -> new InvalidPaymentException("No unpaid monthly bill found"));
+    private List<Bill> getOutstandingBillsEntites(String subscriptionNumber) {
 
-            BigDecimal oldDue = targetBill.getBalanceDue();
-            if (oldDue == null)
-                oldDue = BigDecimal.ZERO;
-            oldValue = oldDue;
+        Bill latest = billRepository
+                .findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
+                .orElseThrow(() -> new InvalidPaymentException("No bills found"));
 
-            if (amount.compareTo(oldDue) > 0) {
-                throw new InvalidPaymentException("Amount cannot be greater than monthly due");
-            }
+        List<Bill> bills = billRepository
+                .findByCustomer_SubscriptionNumberAndBalanceDueGreaterThanAndBillDateBeforeOrderByBillDateAsc(
+                        subscriptionNumber,
+                        BigDecimal.ZERO,
+                        latest.getBillDate());
 
-            BigDecimal total = targetBill.getTotalAmount();
-            if (total == null)
-                total = BigDecimal.ZERO;
-
-            boolean isFullOneShot = oldDue.compareTo(total) == 0 && amount.compareTo(total) == 0;
-
-            recordedStatus = isFullOneShot ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
-
-            BigDecimal newDue = oldDue.subtract(amount);
-            newValue = newDue;
-            targetBill.setBalanceDue(newDue);
-
-            if (newDue.compareTo(BigDecimal.ZERO) == 0) {
-                targetBill.setStatus("PAID");
-            } else if (targetBill.getStatus() == null || targetBill.getStatus().equalsIgnoreCase("PAID")) {
-                targetBill.setStatus("PENDING");
-            }
-
-            billRepository.save(targetBill);
-
-            PaymentAllocation allocation = new PaymentAllocation();
-            allocation.setPaymentId(payment.getPaymentId());
-            allocation.setBillId(targetBill.getBillId());
-            allocation.setAmount(amount);
-
-            paymentAllocationRepository.save(allocation);
-
-        } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
-
-            Bill latest = billRepository
-                    .findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
-                    .orElseThrow(() -> new InvalidPaymentException("No bills found"));
-
-            List<Bill> bills = billRepository
-                    .findByCustomer_SubscriptionNumberAndBalanceDueGreaterThanAndBillDateBeforeOrderByBillDateAsc(
-                            subscriptionNumber,
-                            BigDecimal.ZERO,
-                            latest.getBillDate());
-
-            if (bills.isEmpty()) {
-                throw new InvalidPaymentException("No outstanding bills found");
-            }
-
-            BigDecimal totalOutstanding = BigDecimal.ZERO;
-
-            for (Bill bill : bills) {
-                BigDecimal due = bill.getBalanceDue();
-                if (due != null && due.compareTo(BigDecimal.ZERO) > 0) {
-                    totalOutstanding = totalOutstanding.add(due);
-                }
-            }
-
-            BigDecimal remainingAmount = amount;
-            oldValue = BigDecimal.ZERO;
-
-            for (Bill bill : bills) {
-
-                BigDecimal due = bill.getBalanceDue();
-
-                oldValue = oldValue.add(due);
-
-                if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                    break;
-                }
-
-                BigDecimal appliedAmount;
-
-                if (remainingAmount.compareTo(due) >= 0) {
-                    // Full pay this bill
-                    appliedAmount = due;
-                    remainingAmount = remainingAmount.subtract(due);
-                    bill.setBalanceDue(BigDecimal.ZERO);
-                    bill.setStatus("PAID");
-                } else {
-                    // Partial pay this bill
-                    appliedAmount = remainingAmount;
-                    bill.setBalanceDue(due.subtract(remainingAmount));
-                    remainingAmount = BigDecimal.ZERO;
-                    bill.setStatus("PENDING");
-                }
-
-                billRepository.save(bill);
-
-                PaymentAllocation allocation = new PaymentAllocation();
-                allocation.setPaymentId(payment.getPaymentId());
-                allocation.setBillId(bill.getBillId());
-                allocation.setAmount(appliedAmount);
-
-                paymentAllocationRepository.save(allocation);
-            }
-
-            if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
-                throw new InvalidPaymentException("Amount exceeds total outstanding balance");
-            }
-
-            newValue = BigDecimal.ZERO; // optional for response
-
-            boolean isFullOneShot = amount.compareTo(totalOutstanding) == 0;
-
-            recordedStatus = isFullOneShot
-                    ? PaymentStatus.FULL
-                    : PaymentStatus.PARTIAL;
+        if (bills.isEmpty()) {
+            throw new InvalidPaymentException("No outstanding bills found");
         }
 
-        else {
-            throw new InvalidPaymentException("Unsupported payment type");
-        }
+        return bills;
+    }
 
-        payment.setStatus(recordedStatus);
-        paymentRepository.save(payment);
+    private void saveAllocation(String paymentId, Long billId, BigDecimal amount) {
+        PaymentAllocation allocation = new PaymentAllocation();
+        allocation.setPaymentId(paymentId);
+        allocation.setBillId(billId);
+        allocation.setAmount(amount);
+        paymentAllocationRepository.save(allocation);
+    }
+
+    private AddPaymentResponse buildResponse(Payment payment, PaymentResult result,
+            String subscriptionNumber, PaymentType type) {
 
         AddPaymentResponse response = new AddPaymentResponse("Payment added successfully");
+
         response.setSubscriptionNumber(subscriptionNumber);
-        response.setOldBalance(oldValue);
-        response.setNewBalance(newValue);
+        response.setOldBalance(result.getOldBalance());
+        response.setNewBalance(result.getNewBalance());
         response.setPaymentId(payment.getPaymentId());
-        response.setStatus(recordedStatus);
-        response.setPaymentType(request.getPaymentType());
+        response.setStatus(result.getStatus());
+        response.setPaymentType(type);
         response.setCreatedAt(payment.getCreatedAt());
 
         return response;
+    }
+
+    private PaymentResult processMonthlyPayment(Payment payment, BigDecimal amount, String subscriptionNumber) {
+
+        Bill bill = getLatestMonthlyBill(subscriptionNumber);
+
+        BigDecimal oldDue = bill.getBalanceDue() != null ? bill.getBalanceDue() : BigDecimal.ZERO;
+
+        if (amount.compareTo(oldDue) > 0) {
+            throw new InvalidPaymentException("Amount cannot be greater than monthly due");
+        }
+
+        BigDecimal total = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
+
+        boolean isFull = oldDue.compareTo(total) == 0 && amount.compareTo(total) == 0;
+
+        BigDecimal newDue = oldDue.subtract(amount);
+        bill.setBalanceDue(newDue);
+
+        bill.setStatus(newDue.compareTo(BigDecimal.ZERO) == 0 ? "PAID" : "PENDING");
+
+        billRepository.save(bill);
+
+        saveAllocation(payment.getPaymentId(), bill.getBillId(), amount);
+
+        return new PaymentResult(oldDue, newDue, isFull ? PaymentStatus.FULL : PaymentStatus.PARTIAL);
+    }
+
+    private PaymentResult processOutstandingPayment(Payment payment, BigDecimal amount, String subscriptionNumber) {
+
+        List<Bill> bills = getOutstandingBillsEntites(subscriptionNumber);
+
+        BigDecimal totalOutstanding = BigDecimal.ZERO;
+
+        for (Bill bill : bills) {
+            if (bill.getBalanceDue() != null) {
+                totalOutstanding = totalOutstanding.add(bill.getBalanceDue());
+            }
+        }
+
+        BigDecimal remaining = amount;
+        BigDecimal oldValue = totalOutstanding;
+
+        for (Bill bill : bills) {
+
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0)
+                break;
+
+            BigDecimal due = bill.getBalanceDue();
+            BigDecimal applied;
+
+            if (remaining.compareTo(due) >= 0) {
+                applied = due;
+                remaining = remaining.subtract(due);
+                bill.setBalanceDue(BigDecimal.ZERO);
+                bill.setStatus("PAID");
+            } else {
+                applied = remaining;
+                bill.setBalanceDue(due.subtract(remaining));
+                remaining = BigDecimal.ZERO;
+                bill.setStatus("PENDING");
+            }
+
+            billRepository.save(bill);
+            saveAllocation(payment.getPaymentId(), bill.getBillId(), applied);
+        }
+
+        if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+            throw new InvalidPaymentException("Amount exceeds total outstanding balance");
+        }
+
+        boolean isFull = amount.compareTo(totalOutstanding) == 0;
+
+        return new PaymentResult(oldValue, BigDecimal.ZERO,
+                isFull ? PaymentStatus.FULL : PaymentStatus.PARTIAL);
     }
 
     public CustomerPaymentSummaryResponse getCustomerPaymentSummary(String subscriptionNumber) {
@@ -302,13 +300,13 @@ public class PaymentService {
     }
 
     public List<OutstandingBillItemResponse> getOutstandingBills(String subscriptionNumber) {
-        
+
         customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
-        
+
         Bill latest = billRepository.findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
                 .orElseThrow(() -> new InvalidPaymentException("No bills found"));
-        
+
         List<Bill> bills = billRepository
                 .findByCustomer_SubscriptionNumberAndBalanceDueGreaterThanAndBillDateBeforeOrderByBillDateAsc(
                         subscriptionNumber, BigDecimal.ZERO, latest.getBillDate());
@@ -324,13 +322,13 @@ public class PaymentService {
             BigDecimal paid = (total != null && balance != null) ? total.subtract(balance) : BigDecimal.ZERO;
 
             return new OutstandingBillItemResponse(
-                b.getBillId(), 
-                b.getBillingPeriod(), 
-                b.getBillDate(), 
-                balance,
-                b.getStatus() == null ? "PENDING" : b.getStatus(), 
-                total, 
-                paid );
+                    b.getBillId(),
+                    b.getBillingPeriod(),
+                    b.getBillDate(),
+                    balance,
+                    b.getStatus() == null ? "PENDING" : b.getStatus(),
+                    total,
+                    paid);
 
         }).toList();
     }
@@ -438,110 +436,110 @@ public class PaymentService {
         throw new RuntimeException("Unsupported payment type");
     }
 
-    private PaymentStatus reapplyMonthlyPayment(Payment payment){
+    private PaymentStatus reapplyMonthlyPayment(Payment payment) {
         List<Bill> bills = billRepository
-                    .findByCustomer_SubscriptionNumberOrderByBillDateDesc(
-                            payment.getSubscriptionNumber());
+                .findByCustomer_SubscriptionNumberOrderByBillDateDesc(
+                        payment.getSubscriptionNumber());
 
-            if (bills.isEmpty()) {
-                throw new RuntimeException("No bills found");
+        if (bills.isEmpty()) {
+            throw new RuntimeException("No bills found");
+        }
+
+        Bill latest = bills.get(0);
+
+        BigDecimal due = latest.getBalanceDue();
+        if (due == null) {
+            due = BigDecimal.ZERO;
+        }
+        BigDecimal amount = payment.getAmount();
+
+        if (amount.compareTo(due) > 0) {
+            throw new InvalidPaymentException("Payment amount exceeds current balance due");
+        }
+
+        BigDecimal appliedAmount = amount;
+
+        latest.setBalanceDue(due.subtract(appliedAmount));
+        BigDecimal total = latest.getTotalAmount();
+        if (total == null)
+            total = BigDecimal.ZERO;
+        boolean isFullOneShot = due.compareTo(total) == 0 && amount.compareTo(total) == 0;
+
+        latest.setStatus(latest.getBalanceDue().compareTo(BigDecimal.ZERO) == 0 ? "PAID" : "PENDING");
+
+        PaymentAllocation allocation = new PaymentAllocation();
+        allocation.setPaymentId(payment.getPaymentId());
+        allocation.setBillId(latest.getBillId());
+        allocation.setAmount(appliedAmount);
+
+        paymentAllocationRepository.save(allocation);
+
+        billRepository.save(latest);
+
+        return isFullOneShot ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
+
+    }
+
+    private PaymentStatus reapplyOutstandingPayment(Payment payment) {
+        BigDecimal remaining = payment.getAmount();
+
+        List<Bill> bills = billRepository
+                .findByCustomer_SubscriptionNumberOrderByBillDateAsc(
+                        payment.getSubscriptionNumber());
+
+        BigDecimal totalOutstanding = BigDecimal.ZERO;
+
+        for (Bill bill : bills) {
+            BigDecimal due = bill.getBalanceDue();
+            if (due != null && due.compareTo(BigDecimal.ZERO) > 0) {
+                totalOutstanding = totalOutstanding.add(due);
+            }
+        }
+
+        boolean isFullOneShot = payment.getAmount().compareTo(totalOutstanding) == 0;
+
+        if (payment.getAmount().compareTo(totalOutstanding) > 0) {
+            throw new InvalidPaymentException("Payment amount exceeds total outstanding balance");
+        }
+
+        for (Bill bill : bills) {
+
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0)
+                break;
+
+            BigDecimal due = bill.getBalanceDue();
+
+            if (due == null || due.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
             }
 
-            Bill latest = bills.get(0);
+            BigDecimal appliedAmount;
 
-            BigDecimal due = latest.getBalanceDue();
-            if (due == null) {
-                due = BigDecimal.ZERO;
+            if (remaining.compareTo(due) >= 0) {
+                // fully pay this bill
+                appliedAmount = due;
+                bill.setBalanceDue(BigDecimal.ZERO);
+                bill.setStatus("PAID");
+            } else {
+                // partial payment
+                appliedAmount = remaining;
+                bill.setBalanceDue(due.subtract(remaining));
+                bill.setStatus("PENDING");
             }
-            BigDecimal amount = payment.getAmount();
-
-            if (amount.compareTo(due) > 0) {
-                throw new InvalidPaymentException("Payment amount exceeds current balance due");
-            }
-
-            BigDecimal appliedAmount = amount;
-
-            latest.setBalanceDue(due.subtract(appliedAmount));
-            BigDecimal total = latest.getTotalAmount();
-            if (total == null)
-                total = BigDecimal.ZERO;
-            boolean isFullOneShot = due.compareTo(total) == 0 && amount.compareTo(total) == 0;
-
-            latest.setStatus(latest.getBalanceDue().compareTo(BigDecimal.ZERO) == 0 ? "PAID" : "PENDING");
 
             PaymentAllocation allocation = new PaymentAllocation();
             allocation.setPaymentId(payment.getPaymentId());
-            allocation.setBillId(latest.getBillId());
+            allocation.setBillId(bill.getBillId());
             allocation.setAmount(appliedAmount);
 
             paymentAllocationRepository.save(allocation);
 
-            billRepository.save(latest);
+            remaining = remaining.subtract(appliedAmount);
 
-            return isFullOneShot ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
+            billRepository.save(bill);
+        }
 
-    }
-
-    private PaymentStatus reapplyOutstandingPayment(Payment payment){
-        BigDecimal remaining = payment.getAmount();
-
-            List<Bill> bills = billRepository
-                    .findByCustomer_SubscriptionNumberOrderByBillDateAsc(
-                            payment.getSubscriptionNumber());
-
-            BigDecimal totalOutstanding = BigDecimal.ZERO;
-
-            for (Bill bill : bills) {
-                BigDecimal due = bill.getBalanceDue();
-                if (due != null && due.compareTo(BigDecimal.ZERO) > 0) {
-                    totalOutstanding = totalOutstanding.add(due);
-                }
-            }
-
-            boolean isFullOneShot = payment.getAmount().compareTo(totalOutstanding) == 0;
-
-            if (payment.getAmount().compareTo(totalOutstanding) > 0) {
-                throw new InvalidPaymentException("Payment amount exceeds total outstanding balance");
-            }
-
-            for (Bill bill : bills) {
-
-                if (remaining.compareTo(BigDecimal.ZERO) <= 0)
-                    break;
-
-                BigDecimal due = bill.getBalanceDue();
-
-                if (due == null || due.compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
-
-                BigDecimal appliedAmount;
-
-                if (remaining.compareTo(due) >= 0) {
-                    // fully pay this bill
-                    appliedAmount = due;
-                    bill.setBalanceDue(BigDecimal.ZERO);
-                    bill.setStatus("PAID");
-                } else {
-                    // partial payment
-                    appliedAmount = remaining;
-                    bill.setBalanceDue(due.subtract(remaining));
-                    bill.setStatus("PENDING");
-                }
-
-                PaymentAllocation allocation = new PaymentAllocation();
-                allocation.setPaymentId(payment.getPaymentId());
-                allocation.setBillId(bill.getBillId());
-                allocation.setAmount(appliedAmount);
-
-                paymentAllocationRepository.save(allocation);
-
-                remaining = remaining.subtract(appliedAmount);
-
-                billRepository.save(bill);
-            }
-
-            return isFullOneShot ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
+        return isFullOneShot ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
     }
 
     @Transactional
