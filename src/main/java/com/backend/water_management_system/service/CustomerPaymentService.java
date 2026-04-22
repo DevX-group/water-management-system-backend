@@ -91,7 +91,7 @@ public class CustomerPaymentService {
                 .firstName(firstName)
                 .lastName(lastName)
                 .email(customer.getEmail())
-                .phoneNumber(customer.getPhoneNumber())
+                .phoneNumber(customer.getMobileNumber())
                 .address(customer.getAddress())
                 .city(customer.getRegion().getRegionName())
                 .country("Sri Lanka")
