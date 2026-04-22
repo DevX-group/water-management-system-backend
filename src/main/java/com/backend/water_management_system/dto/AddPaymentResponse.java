@@ -36,5 +36,16 @@ public class AddPaymentResponse {
     public AddPaymentResponse(String message) {
         this.message = message;
     }
+
+    public AddPaymentResponse(String message, String subscriptionNumber, BigDecimal oldBalance, BigDecimal newBalance, String paymentId, PaymentStatus status, PaymentType paymentType, LocalDateTime createdAt) {
+        this.message = message;
+        this.subscriptionNumber = subscriptionNumber;
+        this.oldBalance = oldBalance;
+        this.newBalance = newBalance;
+        this.paymentId = paymentId;
+        this.status = status;
+        this.paymentType = paymentType;
+        this.createdAt = createdAt;
+    }
     
 }

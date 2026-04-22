@@ -1,8 +1,7 @@
 package com.backend.water_management_system.entity;
 
-public enum PaymentStatus {
+public enum SlipStatus {
     PENDING,
-    PARTIAL,
-    FULL,
-    FAILED
+    APPROVED,
+    REJECTED
 }

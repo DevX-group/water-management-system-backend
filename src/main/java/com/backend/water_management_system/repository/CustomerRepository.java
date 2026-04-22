@@ -3,6 +3,7 @@ package com.backend.water_management_system.repository;
 import com.backend.water_management_system.entity.Customer;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,8 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
                             OR LOWER(c.subscriptionNumber) LIKE LOWER(CONCAT('%', :query, '%'))
             """)
     List<Customer> searchCustomers(@Param("query") String query);
+
+    Optional<Customer> findBySubscriptionNumber(String subscriptionNumber);
 
     @Query("""
                     SELECT c.email

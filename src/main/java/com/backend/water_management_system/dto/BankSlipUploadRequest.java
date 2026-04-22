@@ -2,19 +2,19 @@ package com.backend.water_management_system.dto;
 
 import java.math.BigDecimal;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.backend.water_management_system.entity.PaymentType;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class AddPaymentRequest {
+public class BankSlipUploadRequest {
+
     private String subscriptionNumber;
-    private BigDecimal amount;
     private PaymentType paymentType;
+    private BigDecimal amount;
+    private String bankReference;
+    private MultipartFile file;
+
 }
