@@ -39,13 +39,22 @@ public class Customer {
     private String connectionType; // "metered" or "non-metered"
     
     private BigDecimal outstandingBalance;
-    private String nic;
-    private String email;
-    private String address;
-    private String phoneNumber;
     
     @ManyToOne
     @JoinColumn(name = "region_code")
     private Region region;
+
+    public Customer(String subscriptionNumber, String accountHolderName, String nic, String email, String mobileNumber,
+            String address, String connectionType, Region region) {
+        this.subscriptionNumber = subscriptionNumber;
+        this.accountHolderName = accountHolderName;
+        this.nic = nic;
+        this.email = email;
+        this.mobileNumber = mobileNumber;
+        this.address = address;
+        this.connectionType = connectionType;
+        this.region = region;
+    }
+    
     
 }
