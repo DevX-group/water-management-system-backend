@@ -42,7 +42,6 @@ public class PaymentService {
     private final BillRepository billRepository;
     private final PaymentAllocationRepository paymentAllocationRepository;
 
-    
     @Transactional
     public AddPaymentResponse addPayment(AddPaymentRequest request) {
 
@@ -55,14 +54,25 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException(
                         "Customer not found with subscription number: " + subscriptionNumber));
 
+        Bill monthlyBill = null;
+        List<Bill> outstandingBills = null;
+
+        if (request.getPaymentType() == PaymentType.MONTHLY) {
+            monthlyBill = getLatestMonthlyBill(subscriptionNumber);
+            validateMonthlyPayment(amount, monthlyBill);
+        } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
+            outstandingBills = getOutstandingBillsEntites(subscriptionNumber);
+            validateOutstandingPayment(amount, outstandingBills);
+        } 
+
         Payment payment = createPaymentEntity(request);
 
         PaymentResult result;
 
         if (request.getPaymentType() == PaymentType.MONTHLY) {
-            result = processMonthlyPayment(payment, amount, subscriptionNumber);
+            result = processMonthlyPayment(payment, amount, monthlyBill);
         } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
-            result = processOutstandingPayment(payment, amount, subscriptionNumber);
+            result = processOutstandingPayment(payment, amount, outstandingBills);
         } else {
             throw new InvalidPaymentException("Unsupported payment type");
         }
@@ -73,7 +83,7 @@ public class PaymentService {
         return buildResponse(payment, result, subscriptionNumber, request.getPaymentType());
     }
 
-    private void validateRequest(AddPaymentRequest request) {
+    public void validateRequest(AddPaymentRequest request) {
         if (request.getSubscriptionNumber() == null || request.getSubscriptionNumber().isBlank()) {
             throw new InvalidPaymentException("Subscription number is required");
         }
@@ -85,7 +95,7 @@ public class PaymentService {
         }
     }
 
-    private Payment createPaymentEntity(AddPaymentRequest request) {
+    public Payment createPaymentEntity(AddPaymentRequest request) {
         Payment payment = new Payment();
         payment.setPaymentId(UUID.randomUUID().toString());
         payment.setSubscriptionNumber(request.getSubscriptionNumber());
@@ -95,14 +105,14 @@ public class PaymentService {
         return payment;
     }
 
-    private Bill getLatestMonthlyBill(String subscriptionNumber) {
+    public Bill getLatestMonthlyBill(String subscriptionNumber) {
         return billRepository
                 .findTopByCustomer_SubscriptionNumberAndBalanceDueGreaterThanOrderByBillDateDesc(
                         subscriptionNumber, BigDecimal.ZERO)
                 .orElseThrow(() -> new InvalidPaymentException("No unpaid monthly bill found"));
     }
 
-    private List<Bill> getOutstandingBillsEntites(String subscriptionNumber) {
+    public List<Bill> getOutstandingBillsEntites(String subscriptionNumber) {
 
         Bill latest = billRepository
                 .findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
@@ -121,7 +131,7 @@ public class PaymentService {
         return bills;
     }
 
-    private void saveAllocation(String paymentId, Long billId, BigDecimal amount) {
+    public void saveAllocation(String paymentId, Long billId, BigDecimal amount) {
         PaymentAllocation allocation = new PaymentAllocation();
         allocation.setPaymentId(paymentId);
         allocation.setBillId(billId);
@@ -129,7 +139,7 @@ public class PaymentService {
         paymentAllocationRepository.save(allocation);
     }
 
-    private AddPaymentResponse buildResponse(Payment payment, PaymentResult result,
+    public AddPaymentResponse buildResponse(Payment payment, PaymentResult result,
             String subscriptionNumber, PaymentType type) {
 
         AddPaymentResponse response = new AddPaymentResponse("Payment added successfully");
@@ -145,15 +155,18 @@ public class PaymentService {
         return response;
     }
 
-    private PaymentResult processMonthlyPayment(Payment payment, BigDecimal amount, String subscriptionNumber) {
-
-        Bill bill = getLatestMonthlyBill(subscriptionNumber);
+    public void validateMonthlyPayment(BigDecimal amount, Bill bill) {
 
         BigDecimal oldDue = bill.getBalanceDue() != null ? bill.getBalanceDue() : BigDecimal.ZERO;
 
         if (amount.compareTo(oldDue) > 0) {
             throw new InvalidPaymentException("Amount cannot be greater than monthly due");
         }
+    }
+
+    public PaymentResult processMonthlyPayment(Payment payment, BigDecimal amount, Bill bill) {
+
+        BigDecimal oldDue = bill.getBalanceDue() != null ? bill.getBalanceDue() : BigDecimal.ZERO;
 
         BigDecimal total = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
 
@@ -171,9 +184,7 @@ public class PaymentService {
         return new PaymentResult(oldDue, newDue, isFull ? PaymentStatus.FULL : PaymentStatus.PARTIAL);
     }
 
-    private PaymentResult processOutstandingPayment(Payment payment, BigDecimal amount, String subscriptionNumber) {
-
-        List<Bill> bills = getOutstandingBillsEntites(subscriptionNumber);
+    public void validateOutstandingPayment(BigDecimal amount, List<Bill> bills) {
 
         BigDecimal totalOutstanding = BigDecimal.ZERO;
 
@@ -181,6 +192,25 @@ public class PaymentService {
             if (bill.getBalanceDue() != null) {
                 totalOutstanding = totalOutstanding.add(bill.getBalanceDue());
             }
+        }
+
+        if (amount.compareTo(totalOutstanding) > 0) {
+            throw new InvalidPaymentException("Amount exceeds total outstanding balance");
+        }
+    }
+
+    public PaymentResult processOutstandingPayment(Payment payment, BigDecimal amount, List<Bill> bills) {
+
+        BigDecimal totalOutstanding = BigDecimal.ZERO;
+
+        for (Bill bill : bills) {
+            if (bill.getBalanceDue() != null) {
+                totalOutstanding = totalOutstanding.add(bill.getBalanceDue());
+            }
+        }
+
+        if (amount.compareTo(totalOutstanding) > 0) {
+            throw new InvalidPaymentException("Amount exceeds total outstanding balance");
         }
 
         BigDecimal remaining = amount;
@@ -407,7 +437,7 @@ public class PaymentService {
         return response;
     }
 
-    private void reversePaymentEffect(Payment payment) {
+    public void reversePaymentEffect(Payment payment) {
 
         List<PaymentAllocation> allocations = paymentAllocationRepository.findByPaymentId(payment.getPaymentId());
 
@@ -436,7 +466,7 @@ public class PaymentService {
         throw new RuntimeException("Unsupported payment type");
     }
 
-    private PaymentStatus reapplyMonthlyPayment(Payment payment) {
+    public PaymentStatus reapplyMonthlyPayment(Payment payment) {
         List<Bill> bills = billRepository
                 .findByCustomer_SubscriptionNumberOrderByBillDateDesc(
                         payment.getSubscriptionNumber());
@@ -480,7 +510,7 @@ public class PaymentService {
 
     }
 
-    private PaymentStatus reapplyOutstandingPayment(Payment payment) {
+    public PaymentStatus reapplyOutstandingPayment(Payment payment) {
         BigDecimal remaining = payment.getAmount();
 
         List<Bill> bills = billRepository
