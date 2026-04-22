@@ -44,11 +44,25 @@ public class DataSeeder implements CommandLineRunner {
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
 
-        Customer c1 = new Customer("SK-2341", "Sanjeewa Kumara",  new BigDecimal("0.00"), "198756432108", "sanjeewakumara@gmail.com", "123 Main St, Colombo", "0771234567", northRegion);
-        Customer c2 = new Customer("SP-4589", "Supun Perera",  new BigDecimal("500.00"),"200123456789", "supunperera@gmail.com", "456 Oak Ave, Kandy", "0719876543", southRegion);
-        Customer c3 = new Customer("KS-7892", "Kamani Silva",  new BigDecimal("1200.00"),"197234567890", "kamanisilva@gmail.com", "789 Pine Rd, Galle", "0765432109", northRegion);
-        Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena",  new BigDecimal("2750.00"), "199087654321", "ruwanjayawardena@gmail.com", "321 Elm St, Jaffna", "0723456789", eastRegion);
-        Customer c5 = new Customer("PD-5678", "Priyantha De Silva",  new BigDecimal("0.00"), "196543210987", "priyanthadesilva@gmail.com", "654 Maple Dr, Negombo", "0756789012", westRegion);
+        Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", "921234567V", "hansana47@gmail.com", "0711234567",
+            "12 Lake Road, Colombo", "metered", northRegion);
+        c1.setOutstandingBalance(new BigDecimal("0.00"));
+
+        Customer c2 = new Customer("SP-4589", "Hansana Malshan", "881234568V", "hanz4739@gmail.com", "0721234568",
+            "45 Temple Street, Galle", "metered", southRegion);
+        c2.setOutstandingBalance(new BigDecimal("500.00"));
+
+        Customer c3 = new Customer("KS-7892", "Kamani Silva", "901234569V", "kamani@example.com", "0771234569",
+            "78 Main Street, Kandy", "non-metered", northRegion);
+        c3.setOutstandingBalance(new BigDecimal("1200.00"));
+
+        Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", "851234570V", "ruwan@example.com", "0751234570",
+            "101 Beach Road, Trincomalee", "metered", eastRegion);
+        c4.setOutstandingBalance(new BigDecimal("2750.00"));
+
+        Customer c5 = new Customer("PD-5678", "Priyantha De Silva", "931234571V", "priyantha@example.com", "0761234571",
+            "22 Forest Avenue, Kurunegala", "non-metered", westRegion);
+        c5.setOutstandingBalance(new BigDecimal("0.00"));
 
         customerRepository.save(c1);
         customerRepository.save(c2);

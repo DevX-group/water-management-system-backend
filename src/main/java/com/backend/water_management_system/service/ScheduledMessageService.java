@@ -10,9 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 public class ScheduledMessageService {
@@ -123,6 +124,13 @@ public class ScheduledMessageService {
     }
 
     private void updateEntity(ScheduledMessage e, ScheduledMessageDto dto) {
+        String oldScheduleType = e.getScheduleType();
+        Integer oldDayOfMonth = e.getScheduleDayOfMonth();
+        java.time.LocalDate oldDate = e.getScheduleDate();
+        java.time.LocalTime oldTime = e.getScheduleTime();
+        String oldChannels = e.getChannels();
+        String oldRecipients = e.getRecipients();
+
         e.setName(dto.getName());
         e.setRecipients(dto.getRecipients());
         e.setDefault(dto.getIsDefault() != null && dto.getIsDefault());
@@ -143,36 +151,58 @@ public class ScheduledMessageService {
 
         // Templates
         if (dto.getTemplates() != null) {
-            e.setSmsTemplate(toTemplateEntity(dto.getTemplates().getSms()));
-            e.setEmailTemplate(toTemplateEntity(dto.getTemplates().getEmail()));
+            // Update SMS and Email Templates instead of replacing
+            e.setSmsTemplate(mergeTemplate(e.getSmsTemplate(), dto.getTemplates().getSms()));
+            e.setEmailTemplate(mergeTemplate(e.getEmailTemplate(), dto.getTemplates().getEmail()));
+        }
+
+        // checks if something related to scheduling is updated (either in a recurring or one-time message)
+        boolean scheduleOrTargetingChanged = !Objects.equals(oldScheduleType, e.getScheduleType())
+                || !Objects.equals(oldDayOfMonth, e.getScheduleDayOfMonth())
+                || !Objects.equals(oldDate, e.getScheduleDate())
+                || !Objects.equals(oldTime, e.getScheduleTime())
+                || !Objects.equals(oldChannels, e.getChannels())
+                || !Objects.equals(oldRecipients, e.getRecipients());
+
+        // if yes, reset lastEmailSentAt or oneTimeEmailSent properties
+        if (scheduleOrTargetingChanged) {
+            e.setLastEmailSentAt(null);
+            e.setOneTimeEmailSent(false);
         }
     }
 
-    private MessageTemplate toTemplateEntity(MessageTemplateDto dto) {
+    private MessageTemplate mergeTemplate(MessageTemplate existingTemplate, MessageTemplateDto dto) {
         if (dto == null)
             return null;
-        MessageTemplate t = new MessageTemplate();
-        t.setCustom(dto.getIsCustom() != null && dto.getIsCustom());
-        t.setContent(dto.getContent());
-        t.setSubject(dto.getSubject());
 
-        if (dto.getSections() != null) {
-            List<TemplateSection> sections = IntStream.range(0, dto.getSections().size())
-                    .mapToObj(i -> {
-                        TemplateSectionDto sd = dto.getSections().get(i);
-                        TemplateSection section = new TemplateSection();
-                        section.setSectionKey(sd.getId());
-                        section.setName(sd.getName());
-                        section.setContent(sd.getContent());
-                        section.setSectionOrder(i);
+        MessageTemplate target = (existingTemplate != null) ? existingTemplate : new MessageTemplate();
 
-                        section.setMessageTemplate(t);
-                        
-                        return section;
-                    })
-                    .collect(Collectors.toList());
-            t.setSections(sections);
+        target.setCustom(dto.getIsCustom() != null && dto.getIsCustom());
+        target.setContent(dto.getContent());
+        target.setSubject(dto.getSubject());
+
+        // Always replace sections fully so removed ones are deleted from DB.
+        if (target.getSections() != null) {
+            target.getSections().forEach(section -> section.setMessageTemplate(null));
+            target.getSections().clear();
         }
-        return t;
+
+        List<TemplateSectionDto> incomingSections = dto.getSections() != null
+                ? dto.getSections()
+                : Collections.emptyList();
+
+        for (int i = 0; i < incomingSections.size(); i++) {
+            TemplateSectionDto sd = incomingSections.get(i);
+            TemplateSection section = new TemplateSection();
+
+            section.setSectionKey(sd.getId());
+            section.setName(sd.getName());
+            section.setContent(sd.getContent());
+            section.setSectionOrder(i);
+
+            section.setMessageTemplate(target);
+            target.getSections().add(section);
+        }
+        return target;
     }
 }

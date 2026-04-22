@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.MeterReading;
+import com.backend.water_management_system.entity.Customer;
 
 public interface BillRepository extends JpaRepository<Bill, Long> {
 
@@ -28,4 +29,6 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     );
 
     Optional<Bill> findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
+
+    Optional<Bill> findTopByCustomerOrderByBillDateDesc(Customer customer);
 }

@@ -1,6 +1,7 @@
 package com.backend.water_management_system.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,6 +22,22 @@ public class Customer {
     private String subscriptionNumber; // PK
 
     private String accountHolderName;
+    
+    @Column(unique = true, nullable = false)
+    private String nic; // National Identity Card number
+    
+    @Column(unique = true, nullable = false)
+    private String email;
+    
+    @Column(nullable = false)
+    private String mobileNumber;
+    
+    @Column(nullable = false)
+    private String address;
+    
+    @Column(nullable = false)
+    private String connectionType; // "metered" or "non-metered"
+    
     private BigDecimal outstandingBalance;
     private String nic;
     private String email;

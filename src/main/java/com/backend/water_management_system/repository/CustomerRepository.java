@@ -11,12 +11,28 @@ import org.springframework.data.repository.query.Param;
 
 public interface CustomerRepository extends JpaRepository<Customer, String> {
     @Query("""
-            SELECT c FROM Customer c
-            WHERE LOWER(c.accountHolderName) LIKE LOWER(CONCAT('%', :query, '%'))
-            OR LOWER(c.subscriptionNumber) LIKE LOWER(CONCAT('%', :query, '%'))
+                    SELECT c
+                    FROM Customer c
+                    WHERE LOWER(c.accountHolderName) LIKE LOWER(CONCAT('%', :query, '%'))
+                            OR LOWER(c.subscriptionNumber) LIKE LOWER(CONCAT('%', :query, '%'))
             """)
-            List<Customer> searchCustomers(@Param("query") String query);
+    List<Customer> searchCustomers(@Param("query") String query);
 
     Optional<Customer> findBySubscriptionNumber(String subscriptionNumber);
-}
 
+    @Query("""
+                    SELECT c.email
+                    FROM Customer c
+                    WHERE c.email IS NOT NULL
+                            AND TRIM(c.email) <> ''
+            """)
+    List<String> findAllCustomerEmails(); // finds all emails of all customers whose email field is not NULL
+
+    @Query("""
+                    SELECT c
+                    FROM Customer c
+                    WHERE c.email IS NOT NULL
+                            AND TRIM(c.email) <> ''
+            """)
+    List<Customer> findAllCustomersWithEmail();
+}
