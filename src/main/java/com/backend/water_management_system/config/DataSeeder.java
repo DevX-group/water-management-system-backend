@@ -1,75 +1,85 @@
 package com.backend.water_management_system.config;
-
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-
 import com.backend.water_management_system.entity.Region;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.RegionRepository;
+import com.backend.water_management_system.repository.RateRepository;
+import com.backend.water_management_system.entity.ConnectionRate;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Bill;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-
 @Component
 public class DataSeeder implements CommandLineRunner {
-
     private final CustomerRepository customerRepository;
     private final RegionRepository regionRepository;
     private final BillRepository billRepository;
-
+    private final RateRepository rateRepository;
     public DataSeeder(CustomerRepository customerRepository, RegionRepository regionRepository,
-            BillRepository billRepository) {
+            BillRepository billRepository, RateRepository rateRepository) {
         this.customerRepository = customerRepository;
         this.regionRepository = regionRepository;
         this.billRepository = billRepository;
+        this.rateRepository = rateRepository;
     }
-
     @Override
     public void run(String... args) throws Exception {
-
+        if (rateRepository.count() == 0) {
+            ConnectionRate meteredRate = new ConnectionRate();
+            meteredRate.setConnectionType("metered");
+            meteredRate.setBaseRate(50.0);
+            meteredRate.setUnitRateTier1(10.0);
+            meteredRate.setUnitRateTier2(15.0);
+            meteredRate.setUnitRateTier3(20.0);
+            meteredRate.setTier1Limit(50);
+            meteredRate.setTier2Limit(100);
+            meteredRate.setTaxRate(0.0); // or something
+            rateRepository.save(meteredRate);
+            ConnectionRate nonMeteredRate = new ConnectionRate();
+            nonMeteredRate.setConnectionType("non-metered");
+            nonMeteredRate.setBaseRate(500.0);
+            nonMeteredRate.setUnitRateTier1(0.0);
+            nonMeteredRate.setUnitRateTier2(0.0);
+            nonMeteredRate.setUnitRateTier3(0.0);
+            nonMeteredRate.setTier1Limit(0);
+            nonMeteredRate.setTier2Limit(0);
+            nonMeteredRate.setTaxRate(0.0);
+            rateRepository.save(nonMeteredRate);
+        }
         if (customerRepository.count() > 0) {
             return;
         }
-
         Region northRegion = new Region("R001", "north");
         Region southRegion = new Region("R002", "south");
         Region eastRegion = new Region("R003", "east");
         Region westRegion = new Region("R004", "west");
-
         regionRepository.save(northRegion);
         regionRepository.save(southRegion);
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
-
         Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", "921234567V", "hansana47@gmail.com", "0711234567",
             "12 Lake Road, Colombo", "metered", northRegion);
         c1.setOutstandingBalance(new BigDecimal("0.00"));
-
         Customer c2 = new Customer("SP-4589", "Hansana Malshan", "881234568V", "hanz4739@gmail.com", "0721234568",
             "45 Temple Street, Galle", "metered", southRegion);
         c2.setOutstandingBalance(new BigDecimal("500.00"));
-
         Customer c3 = new Customer("KS-7892", "Kamani Silva", "901234569V", "kamani@example.com", "0771234569",
             "78 Main Street, Kandy", "non-metered", northRegion);
         c3.setOutstandingBalance(new BigDecimal("1200.00"));
-
         Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", "851234570V", "ruwan@example.com", "0751234570",
             "101 Beach Road, Trincomalee", "metered", eastRegion);
         c4.setOutstandingBalance(new BigDecimal("2750.00"));
-
         Customer c5 = new Customer("PD-5678", "Priyantha De Silva", "931234571V", "priyantha@example.com", "0761234571",
             "22 Forest Avenue, Kurunegala", "non-metered", westRegion);
         c5.setOutstandingBalance(new BigDecimal("0.00"));
-
         customerRepository.save(c1);
         customerRepository.save(c2);
         customerRepository.save(c3);
         customerRepository.save(c4);
         customerRepository.save(c5);
-
         // Sanjeewa Kumara
         Bill b1 = new Bill();
         b1.setCustomer(c1);
@@ -85,7 +95,6 @@ public class DataSeeder implements CommandLineRunner {
         b1.setStatus("PENDING");
         b1.setGeneratedAt(OffsetDateTime.now());
         billRepository.save(b1);
-
         // Supun Perera
         Bill b2 = new Bill();
         b2.setCustomer(c2);
@@ -101,7 +110,6 @@ public class DataSeeder implements CommandLineRunner {
         b2.setStatus("PENDING");
         b2.setGeneratedAt(OffsetDateTime.now());
         billRepository.save(b2);
-
         // Kamani Silva
         Bill b3 = new Bill();
         b3.setCustomer(c3);
@@ -117,7 +125,6 @@ public class DataSeeder implements CommandLineRunner {
         b3.setStatus("PENDING");
         b3.setGeneratedAt(OffsetDateTime.now());
         billRepository.save(b3);
-
         // Ruwan Jayawardena
         Bill b4 = new Bill();
         b4.setCustomer(c4);
@@ -133,7 +140,6 @@ public class DataSeeder implements CommandLineRunner {
         b4.setStatus("PENDING");
         b4.setGeneratedAt(OffsetDateTime.now());
         billRepository.save(b4);
-
         // Priyantha De Silva
         Bill b5 = new Bill();
         b5.setCustomer(c5);
@@ -149,9 +155,7 @@ public class DataSeeder implements CommandLineRunner {
         b5.setStatus("PENDING");
         b5.setGeneratedAt(OffsetDateTime.now());
         billRepository.save(b5);
-
         // Priyantha De Silva - Outstanding bill (older unpaid bill)
-
         Bill b5_old1 = new Bill();
         b5_old1.setCustomer(c5);
         b5_old1.setBillingPeriod("2026-01");
@@ -166,9 +170,7 @@ public class DataSeeder implements CommandLineRunner {
         b5_old1.setStatus("PENDING");
         b5_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
         billRepository.save(b5_old1);
-
         // Supun Perera - Outstanding bills (older unpaid bills)
-
         // 2026-01 bill (partially unpaid)
         Bill b2_old1 = new Bill();
         b2_old1.setCustomer(c2);
@@ -184,7 +186,6 @@ public class DataSeeder implements CommandLineRunner {
         b2_old1.setStatus("PENDING");
         b2_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
         billRepository.save(b2_old1);
-
         // 2025-12 bill (fully unpaid)
         Bill b2_old2 = new Bill();
         b2_old2.setCustomer(c2);
@@ -201,5 +202,4 @@ public class DataSeeder implements CommandLineRunner {
         b2_old2.setGeneratedAt(OffsetDateTime.now().minusMonths(2));
         billRepository.save(b2_old2);
     }
-
 }
