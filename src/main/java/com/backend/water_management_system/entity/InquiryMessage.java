@@ -11,7 +11,12 @@ import lombok.Setter;
 @NoArgsConstructor @AllArgsConstructor
 public class InquiryMessage {
     private String msgId;
-    private String user; // "user" or "admin"
+    
+    private String user; 
     private String text;
     private String time;
+
+    public InquiryMessage(String user) {
+        this.user = user;
+    }
 }
