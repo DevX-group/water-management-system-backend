@@ -25,5 +25,18 @@ spring:
           starttls:
             enable: true
 
+cloudinary:
+  cloud_name: ${CLOUDINARY_CLOUD_NAME}
+  api_key: ${CLOUDINARY_API_KEY}
+  api_secret: ${CLOUDINARY_API_SECRET}
+
+payhere:
+  merchant_id: ${PAYHERE_MERCHANT_ID} 
+  merchant_secret: ${PAYHERE_MERCHANT_SECRET}
+  return_url: http://localhost:8080/api/payments/success
+  cancel_url: http://localhost:8080/api/payments/cancel
+  notify_url: http://localhost:8080/api/payments/notify
+
+
 server:
   port: 8081
