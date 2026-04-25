@@ -14,7 +14,7 @@ import com.backend.water_management_system.dto.RecentPaymentResponse;
 import com.backend.water_management_system.dto.UpdatePaymentAmountRequest;
 import com.backend.water_management_system.service.PaymentService;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:8080")
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
