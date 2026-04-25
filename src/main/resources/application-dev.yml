@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/hydropay_db?sslmode=disable
-    username: hydropay_user
-    password: 1234
+    url: ${LOCAL_DATABASE_URL}?sslmode=disable
+    username: ${LOCAL_DATABASE_USERNAME}
+    password: ${LOCAL_DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
