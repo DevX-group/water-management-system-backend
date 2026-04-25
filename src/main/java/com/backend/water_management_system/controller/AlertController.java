@@ -1,35 +1,57 @@
 package com.backend.water_management_system.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.backend.water_management_system.dto.AlertResponse;
-import com.backend.water_management_system.service.AlertService;
+import com.backend.water_management_system.entity.Alert;
+import com.backend.water_management_system.repository.AlertRepository;
 
 @RestController
-@RequestMapping("/api/alert")
+@RequestMapping("/api/alerts")
 @CrossOrigin(origins = "*") 
 public class AlertController {
 
-    private final AlertService alertService;
+    @Autowired
+    private AlertRepository alertRepository;
 
-    public AlertController(AlertService alertService) {
-        this.alertService = alertService;
+    @PostMapping
+public Alert createAlert(@RequestBody Alert alert) {
+    return alertRepository.save(alert);
+}
+
+    @GetMapping
+    public List<Alert> getAlerts(@RequestParam(required = false) String severity) {
+        if (severity != null && !severity.equalsIgnoreCase("all")) {
+            return alertRepository.findBySeverityAndDismissedFalse    //alert is still active
+            (severity.toLowerCase());
+        }
+        return alertRepository.findByDismissedFalseOrderByTimeDesc();
     }
 
-    @GetMapping("/customer/{subNum}")
-    public List<AlertResponse> getAlerts(@PathVariable String subNum) {
-        return alertService.getActiveAlerts(subNum);
+    @GetMapping("/counts")
+    public Map<String, Long> getCounts() {      //severity name:count
+        List<Alert> active = alertRepository.findByDismissedFalseOrderByTimeDesc();
+        return active.stream()
+                .collect(Collectors.groupingBy(Alert::getSeverity, Collectors.counting()));
     }
 
-    @PutMapping("/{id}/dismiss")
+    @PatchMapping("/{id}/dismiss")
     public void dismiss(@PathVariable Long id) {
-        alertService.dismissAlert(id);
+        alertRepository.findById(id).ifPresent(alert -> {
+            alert.setDismissed(true);
+            alertRepository.save(alert);
+        });
     }
 }

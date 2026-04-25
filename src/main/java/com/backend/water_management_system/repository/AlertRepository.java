@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 import com.backend.water_management_system.entity.Alert;
 
 @Repository
-public interface AlertRepository extends JpaRepository<Alert, Long> {
-    List<Alert> findBySubscriptionNumberAndDismissedFalseOrderByCreatedAtDesc(String subNum);
+public interface AlertRepository extends JpaRepository<Alert, Long> //Primary Key (@Id) of the Alert is of type Long 
+{
+    List<Alert> findByDismissedFalseOrderByTimeDesc();
+    List<Alert> findBySeverityAndDismissedFalse(String severity);
 }

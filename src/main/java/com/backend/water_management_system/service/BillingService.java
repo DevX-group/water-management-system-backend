@@ -1,39 +1,57 @@
 package com.backend.water_management_system.service;
 
-import com.backend.water_management_system.entity.Bill;
-import com.backend.water_management_system.entity.Customer;
-import com.backend.water_management_system.entity.MeterReading;
-import com.backend.water_management_system.entity.Region;
-import com.backend.water_management_system.repository.BillRepository;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
+
+import org.springframework.stereotype.Service;
+import com.backend.water_management_system.entity.Bill;
+import com.backend.water_management_system.entity.ConnectionRate;
+import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.entity.MeterReading;
+import com.backend.water_management_system.repository.BillRepository;
+import com.backend.water_management_system.repository.RateRepository;
 
 @Service
 public class BillingService {
 
     private final BillRepository billRepository;
+    private final RateRepository rateRepository;
 
-    public BillingService(BillRepository billRepository) {
+    public BillingService(BillRepository billRepository, RateRepository rateRepository) {
         this.billRepository = billRepository;
+        this.rateRepository = rateRepository;
     }
 
     public Bill generateBill(Customer customer, MeterReading reading) {
-        Region region = customer.getRegion();
-        int units = reading.getUsageUnits() == null ? 0 : reading.getUsageUnits();
+        // 1. Get connection type (Ensure this is not null in your 'customer' table)
+        final String type = (customer.getConnectionType() != null)
+                ? customer.getConnectionType()
+                : "metered";
 
-        BigDecimal base = region.getBaseRate() != null ? region.getBaseRate() : BigDecimal.ZERO;
-        BigDecimal usageCharge = calculateTierUsageCharge(units, region);
+        // 2. Fetch rates from the connection_rates table
+        ConnectionRate rateEntity = rateRepository.findById(type)
+                .orElseThrow(() -> new RuntimeException("Rates not found in DB for: " + type));
+
+        int units = (reading.getUsageUnits() != null) ? reading.getUsageUnits() : 0;
+
+        // 3. Convert Double fields to BigDecimal safely
+        BigDecimal base = BigDecimal.valueOf(safeDouble(rateEntity.getBaseRate()));
+        BigDecimal usageCharge = calculateTierUsageCharge(units, rateEntity);
 
         BigDecimal subtotal = base.add(usageCharge);
-        BigDecimal taxRate = region.getTaxRate() != null ? region.getTaxRate() : BigDecimal.ZERO;
-        BigDecimal tax = subtotal.multiply(taxRate);
+        BigDecimal taxRate = BigDecimal.valueOf(safeDouble(rateEntity.getTaxRate()));
+        
+        // Use setScale to avoid arithmetic exceptions with decimals
+        BigDecimal tax = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(tax).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal total = subtotal.add(tax);
+        // --- DEBUG LOG: Check your IntelliJ/Console logs for this line ---
+        System.out.println("CALCULATION: Type=" + type + " Units=" + units + " Base=" + base + " Total=" + total);
 
+        // 4. Save the Bill
         Bill bill = new Bill();
         bill.setCustomer(customer);
         bill.setUsageUnits(units);
@@ -43,35 +61,38 @@ public class BillingService {
         bill.setTotalAmount(total);
         bill.setBalanceDue(total);
         bill.setStatus("PENDING");
-
-        LocalDate billDate = reading.getReadingDate() != null ? reading.getReadingDate() : LocalDate.now();
-        bill.setBillDate(billDate);
-        bill.setDueDate(billDate.plusDays(30));
-
-        YearMonth ym = YearMonth.from(billDate);
-        bill.setBillingPeriod(ym.toString()); // "2026-02"
-
+        bill.setBillDate(LocalDate.now());
+        bill.setDueDate(LocalDate.now().plusDays(30));
+        bill.setBillingPeriod(YearMonth.now().toString());
         bill.setGeneratedAt(OffsetDateTime.now());
         bill.setMeterReading(reading);
 
         return billRepository.save(bill);
     }
 
-    // Example tier rules:
-    // 0-50 => tier1
-    // 51-100 => tier2
-    // 101+ => tier3
-    private BigDecimal calculateTierUsageCharge(int units, Region region) {
-        BigDecimal t1 = region.getUnitRateTier1() != null ? region.getUnitRateTier1() : BigDecimal.ZERO;
-        BigDecimal t2 = region.getUnitRateTier2() != null ? region.getUnitRateTier2() : BigDecimal.ZERO;
-        BigDecimal t3 = region.getUnitRateTier3() != null ? region.getUnitRateTier3() : BigDecimal.ZERO;
+    private BigDecimal calculateTierUsageCharge(int units, ConnectionRate rates) {
+        if ("non_metered".equalsIgnoreCase(rates.getConnectionType())) {
+            return BigDecimal.ZERO;
+        }
 
-        int tier1Units = Math.min(units, 50);
-        int tier2Units = Math.min(Math.max(units - 50, 0), 50);
-        int tier3Units = Math.max(units - 100, 0);
+        BigDecimal r1 = BigDecimal.valueOf(safeDouble(rates.getUnitRateTier1()));
+        BigDecimal r2 = BigDecimal.valueOf(safeDouble(rates.getUnitRateTier2()));
+        BigDecimal r3 = BigDecimal.valueOf(safeDouble(rates.getUnitRateTier3()));
 
-        return t1.multiply(BigDecimal.valueOf(tier1Units))
-                .add(t2.multiply(BigDecimal.valueOf(tier2Units)))
-                .add(t3.multiply(BigDecimal.valueOf(tier3Units)));
+        int limit1 = (rates.getTier1Limit() != null) ? rates.getTier1Limit() : 50;
+        int limit2 = (rates.getTier2Limit() != null) ? rates.getTier2Limit() : 100;
+
+        int tier1Units = Math.min(units, limit1);
+        int tier2Units = Math.min(Math.max(units - limit1, 0), limit2 - limit1);
+        int tier3Units = Math.max(units - limit2, 0);
+
+        return r1.multiply(BigDecimal.valueOf(tier1Units))
+                .add(r2.multiply(BigDecimal.valueOf(tier2Units)))
+                .add(r3.multiply(BigDecimal.valueOf(tier3Units)));
+    }
+
+    // Helper to prevent NullPointerException if DB columns are empty
+    private Double safeDouble(Double val) {
+        return (val == null) ? 0.0 : val;
     }
 }
