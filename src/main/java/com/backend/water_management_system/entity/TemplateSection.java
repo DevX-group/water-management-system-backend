@@ -21,6 +21,10 @@ public class TemplateSection {
     @Column(name = "section_order")
     private Integer sectionOrder;
 
+    @ManyToOne
+    @JoinColumn(name = "template_id")
+    private MessageTemplate messageTemplate;
+
     // getters/setters
     public Long getId() {
         return id;
@@ -60,5 +64,13 @@ public class TemplateSection {
 
     public void setSectionOrder(Integer sectionOrder) {
         this.sectionOrder = sectionOrder;
+    }
+
+    public MessageTemplate getMessageTemplate() {
+        return messageTemplate;
+    }
+
+    public void setMessageTemplate(MessageTemplate messageTemplate) {
+        this.messageTemplate = messageTemplate;
     }
 }

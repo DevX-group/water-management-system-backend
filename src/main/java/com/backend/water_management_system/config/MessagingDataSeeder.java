@@ -7,6 +7,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -50,7 +52,7 @@ public class MessagingDataSeeder implements ApplicationRunner {
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("Recurring");
         schedule.setDayOfMonth(20);
-        schedule.setTime("08:00");
+        schedule.setTime(LocalTime.of(8, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = buildDefaultBillTemplate();
@@ -72,15 +74,19 @@ public class MessagingDataSeeder implements ApplicationRunner {
                 section("1", "Greeting", "Dear {customer_name},"),
                 section("2", "Introduction", "This is your monthly water bill notification from Pradeshiya Sabha."),
                 section("3", "Customer Number Line", "Customer Number : {customer_number}"),
-                section("4", "Monthly Fee Line", "Monthly Fee : LKR {monthly_fee}"),
-                section("5", "Outstanding Balance Line", "Outstanding Balance : LKR {outstanding_balance}"),
-                section("6", "Total Balance Line", "Total Balance : LKR {total_balance}"),
-                section("7", "Overdue Alert",
-                        "IMPORTANT: Your balance exceeds {overdue_threshold_(LKR)}. The Pradeshiya Sabha can disconnect the water line if payment is missed. After disconnection, an additional charge of LKR {reconnection_fee_(LKR)} will be applied for reconnection."),
-                section("8", "Bill Link", "View your detailed bill online : {online_bill_portal_link}"),
-                section("9", "Online Payment Instructions",
+                section("4", "Billing Period Line", "Billing Period : {billing_period}"),
+                section("5", "Bill Date Line", "Bill Date : {bill_date}"),
+                section("6", "Base Charge Line", "Base Charge : LKR {base_charge}"),
+                section("7", "Usage Units Line", "Units Used : {usage_units}"),
+                section("8", "Usage Charge Line", "Charge For Usage : LKR {usage_charge}"),
+                section("9", "Tax Amount Line", "Tax Amount : LKR {tax_amount}"),
+                section("10", "Monthly Fee Line", "Monthly Fee : LKR {monthly_fee}"),
+                section("11", "Outstanding Balance Line", "Outstanding Balance : LKR {outstanding_balance}"),
+                section("12", "Total Balance Line", "Total Balance : LKR {total_balance}"),
+                section("13", "Bill Link", "View your detailed bill online : {online_bill_portal_link}"),
+                section("14", "Online Payment Instructions",
                         "For online payment, please visit www.example.com\nor\nDeposit the amount to account number {pradeshiya_sabha_acc_no} and Whatsapp your receipt along with your subscription number, name and NIC to {whatsApp_number}"),
-                section("10", "Footer", "Thank you for your cooperation.\n- Pradeshiya Sabha"));
+                section("15", "Footer", "Thank you for your cooperation.\n- Pradeshiya Sabha"));
         t.setSections(sections);
         return t;
     }
@@ -95,15 +101,18 @@ public class MessagingDataSeeder implements ApplicationRunner {
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("Recurring");
         schedule.setDayOfMonth(25);
-        schedule.setTime("09:00");
+        schedule.setTime(LocalTime.of(9, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = new MessageTemplateDto();
         sms.setIsCustom(false);
         sms.setContent("");
         sms.setSections(Arrays.asList(
-                section("1", "Alert",
-                        "Dear {customer_name}, your bill is overdue. Please pay immediately to avoid disconnection.")));
+                section("1", "Greeting","Dear {customer_name},"),
+                section("2", "Exceeding Threshould", "Your balance exceeds the threshold of LKR {overdue_threshold}"),
+                section("3", "Disconnection Notice", "The Pradeshiya Sabha can disconnect the water line if payment is missed."),
+                section("4", "Reconnection Fee", "After disconnection, an additional charge of LKR {reconnection_fee} will be applied for reconnection.")
+                ));
 
         MessageTemplateDto email = new MessageTemplateDto();
         email.setIsCustom(false);
@@ -127,8 +136,8 @@ public class MessagingDataSeeder implements ApplicationRunner {
 
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("One-Time");
-        schedule.setDate("2026-01-15");
-        schedule.setTime("10:00");
+        schedule.setDate(LocalDate.parse("2026-01-15"));
+        schedule.setTime(LocalTime.of(10, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = new MessageTemplateDto();
@@ -158,8 +167,8 @@ public class MessagingDataSeeder implements ApplicationRunner {
 
         ScheduleDto schedule = new ScheduleDto();
         schedule.setType("One-Time");
-        schedule.setDate("2026-02-01");
-        schedule.setTime("12:00");
+        schedule.setDate(LocalDate.parse("2026-02-01"));
+        schedule.setTime(LocalTime.of(12, 0));
         dto.setSchedule(schedule);
 
         MessageTemplateDto sms = new MessageTemplateDto();

@@ -1,7 +1,9 @@
 package com.backend.water_management_system.controller;
 
 import com.backend.water_management_system.dto.ScheduledMessageDto;
+import com.backend.water_management_system.dto.SentMessageHistoryDto;
 import com.backend.water_management_system.service.ScheduledMessageService;
+import com.backend.water_management_system.service.SentMessageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,14 +15,21 @@ import java.util.List;
 public class ScheduledMessageController {
 
     private final ScheduledMessageService service;
+    private final SentMessageService sentMessageService;
 
-    public ScheduledMessageController(ScheduledMessageService service) {
+    public ScheduledMessageController(ScheduledMessageService service, SentMessageService sentMessageService) {
         this.service = service;
+        this.sentMessageService = sentMessageService;
     }
 
     @GetMapping
     public ResponseEntity<List<ScheduledMessageDto>> getAll() {
         return ResponseEntity.ok(service.getAll());
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<SentMessageHistoryDto>> getHistory() {
+        return ResponseEntity.ok(sentMessageService.getHistory());
     }
 
     @GetMapping("/{id}")

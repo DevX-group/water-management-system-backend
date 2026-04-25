@@ -37,5 +37,12 @@ public class Region {
     public void setUnitRateTier3(BigDecimal unitRateTier3) { this.unitRateTier3 = unitRateTier3; }
     public BigDecimal getTaxRate() { return taxRate; }
     public void setTaxRate(BigDecimal taxRate) { this.taxRate = taxRate; }
+
+    public Region() {}
+    
+    public Region(String regionCode, String regionName) {
+        this.regionCode = regionCode;
+        this.regionName = regionName;
+    }
 }
 
