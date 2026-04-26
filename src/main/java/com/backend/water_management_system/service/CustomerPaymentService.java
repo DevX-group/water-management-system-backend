@@ -52,13 +52,12 @@ public class CustomerPaymentService {
             List<Bill> outstandingBills = paymentService.getOutstandingBillsEntites(subscriptionNumber);
             paymentService.validateOutstandingPayment(amount, outstandingBills);
 
-        } 
+        }
 
         Payment payment = paymentService.createPaymentEntity(request);
         payment.setStatus(PaymentStatus.PENDING);
-        paymentRepository.save(payment);
 
-        String orderId = payment.getPaymentId();
+        String orderId = "PAY-" + payment.getPaymentId();
         String merchantId = payHereConfig.getMerchantId();
         String merchantSecret = payHereConfig.getMerchantSecret();
         String currency = "LKR";
@@ -84,6 +83,9 @@ public class CustomerPaymentService {
             lastName = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
         }
 
+        payment.setOrderId(orderId);
+        paymentRepository.save(payment);
+
         return CustomerPaymentResponse.builder()
                 .orderId(orderId)
                 .merchantId(merchantId)
@@ -107,8 +109,8 @@ public class CustomerPaymentService {
 
     private String getMd5(String input) {
         if (input == null) {
-        throw new IllegalArgumentException("MD5 input cannot be null — check all payment fields are populated");
-    }
+            throw new IllegalArgumentException("MD5 input cannot be null — check all payment fields are populated");
+        }
 
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");

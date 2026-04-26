@@ -63,7 +63,7 @@ public class PaymentService {
         } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
             outstandingBills = getOutstandingBillsEntites(subscriptionNumber);
             validateOutstandingPayment(amount, outstandingBills);
-        } 
+        }
 
         Payment payment = createPaymentEntity(request);
 
@@ -93,6 +93,9 @@ public class PaymentService {
         if (request.getPaymentType() == null) {
             throw new InvalidPaymentException("Payment type is required");
         }
+        if (request.getPaymentMethod() == null) {
+            throw new InvalidPaymentException("Payment method is required");
+        }
     }
 
     public Payment createPaymentEntity(AddPaymentRequest request) {
@@ -101,6 +104,7 @@ public class PaymentService {
         payment.setSubscriptionNumber(request.getSubscriptionNumber());
         payment.setAmount(request.getAmount());
         payment.setPaymentType(request.getPaymentType());
+        payment.setPaymentMethod(request.getPaymentMethod());
         payment.setCreatedAt(LocalDateTime.now());
         return payment;
     }
