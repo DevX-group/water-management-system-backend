@@ -133,7 +133,11 @@ public class CustomerPaymentService {
         log.info("params received = {}", params);
 
         Map<String, String> cleanParams = new HashMap<>();
-        params.forEach((k, v) -> cleanParams.put(k.trim(), v.trim()));
+        params.forEach((k, v) -> {
+            if (k != null) {
+                cleanParams.put(k.trim(), v == null ? "" : v.trim());
+            }
+        });
 
         String orderId = cleanParams.get("order_id");
         String payherePaymentId = cleanParams.get("payment_id");
@@ -149,13 +153,17 @@ public class CustomerPaymentService {
 
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> {
-                log.error("Payment not found for orderId={}", orderId);
-                return new InvalidPaymentException("Payment with order ID " + orderId + " not found");
-            });
+                    log.error("Payment not found for orderId={}", orderId);
+                    return new InvalidPaymentException("Payment with order ID " + orderId + " not found");
+                });
 
-        BigDecimal amount = new BigDecimal(cleanParams.get("amount"));
+        String amountStr = cleanParams.get("payhere_amount");
+        if (amountStr == null || amountStr.isBlank()) {
+            amountStr = cleanParams.get("captured_amount");
+        }
+        BigDecimal amount = new BigDecimal(amountStr);
 
-        if(amount.compareTo(payment.getAmount()) != 0) {
+        if (amount.compareTo(payment.getAmount()) != 0) {
             throw new InvalidPaymentException("Amount mismatch in PayHere notification for order ID " + orderId);
         }
 
@@ -185,7 +193,7 @@ public class CustomerPaymentService {
                 log.info("Payment already processed. orderId={}, status={}", orderId, payment.getStatus());
 
                 // Optionally update PayHere ID if missing
-                if (payment.getPayherePaymentId() == null ) {
+                if (payment.getPayherePaymentId() == null) {
                     payment.setPayherePaymentId(payherePaymentId);
                     paymentRepository.save(payment);
                     log.info("Updated missing PayHere payment ID. orderId={}", orderId);
@@ -210,9 +218,9 @@ public class CustomerPaymentService {
                     || payment.getStatus() == PaymentStatus.PARTIAL) {
                 return;
             }
-           
+
             payment.setPayherePaymentId(payherePaymentId);
-            
+
             payment.setStatus(PaymentStatus.FAILED);
         }
 
