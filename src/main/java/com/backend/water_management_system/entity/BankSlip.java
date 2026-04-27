@@ -1,5 +1,6 @@
 package com.backend.water_management_system.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
@@ -29,6 +30,8 @@ public class BankSlip {
     private Long slipId;
 
     private String subscriptionNumber;
+    private BigDecimal amount;
+    private PaymentType paymentType;
     
     private String fileName;
     private String fileType;

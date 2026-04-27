@@ -13,7 +13,7 @@ import com.backend.water_management_system.dto.CustomerSearchResponse;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.service.CustomerService;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:8080")
 @RestController
 @RequestMapping("/api/customers")
 public class CustomerController {

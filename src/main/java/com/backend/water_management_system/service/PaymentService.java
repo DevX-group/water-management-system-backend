@@ -22,6 +22,7 @@ import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Payment;
 import com.backend.water_management_system.entity.PaymentAllocation;
+import com.backend.water_management_system.entity.PaymentMethod;
 import com.backend.water_management_system.entity.PaymentStatus;
 import com.backend.water_management_system.entity.PaymentType;
 import com.backend.water_management_system.exception.InvalidPaymentException;
@@ -63,7 +64,7 @@ public class PaymentService {
         } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
             outstandingBills = getOutstandingBillsEntites(subscriptionNumber);
             validateOutstandingPayment(amount, outstandingBills);
-        } 
+        }
 
         Payment payment = createPaymentEntity(request);
 
@@ -80,7 +81,7 @@ public class PaymentService {
         payment.setStatus(result.getStatus());
         paymentRepository.save(payment);
 
-        return buildResponse(payment, result, subscriptionNumber, request.getPaymentType());
+        return buildResponse(payment, result, subscriptionNumber, request.getPaymentType(), request.getPaymentMethod());
     }
 
     public void validateRequest(AddPaymentRequest request) {
@@ -93,6 +94,9 @@ public class PaymentService {
         if (request.getPaymentType() == null) {
             throw new InvalidPaymentException("Payment type is required");
         }
+        if (request.getPaymentMethod() == null) {
+            throw new InvalidPaymentException("Payment method is required");
+        }
     }
 
     public Payment createPaymentEntity(AddPaymentRequest request) {
@@ -101,6 +105,7 @@ public class PaymentService {
         payment.setSubscriptionNumber(request.getSubscriptionNumber());
         payment.setAmount(request.getAmount());
         payment.setPaymentType(request.getPaymentType());
+        payment.setPaymentMethod(request.getPaymentMethod());
         payment.setCreatedAt(LocalDateTime.now());
         return payment;
     }
@@ -140,16 +145,18 @@ public class PaymentService {
     }
 
     public AddPaymentResponse buildResponse(Payment payment, PaymentResult result,
-            String subscriptionNumber, PaymentType type) {
+            String subscriptionNumber, PaymentType type, PaymentMethod method) {
 
-        AddPaymentResponse response = new AddPaymentResponse("Payment added successfully");
+        AddPaymentResponse response = new AddPaymentResponse();
 
+        response.setMessage("Payment added successfully");
         response.setSubscriptionNumber(subscriptionNumber);
         response.setOldBalance(result.getOldBalance());
         response.setNewBalance(result.getNewBalance());
         response.setPaymentId(payment.getPaymentId());
         response.setStatus(result.getStatus());
         response.setPaymentType(type);
+        response.setPaymentMethod(method);
         response.setCreatedAt(payment.getCreatedAt());
 
         return response;
@@ -425,13 +432,15 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
-        AddPaymentResponse response = new AddPaymentResponse("Payment updated successfully");
+        AddPaymentResponse response = new AddPaymentResponse();
+        response.setMessage("Payment updated successfully");
         response.setSubscriptionNumber(subscriptionNumber);
         response.setOldBalance(oldBalance);
         response.setNewBalance(newBalance);
         response.setPaymentId(payment.getPaymentId());
         response.setStatus(payment.getStatus());
         response.setPaymentType(payment.getPaymentType());
+        response.setPaymentMethod(payment.getPaymentMethod());
         response.setCreatedAt(payment.getCreatedAt());
 
         return response;

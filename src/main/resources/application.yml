@@ -1,23 +1,14 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/hydropay_db
-    username: hydropay_user
-    password: 1234
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: hansanatlk4739@gmail.com
-    password: necz snyh svgk xxce
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -33,10 +24,10 @@ cloudinary:
 payhere:
   merchant_id: ${PAYHERE_MERCHANT_ID} 
   merchant_secret: ${PAYHERE_MERCHANT_SECRET}
-  return_url: http://localhost:8080/api/payments/success
-  cancel_url: http://localhost:8080/api/payments/cancel
-  notify_url: http://localhost:8080/api/payments/notify
+  return_url: ${PAYHERE_RETURN_URL}
+  cancel_url: ${PAYHERE_CANCEL_URL}
+  notify_url: ${PAYHERE_NOTIFY_URL}
 
 
 server:
-  port: 8081
+  port: ${PORT:8081}
