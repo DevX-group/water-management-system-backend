@@ -136,7 +136,7 @@ public class CustomerPaymentService {
         params.forEach((k, v) -> cleanParams.put(k.trim(), v.trim()));
 
         String orderId = cleanParams.get("order_id");
-        String payherePaymentId = cleanParams.get("payhere_payment_id");
+        String payherePaymentId = cleanParams.get("payment_id");
         String statusCode = cleanParams.get("status_code");
         String md5sig = cleanParams.get("md5sig");
 
