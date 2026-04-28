@@ -101,8 +101,8 @@ public class ScheduledMessageDispatcher {
                     message.getScheduleDayOfMonth(),
                     message.getScheduleDate(),
                     message.getScheduleTime(),
-                    message.getLastEmailSentAt(),
-                    message.getOneTimeEmailSent(),
+                    message.getLastMessageSentAt(),
+                    message.getOneTimeMessageSent(),
                     due);
 
             if (!due) {
@@ -130,11 +130,11 @@ public class ScheduledMessageDispatcher {
 
             totalSuccess += successCount;
 
-            // if at least one email is successfully sent, update lastEmailSentAt or oneTimeEmailSent properties
+            // if at least one email is successfully sent, update lastMessageSentAt or oneTimeMessageSent properties
             if (successCount > 0) {
-                message.setLastEmailSentAt(now);
+                message.setLastMessageSentAt(now);
                 if (isOneTime(message)) {
-                    message.setOneTimeEmailSent(true);
+                    message.setOneTimeMessageSent(true);
                 }
             }
         }
@@ -261,8 +261,8 @@ public class ScheduledMessageDispatcher {
                 return false;
             }
 
-            LocalDate lastSentDate = message.getLastEmailSentAt() != null
-                    ? message.getLastEmailSentAt().toLocalDate()
+            LocalDate lastSentDate = message.getLastMessageSentAt() != null
+                    ? message.getLastMessageSentAt().toLocalDate()
                     : null;
 
             // if it is at least sent once and the last sent date is within this month this year, return false
@@ -277,12 +277,12 @@ public class ScheduledMessageDispatcher {
                 return false;
             }
 
-            // if the current day of month is the scheduled day of month, return whether the current time is before the scheduled time
+            // if the current day of month is the scheduled day of month, return whether the current time not is before the scheduled time
             if (now.getDayOfMonth() == dayOfMonth) {
                 return !now.toLocalTime().isBefore(message.getScheduleTime());
             }
 
-            // if the current date is after the scheduled date, or if it is today and the time is after the scheduled time, return true
+            // if the current date is after the scheduled date, return true
             return true;
         }
 

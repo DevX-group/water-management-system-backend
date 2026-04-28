@@ -164,10 +164,10 @@ public class ScheduledMessageService {
                 || !Objects.equals(oldChannels, e.getChannels())
                 || !Objects.equals(oldRecipients, e.getRecipients());
 
-        // if yes, reset lastEmailSentAt or oneTimeEmailSent properties
+        // if yes, reset lastMessageSentAt or oneTimeMessageSent properties
         if (scheduleOrTargetingChanged) {
-            e.setLastEmailSentAt(null);
-            e.setOneTimeEmailSent(false);
+            e.setLastMessageSentAt(null);
+            e.setOneTimeMessageSent(false);
         }
     }
 

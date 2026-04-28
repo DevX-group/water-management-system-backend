@@ -22,11 +22,11 @@ public class ScheduledMessage extends Message {
     @Column(name = "schedule_time")
     private LocalTime scheduleTime;
 
-    @Column(name = "last_email_sent_at")
-    private LocalDateTime lastEmailSentAt;  //for recurring messages
+    @Column(name = "last_message_sent_at")
+    private LocalDateTime lastMessageSentAt;  //for recurring messages
 
-    @Column(name = "one_time_email_sent")   //for one-time messages
-    private Boolean oneTimeEmailSent;
+    @Column(name = "one_time_message_sent")   //for one-time messages
+    private Boolean oneTimeMessageSent;
 
     // getters/setters
 
@@ -62,20 +62,20 @@ public class ScheduledMessage extends Message {
         this.scheduleTime = scheduleTime;
     }
 
-    public LocalDateTime getLastEmailSentAt() {
-        return lastEmailSentAt;
+    public LocalDateTime getLastMessageSentAt() {
+        return lastMessageSentAt;
     }
 
-    public void setLastEmailSentAt(LocalDateTime lastEmailSentAt) {
-        this.lastEmailSentAt = lastEmailSentAt;
+    public void setLastMessageSentAt(LocalDateTime lastMessageSentAt) {
+        this.lastMessageSentAt = lastMessageSentAt;
     }
 
-    public Boolean getOneTimeEmailSent() {
-        return oneTimeEmailSent;
+    public Boolean getOneTimeMessageSent() {
+        return oneTimeMessageSent;
     }
 
-    public void setOneTimeEmailSent(Boolean oneTimeEmailSent) {
-        this.oneTimeEmailSent = oneTimeEmailSent;
+    public void setOneTimeMessageSent(Boolean oneTimeMessageSent) {
+        this.oneTimeMessageSent = oneTimeMessageSent;
     }
 
 }
