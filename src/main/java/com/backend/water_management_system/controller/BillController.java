@@ -2,7 +2,7 @@ package com.backend.water_management_system.controller;
 
 import com.backend.water_management_system.dto.BillResponse;
 import com.backend.water_management_system.dto.CurrentBillResponse;
-import com.backend.water_management_system.dto.OutstandingBillItemResponse;
+import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
 import com.backend.water_management_system.service.BillService;
 import com.backend.water_management_system.service.PaymentService;
 
@@ -36,7 +36,7 @@ public class BillController {
     }
 
     @GetMapping("/outstanding/{subscriptionNumber}")
-    public ResponseEntity<List<OutstandingBillItemResponse>> getOutstandingBills(@PathVariable String subscriptionNumber) {
+    public ResponseEntity<OutstandingBillsSummaryResponse> getOutstandingBills(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(paymentService.getOutstandingBills(subscriptionNumber));
     }
 }

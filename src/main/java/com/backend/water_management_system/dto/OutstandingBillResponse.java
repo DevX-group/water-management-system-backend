@@ -12,13 +12,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CurrentBillResponse {
+public class OutstandingBillResponse {
     private Long billId;
     private String billingPeriod;
     private LocalDate billDate;
-    private BigDecimal totalAmount; 
-    private BigDecimal alreadyPaid;
-    private BigDecimal balanceDue;  
+    private BigDecimal balanceDue;
     private String status;
+    private BigDecimal totalAmount;
+    private BigDecimal paidAmount;
 
 }
