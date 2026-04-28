@@ -28,9 +28,9 @@ import java.util.Map;
 import java.util.Objects;
 
 @Service
-public class ScheduledEmailDispatcher {
+public class ScheduledMessageDispatcher {
 
-    private static final Logger log = LoggerFactory.getLogger(ScheduledEmailDispatcher.class);
+    private static final Logger log = LoggerFactory.getLogger(ScheduledMessageDispatcher.class);
 
     private final ScheduledMessageRepository scheduledMessageRepository;
     private final CustomerRepository customerRepository;
@@ -41,7 +41,7 @@ public class ScheduledEmailDispatcher {
     @Value("${spring.mail.username:}")
     private String fromAddress;
 
-    public ScheduledEmailDispatcher(ScheduledMessageRepository scheduledMessageRepository,
+    public ScheduledMessageDispatcher(ScheduledMessageRepository scheduledMessageRepository,
             CustomerRepository customerRepository,
             BillRepository billRepository,
             SentMessageService sentMessageService,
@@ -69,6 +69,7 @@ public class ScheduledEmailDispatcher {
             return;
         }
 
+        //make a list of all schedulable emails
         List<ScheduledMessage> candidates = scheduledMessageRepository.findAllEmailSchedulableWithLock();
         if (candidates.isEmpty()) {
             log.debug("No schedulable email messages found");
