@@ -121,8 +121,7 @@ public class ScheduledEmailDispatcher {
                     ? 0.0
                     : (successCount * 100.0) / totalRecipients;
 
-            // if at least one email is successfully sent, save the message as a sent
-            // message in the database
+            // if at least one email is successfully sent, save the message as a sent message in the database
             if (successCount > 0) {
                 sentMessageService.save(
                         toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
@@ -130,8 +129,7 @@ public class ScheduledEmailDispatcher {
 
             totalSuccess += successCount;
 
-            // if at least one email is successfully sent, update lastEmailSentAt or
-            // oneTimeEmailSent properties
+            // if at least one email is successfully sent, update lastEmailSentAt or oneTimeEmailSent properties
             if (successCount > 0) {
                 message.setLastEmailSentAt(now);
                 if (isOneTime(message)) {
@@ -242,8 +240,7 @@ public class ScheduledEmailDispatcher {
             return false;
         }
 
-        // if it is one-time, return whether the current date and time is after the
-        // scheduled date and time
+        // if it is one-time, return whether the current date and time is after the scheduled date and time
         if (isOneTime(message)) {
             LocalDate scheduledDate = message.getScheduleDate();
             if (scheduledDate == null) {
@@ -267,28 +264,24 @@ public class ScheduledEmailDispatcher {
                     ? message.getLastEmailSentAt().toLocalDate()
                     : null;
 
-            // if it is at least sent once and the last sent date is within this month this
-            // year, return false
+            // if it is at least sent once and the last sent date is within this month this year, return false
             if (lastSentDate != null
                     && lastSentDate.getYear() == now.getYear()
                     && lastSentDate.getMonthValue() == now.getMonthValue()) {
                 return false;
             }
 
-            // if the current day of month is before the scheduled day of month, return
-            // false
+            // if the current day of month is before the scheduled day of month, return false
             if (now.getDayOfMonth() < dayOfMonth) {
                 return false;
             }
 
-            // if the current day of month is the scheduled day of month, return whether the
-            // current time is before the scheduled time
+            // if the current day of month is the scheduled day of month, return whether the current time is before the scheduled time
             if (now.getDayOfMonth() == dayOfMonth) {
                 return !now.toLocalTime().isBefore(message.getScheduleTime());
             }
 
-            // if the current date is after the scheduled date, or if it is today and the
-            // time is after the scheduled time, return true
+            // if the current date is after the scheduled date, or if it is today and the time is after the scheduled time, return true
             return true;
         }
 
@@ -349,8 +342,7 @@ public class ScheduledEmailDispatcher {
             return template.getContent();
         }
 
-        // if there is nothing in content, but there are no template sections, return
-        // empty string
+        // if there is nothing in content, but there are no template sections, return empty string
         if (template.getSections() == null || template.getSections().isEmpty()) {
             return "";
         }
