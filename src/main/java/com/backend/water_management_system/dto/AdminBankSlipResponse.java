@@ -6,12 +6,16 @@ import java.time.LocalDateTime;
 import com.backend.water_management_system.entity.PaymentType;
 import com.backend.water_management_system.entity.SlipStatus;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class BankSlipResponse {
+public class AdminBankSlipResponse {
     private Long slipId;
     private String subscriptionNumber;
     private String accountHolderName;
@@ -21,5 +25,4 @@ public class BankSlipResponse {
     private String filePath;
     private SlipStatus status;
     private LocalDateTime uploadedAt;
-
 }

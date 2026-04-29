@@ -28,6 +28,7 @@ public class BankSlip {
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long slipId;
+    private String publicId; // For Cloudinary public ID
 
     private String subscriptionNumber;
     private BigDecimal amount;
