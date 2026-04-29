@@ -15,9 +15,11 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -26,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Service
 public class ScheduledMessageDispatcher {
@@ -40,6 +43,19 @@ public class ScheduledMessageDispatcher {
 
     @Value("${spring.mail.username:}")
     private String fromAddress;
+
+    @Value("${text-lk.api-endpoint:}")
+    private String textLkApiEndpoint;
+
+    @Value("${text-lk.api-token:}")
+    private String textLkApiToken;
+
+    @Value("${text-lk.sender-id:}")
+    private String textLkSenderId;
+
+    private WebClient webClient;
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.%-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     public ScheduledMessageDispatcher(ScheduledMessageRepository scheduledMessageRepository,
             CustomerRepository customerRepository,
@@ -63,27 +79,30 @@ public class ScheduledMessageDispatcher {
 
     @Scheduled(fixedDelayString = "${app.messaging.scheduler-delay-ms:60000}")
     @Transactional
-    public void sendDueScheduledEmails() {
-        if (mailSender == null) {
-            log.warn("MailSender bean is not available; skipping scheduled email dispatch");
+    public void sendDueScheduledMessages() {
+        boolean canSendEmail = mailSender != null;
+        boolean canSendSms = textLkApiEndpoint != null && !textLkApiEndpoint.isBlank()
+                && textLkApiToken != null && !textLkApiToken.isBlank();
+
+        if (!canSendEmail && !canSendSms) {
+            log.warn("No MailSender or SMS gateway configured; skipping scheduled message dispatch");
             return;
         }
 
-        //make a list of all schedulable emails
+        // make a list of all schedulable messages
         List<ScheduledMessage> candidates = scheduledMessageRepository.findAllEmailSchedulableWithLock();
         if (candidates.isEmpty()) {
-            log.debug("No schedulable email messages found");
+            log.debug("No schedulable messages found");
             return;
         }
 
-        //make a list of all customers who has an email address
-        List<Customer> customers = customerRepository.findAllCustomersWithEmail().stream()
+        // make a list of ALL customers (every customer is a candidate for SMS)
+        List<Customer> customers = customerRepository.findAll().stream()
                 .filter(Objects::nonNull)
-                .filter(customer -> customer.getEmail() != null && !customer.getEmail().isBlank())
                 .toList();
 
         if (customers.isEmpty()) {
-            log.warn("No customer emails found; skipping scheduled email dispatch");
+            log.warn("No customers found; skipping scheduled message dispatch");
             return;
         }
 
@@ -94,7 +113,7 @@ public class ScheduledMessageDispatcher {
         for (ScheduledMessage message : candidates) {
             boolean due = isDue(message, now);
             log.info(
-                    "Message due check: id={}, name='{}', type='{}', dayOfMonth={}, date={}, time={}, lastEmailSentAt={}, oneTimeEmailSent={}, due={}",
+                    "Message due check: id={}, name='{}', type='{}', dayOfMonth={}, date={}, time={}, lastMessageSentAt={}, oneTimeMessageSent={}, due={}",
                     message.getId(),
                     message.getName(),
                     message.getScheduleType(),
@@ -112,25 +131,14 @@ public class ScheduledMessageDispatcher {
             dueCount++;
 
             String subject = buildSubject(message);
-            String body = buildBody(message);
+            String emailBodyTemplate = buildBodyFromTemplate(message.getEmailTemplate());
+            String smsBodyTemplate = buildBodyFromTemplate(message.getSmsTemplate());
 
-            int successCount = sendEmailToAll(customers, subject, body);
-
-            int totalRecipients = customers.size();
-            int failedCount = Math.max(totalRecipients - successCount, 0);
-            double emailSuccessRate = totalRecipients == 0
-                    ? 0.0
-                    : (successCount * 100.0) / totalRecipients;
-
-            // if at least one email is successfully sent, save the message as a sent message in the database
-            if (successCount > 0) {
-                sentMessageService.save(
-                        toSentMessage(message, now, emailSuccessRate, totalRecipients, failedCount, successCount));
-            }
+            int successCount = dispatchMessageToAll(customers, message, subject, emailBodyTemplate, smsBodyTemplate);
 
             totalSuccess += successCount;
 
-            // if at least one email is successfully sent, update lastMessageSentAt or oneTimeMessageSent properties
+            // if at least one message (email or sms) is successfully sent, update lastMessageSentAt or oneTimeMessageSent properties
             if (successCount > 0) {
                 message.setLastMessageSentAt(now);
                 if (isOneTime(message)) {
@@ -140,47 +148,133 @@ public class ScheduledMessageDispatcher {
         }
 
         // after all the due messages are processed, log the summary of this tick
-        log.info("Scheduled email tick: candidates={}, due={}, recipients={}, successfulSends={}",
+        log.info("Scheduled messaging tick: candidates={}, due={}, recipients={}, successfulSends={}",
                 candidates.size(), dueCount, customers.size(), totalSuccess);
     }
 
-    // sends the due email to each of all the customers and returns the number of successful sends
-    private int sendEmailToAll(List<Customer> customers, String subjectTemplate, String bodyTemplate) {
+    // dispatches messages (SMS always attempted; email attempted if available) and returns number of successful sends
+    private int dispatchMessageToAll(List<Customer> customers, 
+                                    ScheduledMessage message, 
+                                    String subjectTemplate, 
+                                    String emailBodyTemplate, 
+                                    String smsBodyTemplate) {
+        
         int successCount = 0;
 
         String fromAddressForMail = resolveFromAddress();
 
         for (Customer customer : customers) {
-            String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
-            if (toEmail.isEmpty()) {
-                continue;
+            // prepare current bill for placeholders
+            Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
+
+            //SMS (always attempted, since phone number is mandatory)
+            String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
+            if (!toPhone.isEmpty()) {
+                String smsTemplateToUse = (smsBodyTemplate != null && !smsBodyTemplate.isBlank()) ? smsBodyTemplate
+                        : emailBodyTemplate;
+                String smsBody = replacePlaceholders(smsTemplateToUse, customer, currentBill);
+                try {
+                    boolean smsOk = sendSms(toPhone, smsBody);
+                    if (smsOk) {
+                        successCount++;
+                    }
+                } catch (Exception ex) {
+                    log.warn("Failed to send scheduled SMS to {}: {}", toPhone, ex.getMessage());
+                }
             }
 
-            //get the current bill of the relevant customer to replace placeholders in the email template
-            Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
-            
-            String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
-            String body = replacePlaceholders(bodyTemplate, customer, currentBill);
-
-            try {
-                SimpleMailMessage mail = new SimpleMailMessage();
-
-                if (!fromAddressForMail.isBlank()) {
-                    mail.setFrom(fromAddressForMail);
+            //Email (only if MailSender exists and customer has an email)
+            if (mailSender != null) {
+                String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
+                if (isValidEmail(toEmail)) {
+                    String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
+                    String body = replacePlaceholders(emailBodyTemplate, customer, currentBill);
+                    try {
+                        SimpleMailMessage mail = new SimpleMailMessage();
+                        if (!fromAddressForMail.isBlank()) {
+                            mail.setFrom(fromAddressForMail);
+                        }
+                        mail.setTo(toEmail);
+                        mail.setSubject(subject);
+                        mail.setText(body);
+                        mailSender.send(mail);
+                        successCount++;
+                    } catch (Exception ex) {
+                        log.warn("Failed to send scheduled email to {}: {}", toEmail, ex.getMessage());
+                    }
                 }
-                mail.setTo(toEmail);
-                mail.setSubject(subject);
-                mail.setText(body);
-
-                mailSender.send(mail);
-
-                successCount++;
-            } catch (Exception ex) {
-                log.warn("Failed to send scheduled email to {}: {}", toEmail, ex.getMessage());
             }
         }
 
         return successCount;
+    }
+
+    // Sends SMS using Text.lk gateway. Returns true if the gateway returned a successful response.
+    private boolean sendSms(String to, String message) {
+        if (textLkApiEndpoint == null || textLkApiEndpoint.isBlank()
+                || textLkApiToken == null || textLkApiToken.isBlank()) {
+            log.warn("Text.lk SMS gateway not configured; skipping SMS to {}", to);
+            return false;
+        }
+
+        if (webClient == null) {
+            webClient = WebClient.builder().baseUrl(textLkApiEndpoint).build();
+        }
+
+        try {
+            Map<String, String> payload = new HashMap<>();
+            payload.put("recipient", to);
+            if (textLkSenderId != null && !textLkSenderId.isBlank()) {
+                payload.put("sender_id", textLkSenderId);
+            }
+            payload.put("type", "plain");
+            payload.put("message", message == null ? "" : message);
+
+            SmsGatewayResponse response = webClient.post()
+                    .uri("")
+                    .header("Authorization", "Bearer " + textLkApiToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .bodyValue(payload)
+                    .exchangeToMono(resp -> resp.bodyToMono(String.class)
+                            .defaultIfEmpty("")
+                            .map(body -> new SmsGatewayResponse(resp.statusCode().value(), body)))
+                    .block();
+
+            if (response == null) {
+                log.warn("Text.lk SMS request failed for {}: empty response", to);
+                return false;
+            }
+
+            if (response.statusCode >= 200 && response.statusCode < 300
+                    && response.body != null && response.body.contains("\"status\":\"success\"")) {
+                return true;
+            }
+
+            log.warn("Text.lk SMS request failed for {} with status {} and body {}", to, response.statusCode,
+                    response.body);
+            return false;
+        } catch (Exception ex) {
+            log.warn("Failed to send SMS to {}: {}", to, ex.getMessage());
+            return false;
+        }
+    }
+
+    private static class SmsGatewayResponse {
+        private final int statusCode;
+        private final String body;
+
+        private SmsGatewayResponse(int statusCode, String body) {
+            this.statusCode = statusCode;
+            this.body = body;
+        }
+    }
+
+    private boolean isValidEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+        return EMAIL_PATTERN.matcher(email.trim()).matches();
     }
 
     private String resolveFromAddress() {
@@ -190,7 +284,7 @@ public class ScheduledMessageDispatcher {
         return "";
     }
 
-    //replaces placeholders in the template with actual values from the relevant customer and their current bill, if available.
+    // replaces placeholders in the template with actual values from the relevant customer and their current bill, if available.
     private String replacePlaceholders(String template, Customer customer, Bill currentBill) {
         if (template == null || template.isBlank()) {
             return "";
@@ -338,16 +432,19 @@ public class ScheduledMessageDispatcher {
             return "";
         }
 
-        // if it is a custom template, return the content
+        //if it is a custom template and the content is not empty, return the content
         if (template.getContent() != null && !template.getContent().isBlank()) {
             return template.getContent();
         }
 
-        // if there is nothing in content, but there are no template sections, return empty string
+        /*if it is a custom template but there is nothing in content, 
+        or if it is not a custom template but there is nothing in the template sections, 
+        return an empty string */
         if (template.getSections() == null || template.getSections().isEmpty()) {
             return "";
         }
 
+        //if it is not a custom template and there is content available in the template sections, return the collected content
         return template.getSections().stream()
                 .map(section -> section.getContent() == null ? "" : section.getContent())
                 .filter(content -> !content.isBlank())
