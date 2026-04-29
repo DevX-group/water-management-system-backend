@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface UsageRecordRepository extends JpaRepository<UsageRecord, Long> {
 
+    //Customer Report
     @Query(value = """
         SELECT 
             TO_CHAR(record_date, 'Mon') AS month,
@@ -24,4 +25,19 @@ public interface UsageRecordRepository extends JpaRepository<UsageRecord, Long> 
             @Param("customerId") String customerId,
             @Param("year") int year
     );
+
+    //Area Report
+    @Query(value = """
+        SELECT 
+            TO_CHAR(record_date, 'Mon') AS month,
+            EXTRACT(MONTH FROM record_date) AS month_num,
+            area,
+            SUM(usage) AS total_usage,
+            SUM(amount) AS total_amount
+        FROM usage_records
+        WHERE EXTRACT(YEAR FROM record_date) = :year
+        GROUP BY month, month_num, area
+        ORDER BY month_num
+    """, nativeQuery = true)
+    List<Object[]> getAreaReport(@Param("year") int year);
 }
