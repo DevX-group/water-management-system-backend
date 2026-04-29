@@ -1,6 +1,7 @@
 package com.backend.water_management_system.controller;
 
 import com.backend.water_management_system.dto.CustomerReportDTO;
+import com.backend.water_management_system.dto.MonthlyReportDTO;
 import com.backend.water_management_system.service.CustomerReportService;
 import org.springframework.web.bind.annotation.*;
 
