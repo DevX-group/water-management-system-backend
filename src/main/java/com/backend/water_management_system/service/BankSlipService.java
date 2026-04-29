@@ -129,7 +129,7 @@ public class BankSlipService {
                                 .toList();
         }
 
-        private AdminBankSlipResponse mapToAdminDTO(BankSlip slip) {
+        public AdminBankSlipResponse mapToAdminDTO(BankSlip slip) {
 
                 String accountHolderName = customerRepository
                                 .findBySubscriptionNumber(slip.getSubscriptionNumber())
@@ -149,7 +149,25 @@ public class BankSlipService {
                                 .build();
         }
 
-        
+        @Transactional
+        public void deleteBankSlip(Long slipId) {
+                BankSlip slip = bankSlipRepository.findById(slipId)
+                                .orElseThrow(() -> new BankSlipNotFoundException(
+                                                "Bank slip not found with ID: " + slipId));
+
+                String currentUser = "SK-2341"; // TODO: replace with JWT auth context
+                
+                if (!slip.getSubscriptionNumber().equals(currentUser)) {
+                        throw new SecurityException("You do not have permission to delete this bank slip.");
+                }
+
+                if (slip.getStatus() != SlipStatus.PENDING) {
+                        throw new IllegalStateException("Only pending bank slips can be deleted.");
+                }
+
+                cloudinaryService.deleteFile(slip.getPublicId());
+                bankSlipRepository.delete(slip);
+        }
 
         public void processBankSlipReview(BankSlipActionRequest request) {
                 BankSlip slip = bankSlipRepository.findById(request.getBankSlipId())
