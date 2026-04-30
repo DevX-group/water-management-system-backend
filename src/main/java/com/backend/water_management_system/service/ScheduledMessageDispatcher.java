@@ -166,7 +166,9 @@ public class ScheduledMessageDispatcher {
             //SMS (always attempted, since phone number is mandatory)
             String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
             if (!toPhone.isEmpty()) {
-                Boolean smsOk = dispatchSMS(customer, toPhone, smsBodyTemplate, emailBodyTemplate, currentBill);
+                String smsTemplateToUse = (smsBodyTemplate != null && !smsBodyTemplate.isBlank()) ? smsBodyTemplate : emailBodyTemplate;
+                
+                boolean smsOk = dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
 
                 if(smsOk)
                     successCount++;
@@ -176,7 +178,9 @@ public class ScheduledMessageDispatcher {
             if (mailSender != null) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
-                    Boolean emailOk = dispatchEmail(customer, fromAddressForMail, toEmail, subjectTemplate, emailBodyTemplate, currentBill);
+                    String emailTemplateToUse = (emailBodyTemplate != null && !emailBodyTemplate.isBlank()) ? emailBodyTemplate : smsBodyTemplate;
+                    
+                    boolean emailOk = dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate, emailTemplateToUse, currentBill);
                     
                     if(emailOk)
                         successCount++;
@@ -188,8 +192,7 @@ public class ScheduledMessageDispatcher {
     }
 
     //dispatches a due message to a single customer as a SMS
-    public boolean dispatchSMS(Customer customer, String toPhone, String smsBodyTemplate, String emailBodyTemplate, Bill currentBill){
-        String smsTemplateToUse = (smsBodyTemplate != null && !smsBodyTemplate.isBlank()) ? smsBodyTemplate : emailBodyTemplate;
+    private boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill){
         String smsBody = replacePlaceholders(smsTemplateToUse, customer, currentBill);
         
         boolean smsOk = sendSms(toPhone, smsBody);
@@ -198,9 +201,17 @@ public class ScheduledMessageDispatcher {
     }
 
     //dispatches a due message to a single customer as an email
-    public boolean dispatchEmail(Customer customer, String fromAddressForMail, String toEmail, String subjectTemplate, String emailBodyTemplate, Bill currentBill){
+    private boolean dispatchEmail(Customer customer, 
+                                String toEmail,
+                                String fromAddressForMail, 
+                                String subjectTemplate, 
+                                String emailTemplateToUse,
+                                Bill currentBill){
+
         String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
-        String body = replacePlaceholders(emailBodyTemplate, customer, currentBill);
+        
+        String body = replacePlaceholders(emailTemplateToUse, customer, currentBill);
+        
         try {
             SimpleMailMessage mail = new SimpleMailMessage();
             
