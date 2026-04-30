@@ -26,16 +26,16 @@ spring:
             enable: true
 
 cloudinary:
-  cloud_name: ${CLOUDINARY_CLOUD_NAME}
-  api_key: ${CLOUDINARY_API_KEY}
-  api_secret: ${CLOUDINARY_API_SECRET}
+  cloud_name: df87pqbem
+  api_key: 626896215766676
+  api_secret: eHUnG-RbDliFhdR-TkW9iPHrs6s
 
 payhere:
-  merchant_id: ${PAYHERE_MERCHANT_ID} 
-  merchant_secret: ${PAYHERE_MERCHANT_SECRET}
+  merchant_id: 1235108 
+  merchant_secret: MTAxNTE4NTMzNjI4NDYyMTE3MDUxOTE3MjYxMjc3MzQ1MjgzOTY5Nw==
   return_url: http://localhost:8080/api/payments/success
   cancel_url: http://localhost:8080/api/payments/cancel
-  notify_url: http://localhost:8080/api/payments/notify
+  notify_url: http://localhost:8080/api/payments/notifyalhost:8080/api/payments/notify
 
 
 server:

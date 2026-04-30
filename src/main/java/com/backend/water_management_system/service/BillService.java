@@ -23,6 +23,12 @@ public class BillService {
                 .toList();
     }
 
+    public Bill getBillEntityById(Long id) {
+        return billRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bill not found: " + id));
+    }
+
+
     private BillResponse toDto(Bill bill) {
         BillResponse dto = new BillResponse();
         dto.billId = bill.getBillId();
