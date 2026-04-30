@@ -148,7 +148,8 @@ public class ScheduledMessageDispatcher {
                 candidates.size(), dueCount, customers.size(), totalSuccess);
     }
 
-    // dispatches a due message (SMS always attempted; email attempted if available) and returns number of successful sends
+    /* Dispatches a due message (SMS and Email attempted after checking wehther the channels field of the message contains SMS and/or Email) 
+    and returns number of successful sends */
     private int dispatchMessageToAll(List<Customer> customers, ScheduledMessage message) {
 
         String subjectTemplate = buildSubject(message);
@@ -157,33 +158,42 @@ public class ScheduledMessageDispatcher {
 
         String fromAddressForMail = resolveFromAddress();
 
+        String channels = message.getChannels() != null ? message.getChannels().toLowerCase() : "";
+        boolean shouldSendSMS = channels.contains("SMS");
+        boolean shouldSendEmail = channels.contains("Email");
+
         int successCount = 0;
 
         for (Customer customer : customers) {
             // prepare current bill for placeholders
             Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
 
-            //SMS (always attempted, since phone number is mandatory)
-            String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
-            if (!toPhone.isEmpty()) {
-                String smsTemplateToUse = resolveTemplateBody(smsBodyTemplate, fromAddressForMail);
-                
-                boolean smsOk = dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
+            //SMS attempt
+            if(shouldSendSMS){
+                String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
+                if (!toPhone.isEmpty()) {
+                    String smsTemplateToUse = resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
+                    
+                    boolean smsOk = dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
 
-                if(smsOk)
-                    successCount++;
+                    if(smsOk){
+                        successCount++;
+                    }
+                }
             }
 
-            //Email (only if MailSender exists and customer has an email)
-            if (mailSender != null) {
+            //Email attempt (only if MailSender exists and customer has an email)
+            if (shouldSendEmail && mailSender != null) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
                     String emailTemplateToUse = resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
                     
                     boolean emailOk = dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate, emailTemplateToUse, currentBill);
                     
-                    if(emailOk)
+                    if(emailOk){
                         successCount++;
+                    }
+                        
                 }
             }
         }
@@ -273,8 +283,7 @@ public class ScheduledMessageDispatcher {
                 return true;
             }
 
-            log.warn("Text.lk SMS request failed for {} with status {} and body {}", to, response.statusCode,
-                    response.body);
+            log.warn("Text.lk SMS request failed for {} with status {} and body {}", to, response.statusCode, response.body);
             return false;
         } catch (Exception ex) {
             log.warn("Failed to send scheduled SMS to {}: {}", to, ex.getMessage());
@@ -441,17 +450,6 @@ public class ScheduledMessageDispatcher {
         }
 
         return "Pradeshiya Sabha Water Bill";
-    }
-
-    private String buildBody(ScheduledMessage message) {
-        MessageTemplate emailTemplate = message.getEmailTemplate();
-        String emailBody = buildBodyFromTemplate(emailTemplate);
-        if (!emailBody.isBlank()) {
-            return emailBody;
-        }
-
-        MessageTemplate smsTemplate = message.getSmsTemplate();
-        return buildBodyFromTemplate(smsTemplate);
     }
 
     private String buildBodyFromTemplate(MessageTemplate template) {
