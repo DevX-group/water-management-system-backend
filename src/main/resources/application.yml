@@ -19,9 +19,9 @@ spring:
             enable: true
 
 cloudinary:
-  cloud_name: ${CLOUDINARY_CLOUD_NAME}
-  api_key: ${CLOUDINARY_API_KEY}
-  api_secret: ${CLOUDINARY_API_SECRET}
+  cloud_name: df87pqbem
+  api_key: 626896215766676
+  api_secret: eHUnG-RbDliFhdR-TkW9iPHrs6s
 
 payhere:
   merchant_id: ${PAYHERE_MERCHANT_ID} 
