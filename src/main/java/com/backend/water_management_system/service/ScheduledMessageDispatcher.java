@@ -130,11 +130,7 @@ public class ScheduledMessageDispatcher {
 
             dueCount++;
 
-            String subject = buildSubject(message);
-            String emailBodyTemplate = buildBodyFromTemplate(message.getEmailTemplate());
-            String smsBodyTemplate = buildBodyFromTemplate(message.getSmsTemplate());
-
-            int successCount = dispatchMessageToAll(customers, message, subject, emailBodyTemplate, smsBodyTemplate);
+            int successCount = dispatchMessageToAll(customers, message);
 
             totalSuccess += successCount;
 
@@ -152,16 +148,16 @@ public class ScheduledMessageDispatcher {
                 candidates.size(), dueCount, customers.size(), totalSuccess);
     }
 
-    // dispatches messages (SMS always attempted; email attempted if available) and returns number of successful sends
-    private int dispatchMessageToAll(List<Customer> customers, 
-                                    ScheduledMessage message, 
-                                    String subjectTemplate, 
-                                    String emailBodyTemplate, 
-                                    String smsBodyTemplate) {
-        
-        int successCount = 0;
+    // dispatches a due message (SMS always attempted; email attempted if available) and returns number of successful sends
+    private int dispatchMessageToAll(List<Customer> customers, ScheduledMessage message) {
+
+        String subjectTemplate = buildSubject(message);
+        String emailBodyTemplate = buildBodyFromTemplate(message.getEmailTemplate());
+        String smsBodyTemplate = buildBodyFromTemplate(message.getSmsTemplate());
 
         String fromAddressForMail = resolveFromAddress();
+
+        int successCount = 0;
 
         for (Customer customer : customers) {
             // prepare current bill for placeholders
@@ -170,43 +166,54 @@ public class ScheduledMessageDispatcher {
             //SMS (always attempted, since phone number is mandatory)
             String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
             if (!toPhone.isEmpty()) {
-                String smsTemplateToUse = (smsBodyTemplate != null && !smsBodyTemplate.isBlank()) ? smsBodyTemplate
-                        : emailBodyTemplate;
-                String smsBody = replacePlaceholders(smsTemplateToUse, customer, currentBill);
-                try {
-                    boolean smsOk = sendSms(toPhone, smsBody);
-                    if (smsOk) {
-                        successCount++;
-                    }
-                } catch (Exception ex) {
-                    log.warn("Failed to send scheduled SMS to {}: {}", toPhone, ex.getMessage());
-                }
+                Boolean smsOk = dispatchSMS(customer, toPhone, smsBodyTemplate, emailBodyTemplate, currentBill);
+
+                if(smsOk)
+                    successCount++;
             }
 
             //Email (only if MailSender exists and customer has an email)
             if (mailSender != null) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
-                    String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
-                    String body = replacePlaceholders(emailBodyTemplate, customer, currentBill);
-                    try {
-                        SimpleMailMessage mail = new SimpleMailMessage();
-                        if (!fromAddressForMail.isBlank()) {
-                            mail.setFrom(fromAddressForMail);
-                        }
-                        mail.setTo(toEmail);
-                        mail.setSubject(subject);
-                        mail.setText(body);
-                        mailSender.send(mail);
-                        successCount++;
-                    } catch (Exception ex) {
-                        log.warn("Failed to send scheduled email to {}: {}", toEmail, ex.getMessage());
-                    }
+                    dispatchEmail(customer, fromAddressForMail, toEmail, subjectTemplate, emailBodyTemplate, currentBill);
+                    successCount++;
                 }
             }
         }
 
         return successCount;
+    }
+
+    //dispatches a due message to a single customer as a SMS
+    public boolean dispatchSMS(Customer customer, String toPhone, String smsBodyTemplate, String emailBodyTemplate, Bill currentBill){
+        String smsTemplateToUse = (smsBodyTemplate != null && !smsBodyTemplate.isBlank()) ? smsBodyTemplate : emailBodyTemplate;
+        String smsBody = replacePlaceholders(smsTemplateToUse, customer, currentBill);
+        
+        boolean smsOk = sendSms(toPhone, smsBody);
+        
+        return smsOk;
+    }
+
+    //dispatches a due message to a single customer as an email
+    public void dispatchEmail(Customer customer, String fromAddressForMail, String toEmail, String subjectTemplate, String emailBodyTemplate, Bill currentBill){
+        String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
+        String body = replacePlaceholders(emailBodyTemplate, customer, currentBill);
+        try {
+            SimpleMailMessage mail = new SimpleMailMessage();
+            
+            if (!fromAddressForMail.isBlank()) {
+                mail.setFrom(fromAddressForMail);
+            }
+            
+            mail.setTo(toEmail);
+            mail.setSubject(subject);
+            mail.setText(body);
+            
+            mailSender.send(mail);
+        } catch (Exception ex) {
+            log.warn("Failed to send scheduled email to {}: {}", toEmail, ex.getMessage());
+        }
     }
 
     // Sends SMS using Text.lk gateway. Returns true if the gateway returned a successful response.
@@ -255,7 +262,7 @@ public class ScheduledMessageDispatcher {
                     response.body);
             return false;
         } catch (Exception ex) {
-            log.warn("Failed to send SMS to {}: {}", to, ex.getMessage());
+            log.warn("Failed to send scheduled SMS to {}: {}", to, ex.getMessage());
             return false;
         }
     }
