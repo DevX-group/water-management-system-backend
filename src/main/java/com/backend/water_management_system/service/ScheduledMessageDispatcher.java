@@ -166,7 +166,7 @@ public class ScheduledMessageDispatcher {
             //SMS (always attempted, since phone number is mandatory)
             String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
             if (!toPhone.isEmpty()) {
-                String smsTemplateToUse = (smsBodyTemplate != null && !smsBodyTemplate.isBlank()) ? smsBodyTemplate : emailBodyTemplate;
+                String smsTemplateToUse = resolveTemplateBody(smsBodyTemplate, fromAddressForMail);
                 
                 boolean smsOk = dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
 
@@ -178,7 +178,7 @@ public class ScheduledMessageDispatcher {
             if (mailSender != null) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
-                    String emailTemplateToUse = (emailBodyTemplate != null && !emailBodyTemplate.isBlank()) ? emailBodyTemplate : smsBodyTemplate;
+                    String emailTemplateToUse = resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
                     
                     boolean emailOk = dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate, emailTemplateToUse, currentBill);
                     
@@ -209,7 +209,6 @@ public class ScheduledMessageDispatcher {
                                 Bill currentBill){
 
         String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
-        
         String body = replacePlaceholders(emailTemplateToUse, customer, currentBill);
         
         try {
@@ -305,6 +304,11 @@ public class ScheduledMessageDispatcher {
             return getFromAddress().trim();
 
         return "";
+    }
+
+    //if the template body is not available for the relevant channel, replace it with the template body of the other channel
+    private String resolveTemplateBody(String primaryTemplate, String fallbackTemplate){
+        return (primaryTemplate != null && !primaryTemplate.isBlank() ? primaryTemplate : fallbackTemplate);
     }
 
     // replaces placeholders in the template with actual values from the relevant customer and their current bill, if available.
