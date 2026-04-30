@@ -1,13 +1,13 @@
 package com.backend.water_management_system.service;
 
-import com.backend.water_management_system.entity.Inquiry;
-import com.backend.water_management_system.entity.InquiryMessage;
-import com.backend.water_management_system.repository.InquiryRepository;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.backend.water_management_system.entity.Inquiry;
+import com.backend.water_management_system.entity.InquiryMessage;
+import com.backend.water_management_system.repository.InquiryRepository;
 
 @Service
 public class InquiryService {
@@ -57,5 +57,9 @@ public class InquiryService {
                 return inquiryRepository.save(inquiry);
             })
             .orElseThrow(() -> new RuntimeException("Inquiry not found with id: " + inquiryId));
+    }
+
+    public List<Inquiry> getInquiriesByEmail(String email) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

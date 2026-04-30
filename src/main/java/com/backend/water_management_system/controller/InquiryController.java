@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.backend.water_management_system.entity.Inquiry;
 import com.backend.water_management_system.entity.InquiryMessage;
-import com.backend.water_management_system.repository.InquiryRepository;
+import com.backend.water_management_system.service.InquiryService;
 
 @RestController
 @RequestMapping("/api/inquiries")
@@ -23,29 +23,25 @@ import com.backend.water_management_system.repository.InquiryRepository;
 public class InquiryController {
 
     @Autowired
-    private InquiryRepository inquiryRepository;
+    private InquiryService inquiryService; // Use the service instead of repository
 
     @PostMapping
     public Inquiry createInquiry(@RequestBody Inquiry inquiry) {
-        return inquiryRepository.save(inquiry);
+        return inquiryService.createInquiry(inquiry);
     }
 
     @GetMapping
     public List<Inquiry> getAllInquiries() {
-        return inquiryRepository.findAll();
+        return inquiryService.getAllInquiries();
     }
 
     @PostMapping("/{id}/messages")
     public Inquiry addMessage(@PathVariable String id, @RequestBody InquiryMessage message) {
-        Inquiry inquiry = inquiryRepository.findById(id).orElseThrow();
-        inquiry.getMessages().add(message);
-        return inquiryRepository.save(inquiry);
+        return inquiryService.addMessage(id, message);
     }
 
     @PatchMapping("/{id}/status")
     public Inquiry updateStatus(@PathVariable String id, @RequestParam String status) {
-        Inquiry inquiry = inquiryRepository.findById(id).orElseThrow();
-        inquiry.setStatus(status);
-        return inquiryRepository.save(inquiry);
+        return inquiryService.updateStatus(id, status);
     }
 }

@@ -3,9 +3,19 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name="payments")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Payment {
     @Id
     private String paymentId;
@@ -17,21 +27,19 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     private PaymentType paymentType;
+    
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
 
     private LocalDateTime createdAt;
 
-    public String getPaymentId() { return paymentId; }
-    public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
-    public String getSubscriptionNumber() { return subscriptionNumber; }
-    public void setSubscriptionNumber(String subscriptionNumber) { this.subscriptionNumber = subscriptionNumber; }  
-    public BigDecimal getAmount() { return amount; }
-    public void setAmount(BigDecimal amount) { this.amount = amount; }
-    public PaymentStatus getStatus() { return status; }
-    public void setStatus(PaymentStatus status) { this.status = status; }
-    public PaymentType getPaymentType() { return paymentType; }
-    public void setPaymentType(PaymentType paymentType) { this.paymentType = paymentType; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    //payhere data
+    private String orderId;
+    private String payherePaymentId;
 
-    public Payment() {}
+    //bank slip data
+    @OneToOne(optional = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "slip_id")
+    private BankSlip bankSlip;
+
 }
