@@ -10,6 +10,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 
 @Service
 public class BillDocumentService {
@@ -48,14 +49,14 @@ public class BillDocumentService {
 
         // Cost Breakdown
         document.add(new Paragraph("Charges Breakdown", subtitleFont));
-        document.add(new Paragraph("Base Charge: LKR " + String.format("%.2f", bill.getBaseCharge() != null ? bill.getBaseCharge() : 0.0), regularFont));
-        if (bill.getUsageCharge() != null && bill.getUsageCharge().doubleValue() > 0) {
+        document.add(new Paragraph("Base Charge: LKR " + String.format("%.2f", bill.getBaseCharge() != null ? bill.getBaseCharge() : BigDecimal.ZERO), regularFont));
+        if (bill.getUsageCharge() != null && bill.getUsageCharge().compareTo(BigDecimal.ZERO) > 0) {
             document.add(new Paragraph("Usage Charge: LKR " + String.format("%.2f", bill.getUsageCharge()), regularFont));
         }
-        document.add(new Paragraph("Tax Amount: LKR " + String.format("%.2f", bill.getTaxAmount() != null ? bill.getTaxAmount() : 0.0), regularFont));
+        document.add(new Paragraph("Tax Amount: LKR " + String.format("%.2f", bill.getTaxAmount() != null ? bill.getTaxAmount() : BigDecimal.ZERO), regularFont));
         document.add(new Paragraph("\n"));
 
-        Paragraph total = new Paragraph("Total Amount: LKR " + String.format("%.2f", bill.getTotalAmount() != null ? bill.getTotalAmount() : 0.0), titleFont);
+        Paragraph total = new Paragraph("Total Amount: LKR " + String.format("%.2f", bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO), titleFont);
         total.setAlignment(Element.ALIGN_RIGHT);
         document.add(total);
 
@@ -171,19 +172,19 @@ public class BillDocumentService {
         g2d.setColor(mutedColor);
         g2d.drawString("Usage Units (" + (bill.getUsageUnits() != null ? bill.getUsageUnits() : 0) + ")", x, y);
         g2d.setColor(textColor);
-        g2d.drawString("LKR " + String.format("%.2f", bill.getUsageCharge() != null ? bill.getUsageCharge() : 0.0), width - 250, y);
+        g2d.drawString("LKR " + String.format("%.2f", bill.getUsageCharge() != null ? bill.getUsageCharge() : BigDecimal.ZERO), width - 250, y);
         y += 30;
 
         g2d.setColor(mutedColor);
         g2d.drawString("Base Charge", x, y);
         g2d.setColor(textColor);
-        g2d.drawString("LKR " + String.format("%.2f", bill.getBaseCharge() != null ? bill.getBaseCharge() : 0.0), width - 250, y);
+        g2d.drawString("LKR " + String.format("%.2f", bill.getBaseCharge() != null ? bill.getBaseCharge() : BigDecimal.ZERO), width - 250, y);
         y += 30;
 
         g2d.setColor(mutedColor);
         g2d.drawString("Tax Amount", x, y);
         g2d.setColor(textColor);
-        g2d.drawString("LKR " + String.format("%.2f", bill.getTaxAmount() != null ? bill.getTaxAmount() : 0.0), width - 250, y);
+        g2d.drawString("LKR " + String.format("%.2f", bill.getTaxAmount() != null ? bill.getTaxAmount() : BigDecimal.ZERO), width - 250, y);
         y += 40;
 
         // Line separator
@@ -200,7 +201,7 @@ public class BillDocumentService {
         g2d.drawString("Total Amount Due", x + 30, y + 50);
         
         g2d.setFont(titleFont);
-        g2d.drawString("LKR " + String.format("%.2f", bill.getTotalAmount() != null ? bill.getTotalAmount() : 0.0), width - 350, y + 55);
+        g2d.drawString("LKR " + String.format("%.2f", bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO), width - 350, y + 55);
 
         g2d.dispose();
 
