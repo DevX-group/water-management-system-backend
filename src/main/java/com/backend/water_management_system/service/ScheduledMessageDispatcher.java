@@ -176,8 +176,10 @@ public class ScheduledMessageDispatcher {
             if (mailSender != null) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
-                    dispatchEmail(customer, fromAddressForMail, toEmail, subjectTemplate, emailBodyTemplate, currentBill);
-                    successCount++;
+                    Boolean emailOk = dispatchEmail(customer, fromAddressForMail, toEmail, subjectTemplate, emailBodyTemplate, currentBill);
+                    
+                    if(emailOk)
+                        successCount++;
                 }
             }
         }
@@ -196,7 +198,7 @@ public class ScheduledMessageDispatcher {
     }
 
     //dispatches a due message to a single customer as an email
-    public void dispatchEmail(Customer customer, String fromAddressForMail, String toEmail, String subjectTemplate, String emailBodyTemplate, Bill currentBill){
+    public boolean dispatchEmail(Customer customer, String fromAddressForMail, String toEmail, String subjectTemplate, String emailBodyTemplate, Bill currentBill){
         String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
         String body = replacePlaceholders(emailBodyTemplate, customer, currentBill);
         try {
@@ -211,8 +213,11 @@ public class ScheduledMessageDispatcher {
             mail.setText(body);
             
             mailSender.send(mail);
+
+            return true;
         } catch (Exception ex) {
             log.warn("Failed to send scheduled email to {}: {}", toEmail, ex.getMessage());
+            return false;
         }
     }
 
