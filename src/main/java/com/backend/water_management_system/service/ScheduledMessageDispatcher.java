@@ -159,8 +159,8 @@ public class ScheduledMessageDispatcher {
         String fromAddressForMail = resolveFromAddress();
 
         String channels = message.getChannels() != null ? message.getChannels().toLowerCase() : "";
-        boolean shouldSendSMS = channels.contains("SMS");
-        boolean shouldSendEmail = channels.contains("Email");
+        boolean shouldSendSMS = channels.contains("sms");
+        boolean shouldSendEmail = channels.contains("email");
 
         int successCount = 0;
 
