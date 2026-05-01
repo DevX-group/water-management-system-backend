@@ -246,4 +246,13 @@ public class CustomerPaymentService {
         }
         return result;
     }
+
+    // Returns current payment status for frontend polling after PayHere redirect
+    public String getPaymentStatus(String orderId) {
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        return payment.getStatus().name();
+    }
 }

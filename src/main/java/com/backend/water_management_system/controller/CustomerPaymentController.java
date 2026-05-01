@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,5 +36,12 @@ public class CustomerPaymentController {
     public ResponseEntity<String> handlePayhereNotify(@RequestParam Map<String, String> params) {
         customerPaymentService.handlePayhereNotification(params);
         return ResponseEntity.ok("Notification received");
+    }
+
+    // Endpoint used by frontend success page to poll latest payment status
+    @PostMapping("/status/{orderId}")
+    public ResponseEntity<String> getPaymentStatus(@PathVariable String orderId) {
+        String status = customerPaymentService.getPaymentStatus(orderId);
+        return ResponseEntity.ok(status);
     }
 }
