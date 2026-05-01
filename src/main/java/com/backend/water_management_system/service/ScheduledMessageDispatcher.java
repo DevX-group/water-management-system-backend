@@ -1,6 +1,7 @@
 package com.backend.water_management_system.service;
 
 import com.backend.water_management_system.entity.MessageTemplate;
+import com.backend.water_management_system.dto.SMSGatewayResponseDTO;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.ScheduledMessage;
@@ -148,8 +149,7 @@ public class ScheduledMessageDispatcher {
                 candidates.size(), dueCount, customers.size(), totalSuccess);
     }
 
-    /* Dispatches a due message (SMS and Email attempted after checking wehther the channels field of the message contains SMS and/or Email) 
-    and returns number of successful sends */
+    //Dispatches a due message as a SMS and/or Email and returns number of successful sends
     private int dispatchMessageToAll(List<Customer> customers, ScheduledMessage message) {
 
         String subjectTemplate = buildSubject(message);
@@ -262,42 +262,32 @@ public class ScheduledMessageDispatcher {
             payload.put("type", "plain");
             payload.put("message", message == null ? "" : message);
 
-            SmsGatewayResponse response = webClient.post()
+            SMSGatewayResponseDTO response = webClient.post()
                     .uri("")
                     .header("Authorization", "Bearer " + textLkApiToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(payload)
-                    .exchangeToMono(resp -> resp.bodyToMono(String.class)
-                            .defaultIfEmpty("")
-                            .map(body -> new SmsGatewayResponse(resp.statusCode().value(), body)))
+                    .exchangeToMono(resp -> 
+                        resp.bodyToMono(SMSGatewayResponseDTO.class)
+                            .defaultIfEmpty(new SMSGatewayResponseDTO())
+                    )
                     .block();
-
+                    
             if (response == null) {
                 log.warn("Text.lk SMS request failed for {}: empty response", to);
                 return false;
             }
 
-            if (response.statusCode >= 200 && response.statusCode < 300
-                    && response.body != null && response.body.contains("\"status\":\"success\"")) {
+            if (response.getStatus() != null && "success".equalsIgnoreCase(response.getStatus())) {
                 return true;
             }
 
-            log.warn("Text.lk SMS request failed for {} with status {} and body {}", to, response.statusCode, response.body);
+            log.warn("Text.lk SMS request failed for {} with status {} and message {}", to, response.getStatus(), response.getMessage());
             return false;
         } catch (Exception ex) {
             log.warn("Failed to send scheduled SMS to {}: {}", to, ex.getMessage());
             return false;
-        }
-    }
-
-    private static class SmsGatewayResponse {
-        private final int statusCode;
-        private final String body;
-
-        private SmsGatewayResponse(int statusCode, String body) {
-            this.statusCode = statusCode;
-            this.body = body;
         }
     }
 
