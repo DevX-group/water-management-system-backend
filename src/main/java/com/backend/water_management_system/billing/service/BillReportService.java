@@ -5,6 +5,7 @@ import com.backend.water_management_system.entity.BillReport;
 import com.backend.water_management_system.repository.BillReportRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -16,15 +17,29 @@ public class BillReportService {
         this.repository = repository;
     }
 
+    // ALL bills
     public List<BillReport> getAllBills() {
         return repository.findAll();
     }
 
+    // Bills by customer
     public List<BillReport> getBillsByCustomer(String customerId) {
         return repository.findByCustomerId(customerId);
     }
 
-    // Example summary logic
+    // ✅ ADD THIS → Overdue bills
+    public List<BillReport> getOverdueBills() {
+        LocalDate today = LocalDate.now();
+
+        return repository.findAll().stream()
+                .filter(bill ->
+                        "UNPAID".equals(bill.getStatus()) &&
+                                bill.getDueDate().isBefore(today)
+                )
+                .toList();
+    }
+
+    // Summary
     public BillsSummaryDTO getSummary(String customerId) {
 
         List<BillReport> bills = repository.findByCustomerId(customerId);
