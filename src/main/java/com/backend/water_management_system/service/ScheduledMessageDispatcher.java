@@ -112,7 +112,6 @@ public class ScheduledMessageDispatcher {
 
         LocalDateTime now = LocalDateTime.now();
         int dueCount = 0;
-        int totalSuccess = 0;
 
         for (ScheduledMessage message : candidates) {
             boolean due = isDue(message, now);
@@ -134,12 +133,33 @@ public class ScheduledMessageDispatcher {
 
             dueCount++;
 
-            int successCount = dispatchMessageToAll(customers, message);
+            DispatchCounts counts = dispatchMessageToAll(customers, message);
 
-            totalSuccess += successCount;
+            int totalEmailsFailed = Math.max(counts.totalEmails - counts.emailSuccessCount, 0);
+            int totalSmsFailed = Math.max(counts.totalSms - counts.smsSuccessCount, 0);
 
-            // if at least one message (email or sms) is successfully sent, update lastMessageSentAt or oneTimeMessageSent properties
-            if (successCount > 0) {
+            double emailSuccessRate = counts.totalEmails == 0
+                    ? 0.0
+                    : (counts.emailSuccessCount * 100.0) / counts.totalEmails;
+            double smsSuccessRate = counts.totalSms == 0
+                    ? 0.0
+                    : (counts.smsSuccessCount * 100.0) / counts.totalSms;
+
+            // if at least one message (email or sms) is successfully sent, save and update
+            // send state
+            if (counts.emailSuccessCount > 0 || counts.smsSuccessCount > 0) {
+                sentMessageService.save(toSentMessage(
+                        message,
+                        now,
+                        emailSuccessRate,
+                        smsSuccessRate,
+                        counts.totalEmails,
+                        totalEmailsFailed,
+                        counts.emailSuccessCount,
+                        counts.totalSms,
+                        totalSmsFailed,
+                        counts.smsSuccessCount));
+
                 message.setLastMessageSentAt(now);
                 if (isOneTime(message)) {
                     message.setOneTimeMessageSent(true);
@@ -148,12 +168,12 @@ public class ScheduledMessageDispatcher {
         }
 
         // after all the due messages are processed, log the summary of this tick
-        log.info("Scheduled messaging tick: candidates={}, due={}, recipients={}, successfulSends={}",
-                candidates.size(), dueCount, customers.size(), totalSuccess);
+        log.info("Scheduled messaging tick: candidates={}, due={}, recipients={}",
+                candidates.size(), dueCount, customers.size());
     }
 
-    //Dispatches a due message as a SMS and/or Email and returns number of successful sends
-    private int dispatchMessageToAll(List<Customer> customers, ScheduledMessage message) {
+    // Dispatches a due message as a SMS and/or Email and returns per-channel counts
+    private DispatchCounts dispatchMessageToAll(List<Customer> customers, ScheduledMessage message) {
 
         String subjectTemplate = buildSubject(message);
         String emailBodyTemplate = buildBodyFromTemplate(message.getEmailTemplate());
@@ -165,76 +185,79 @@ public class ScheduledMessageDispatcher {
         boolean shouldSendSMS = channels.contains("sms");
         boolean shouldSendEmail = channels.contains("email");
 
-        int successCount = 0;
+        DispatchCounts counts = new DispatchCounts();
 
         for (Customer customer : customers) {
             // prepare current bill for placeholders
             Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
 
-            //SMS attempt
-            if(shouldSendSMS){
+            // SMS attempt
+            if (shouldSendSMS) {
                 String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
                 if (!toPhone.isEmpty()) {
+                    counts.totalSms++;
                     String smsTemplateToUse = resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
-                    
+
                     boolean smsOk = dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
 
-                    if(smsOk){
-                        successCount++;
+                    if (smsOk) {
+                        counts.smsSuccessCount++;
                     }
                 }
             }
 
-            //Email attempt (only if MailSender exists and customer has an email)
+            // Email attempt (only if MailSender exists and customer has an email)
             if (shouldSendEmail && mailSender != null) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
+                    counts.totalEmails++;
                     String emailTemplateToUse = resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
-                    
-                    boolean emailOk = dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate, emailTemplateToUse, currentBill);
-                    
-                    if(emailOk){
-                        successCount++;
+
+                    boolean emailOk = dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate,
+                            emailTemplateToUse, currentBill);
+
+                    if (emailOk) {
+                        counts.emailSuccessCount++;
                     }
-                        
+
                 }
             }
         }
 
-        return successCount;
+        return counts;
     }
 
-    //dispatches a due message to a single customer as a SMS
-    private boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill){
+    // dispatches a due message to a single customer as a SMS
+    private boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill) {
         String smsBody = replacePlaceholders(smsTemplateToUse, customer, currentBill);
-        
+
         boolean smsOk = sendSms(toPhone, smsBody);
-        
+
         return smsOk;
     }
 
-    //dispatches a due message to a single customer as an email
-    private boolean dispatchEmail(Customer customer, 
-                                String toEmail,
-                                String fromAddressForMail, 
-                                String subjectTemplate, 
-                                String emailTemplateToUse,
-                                Bill currentBill){
+    // dispatches a due message to a single customer as an email
+    private boolean dispatchEmail(Customer customer,
+            String toEmail,
+            String fromAddressForMail,
+            String subjectTemplate,
+            String emailTemplateToUse,
+            Bill currentBill) {
 
         String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
         String body = replacePlaceholders(emailTemplateToUse, customer, currentBill);
-        
+
         try {
             SimpleMailMessage mail = new SimpleMailMessage();
-            
+
             if (!fromAddressForMail.isBlank()) {
                 mail.setFrom(fromAddressForMail);
             }
-            
+
             mail.setTo(toEmail);
             mail.setSubject(subject);
             mail.setText(body);
-            
+
             mailSender.send(mail);
 
             return true;
@@ -244,7 +267,8 @@ public class ScheduledMessageDispatcher {
         }
     }
 
-    // Sends SMS using Text.lk gateway. Returns true if the gateway returned a successful response.
+    // Sends SMS using Text.lk gateway. Returns true if the gateway returned a
+    // successful response.
     private boolean sendSms(String to, String message) {
         if (textLkApiEndpoint == null || textLkApiEndpoint.isBlank()
                 || textLkApiToken == null || textLkApiToken.isBlank()) {
@@ -271,12 +295,10 @@ public class ScheduledMessageDispatcher {
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(payload)
-                    .exchangeToMono(resp -> 
-                        resp.bodyToMono(SMSGatewayResponseDTO.class)
-                            .defaultIfEmpty(new SMSGatewayResponseDTO())
-                    )
+                    .exchangeToMono(resp -> resp.bodyToMono(SMSGatewayResponseDTO.class)
+                            .defaultIfEmpty(new SMSGatewayResponseDTO()))
                     .block();
-                    
+
             if (response == null) {
                 log.warn("Text.lk SMS request failed for {}: empty response", to);
                 return false;
@@ -286,7 +308,8 @@ public class ScheduledMessageDispatcher {
                 return true;
             }
 
-            log.warn("Text.lk SMS request failed for {} with status {} and message {}", to, response.getStatus(), response.getMessage());
+            log.warn("Text.lk SMS request failed for {} with status {} and message {}", to, response.getStatus(),
+                    response.getMessage());
             return false;
         } catch (Exception ex) {
             log.warn("Failed to send scheduled SMS to {}: {}", to, ex.getMessage());
@@ -308,12 +331,14 @@ public class ScheduledMessageDispatcher {
         return "";
     }
 
-    //if the template body is not available for the relevant channel, replace it with the template body of the other channel
-    private String resolveTemplateBody(String primaryTemplate, String fallbackTemplate){
+    // if the template body is not available for the relevant channel, replace it
+    // with the template body of the other channel
+    private String resolveTemplateBody(String primaryTemplate, String fallbackTemplate) {
         return (primaryTemplate != null && !primaryTemplate.isBlank() ? primaryTemplate : fallbackTemplate);
     }
 
-    // replaces placeholders in the template with actual values from the relevant customer and their current bill, if available.
+    // replaces placeholders in the template with actual values from the relevant
+    // customer and their current bill, if available.
     private String replacePlaceholders(String template, Customer customer, Bill currentBill) {
         if (template == null || template.isBlank()) {
             return "";
@@ -364,7 +389,8 @@ public class ScheduledMessageDispatcher {
             return false;
         }
 
-        // if it is one-time, return whether the current date and time is after the scheduled date and time
+        // if it is one-time, return whether the current date and time is after the
+        // scheduled date and time
         if (isOneTime(message)) {
             LocalDate scheduledDate = message.getScheduleDate();
             if (scheduledDate == null) {
@@ -388,19 +414,22 @@ public class ScheduledMessageDispatcher {
                     ? message.getLastMessageSentAt().toLocalDate()
                     : null;
 
-            // if it is at least sent once and the last sent date is within this month this year, return false
+            // if it is at least sent once and the last sent date is within this month this
+            // year, return false
             if (lastSentDate != null
                     && lastSentDate.getYear() == now.getYear()
                     && lastSentDate.getMonthValue() == now.getMonthValue()) {
                 return false;
             }
 
-            // if the current day of month is before the scheduled day of month, return false
+            // if the current day of month is before the scheduled day of month, return
+            // false
             if (now.getDayOfMonth() < dayOfMonth) {
                 return false;
             }
 
-            // if the current day of month is the scheduled day of month, return whether the current time not is before the scheduled time
+            // if the current day of month is the scheduled day of month, return whether the
+            // current time not is before the scheduled time
             if (now.getDayOfMonth() == dayOfMonth) {
                 return !now.toLocalTime().isBefore(message.getScheduleTime());
             }
@@ -450,19 +479,23 @@ public class ScheduledMessageDispatcher {
             return "";
         }
 
-        //if it is a custom template and the content is not empty, return the content
+        // if it is a custom template and the content is not empty, return the content
         if (template.getContent() != null && !template.getContent().isBlank()) {
             return template.getContent();
         }
 
-        /*if it is a custom template but there is nothing in content, 
-        or if it is not a custom template but there is nothing in the template sections, 
-        return an empty string */
+        /*
+         * if it is a custom template but there is nothing in content,
+         * or if it is not a custom template but there is nothing in the template
+         * sections,
+         * return an empty string
+         */
         if (template.getSections() == null || template.getSections().isEmpty()) {
             return "";
         }
 
-        //if it is not a custom template and there is content available in the template sections, return the collected content
+        // if it is not a custom template and there is content available in the template
+        // sections, return the collected content
         return template.getSections().stream()
                 .map(section -> section.getContent() == null ? "" : section.getContent())
                 .filter(content -> !content.isBlank())
@@ -473,9 +506,13 @@ public class ScheduledMessageDispatcher {
     private SentMessage toSentMessage(ScheduledMessage scheduledMessage,
             LocalDateTime now,
             double emailSuccessRate,
-            int totalSent,
-            int totalFailed,
-            int totalDelivered) {
+            double smsSuccessRate,
+            int totalEmailsSent,
+            int totalEmailsFailed,
+            int totalEmailsDelivered,
+            int totalSmsSent,
+            int totalSmsFailed,
+            int totalSmsDelivered) {
         SentMessage sentMessage = new SentMessage();
         sentMessage.setSourceScheduledMessageId(scheduledMessage.getId());
         sentMessage.setName(scheduledMessage.getName());
@@ -487,14 +524,21 @@ public class ScheduledMessageDispatcher {
         sentMessage.setSentDate(now.toLocalDate());
         sentMessage.setSentTime(now.toLocalTime());
         sentMessage.setEmailSuccessRate(emailSuccessRate);
-        sentMessage.setSmsSuccessRate(0.0);
-        sentMessage.setTotalEmailsSent(totalSent);
-        sentMessage.setTotalEmailsFailed(totalFailed);
-        sentMessage.setTotalEmailsDelivered(totalDelivered);
-        sentMessage.setTotalSMSsSent(0);
-        sentMessage.setTotalSMSsFailed(0);
-        sentMessage.setTotalSMSsDelivered(0);
+        sentMessage.setSmsSuccessRate(smsSuccessRate);
+        sentMessage.setTotalEmailsSent(totalEmailsSent);
+        sentMessage.setTotalEmailsFailed(totalEmailsFailed);
+        sentMessage.setTotalEmailsDelivered(totalEmailsDelivered);
+        sentMessage.setTotalSMSsSent(totalSmsSent);
+        sentMessage.setTotalSMSsFailed(totalSmsFailed);
+        sentMessage.setTotalSMSsDelivered(totalSmsDelivered);
         return sentMessage;
+    }
+
+    private static class DispatchCounts {
+        private int totalEmails;
+        private int emailSuccessCount;
+        private int totalSms;
+        private int smsSuccessCount;
     }
 
     private MessageTemplate copyTemplate(MessageTemplate source) {

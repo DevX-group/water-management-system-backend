@@ -11,9 +11,13 @@ public class SentMessageHistoryDto {
     private LocalDate sentDate;
     private LocalTime sentTime;
     private Double emailSuccessRate;
+    private Double smsSuccessRate;
     private Integer totalEmailsSent;
     private Integer totalEmailsFailed;
     private Integer totalEmailsDelivered;
+    private Integer totalSMSsSent;
+    private Integer totalSMSsFailed;
+    private Integer totalSMSsDelivered;
 
     public Long getId() {
         return id;
@@ -71,6 +75,14 @@ public class SentMessageHistoryDto {
         this.emailSuccessRate = emailSuccessRate;
     }
 
+    public Double getSmsSuccessRate() {
+        return smsSuccessRate;
+    }
+
+    public void setSmsSuccessRate(Double smsSuccessRate) {
+        this.smsSuccessRate = smsSuccessRate;
+    }
+
     public Integer getTotalEmailsSent() {
         return totalEmailsSent;
     }
@@ -93,5 +105,29 @@ public class SentMessageHistoryDto {
 
     public void setTotalEmailsDelivered(Integer totalEmailsDelivered) {
         this.totalEmailsDelivered = totalEmailsDelivered;
+    }
+
+    public Integer getTotalSMSsSent() {
+        return totalSMSsSent;
+    }
+
+    public void setTotalSMSsSent(Integer totalSMSsSent) {
+        this.totalSMSsSent = totalSMSsSent;
+    }
+
+    public Integer getTotalSMSsFailed() {
+        return totalSMSsFailed;
+    }
+
+    public void setTotalSMSsFailed(Integer totalSMSsFailed) {
+        this.totalSMSsFailed = totalSMSsFailed;
+    }
+
+    public Integer getTotalSMSsDelivered() {
+        return totalSMSsDelivered;
+    }
+
+    public void setTotalSMSsDelivered(Integer totalSMSsDelivered) {
+        this.totalSMSsDelivered = totalSMSsDelivered;
     }
 }

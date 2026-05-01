@@ -36,9 +36,13 @@ public class SentMessageService {
         dto.setSentDate(entity.getSentDate());
         dto.setSentTime(entity.getSentTime());
         dto.setEmailSuccessRate(entity.getEmailSuccessRate());
+        dto.setSmsSuccessRate(entity.getSmsSuccessRate());
         dto.setTotalEmailsSent(entity.getTotalEmailsSent());
         dto.setTotalEmailsFailed(entity.getTotalEmailsFailed());
         dto.setTotalEmailsDelivered(entity.getTotalEmailsDelivered());
+        dto.setTotalSMSsSent(entity.getTotalSMSsSent());
+        dto.setTotalSMSsFailed(entity.getTotalSMSsFailed());
+        dto.setTotalSMSsDelivered(entity.getTotalSMSsDelivered());
         return dto;
     }
 }
