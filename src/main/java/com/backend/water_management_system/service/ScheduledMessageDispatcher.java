@@ -1,6 +1,7 @@
 package com.backend.water_management_system.service;
 
 import com.backend.water_management_system.entity.MessageTemplate;
+import com.backend.water_management_system.dto.SMSGatewayRequestDTO;
 import com.backend.water_management_system.dto.SMSGatewayResponseDTO;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
@@ -254,13 +255,13 @@ public class ScheduledMessageDispatcher {
         }
 
         try {
-            Map<String, String> payload = new HashMap<>();
-            payload.put("recipient", to);
+            SMSGatewayRequestDTO payload = new SMSGatewayRequestDTO();
+            payload.setRecipient(to);
             if (textLkSenderId != null && !textLkSenderId.isBlank()) {
-                payload.put("sender_id", textLkSenderId);
+                payload.setSender_id(textLkSenderId);
             }
-            payload.put("type", "plain");
-            payload.put("message", message == null ? "" : message);
+            payload.setType("plain");
+            payload.setMessage(message == null ? "" : message);
 
             SMSGatewayResponseDTO response = webClient.post()
                     .uri("")
