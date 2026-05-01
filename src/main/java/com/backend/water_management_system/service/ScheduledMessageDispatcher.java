@@ -55,6 +55,8 @@ public class ScheduledMessageDispatcher {
     @Value("${text-lk.sender-id:}")
     private String textLkSenderId;
 
+    private final String smsType = "plain";
+
     private WebClient webClient;
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.%-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
@@ -260,7 +262,7 @@ public class ScheduledMessageDispatcher {
             if (textLkSenderId != null && !textLkSenderId.isBlank()) {
                 payload.setSender_id(textLkSenderId);
             }
-            payload.setType("plain");
+            payload.setType(smsType);
             payload.setMessage(message == null ? "" : message);
 
             SMSGatewayResponseDTO response = webClient.post()
