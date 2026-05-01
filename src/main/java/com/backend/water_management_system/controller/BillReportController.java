@@ -18,18 +18,27 @@ public class BillReportController {
         this.billService = billService;
     }
 
+    // ALL bills
     @GetMapping
     public List<BillReport> getAllBills() {
         return billService.getAllBills();
     }
 
+    // BY customer
     @GetMapping("/{customerId}")
     public List<BillReport> getByCustomer(@PathVariable String customerId) {
         return billService.getBillsByCustomer(customerId);
     }
 
+    // SUMMARY
     @GetMapping("/summary/{customerId}")
     public BillsSummaryDTO getSummary(@PathVariable String customerId) {
         return billService.getSummary(customerId);
+    }
+
+    // 🔥 OVERDUE BILLS (NEW)
+    @GetMapping("/overdue")
+    public List<BillReport> getOverdueBills() {
+        return billService.getOverdueBills();
     }
 }
