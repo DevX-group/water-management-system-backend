@@ -20,4 +20,7 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
 
     List<Payment> findByStatusAndPaymentMethodAndCreatedAtBefore(PaymentStatus status, PaymentMethod method,
             LocalDateTime time);
+
+    List<Payment> findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(String subscriptionNumber,
+            List<PaymentStatus> validStatuses);
 }

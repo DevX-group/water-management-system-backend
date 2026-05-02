@@ -26,12 +26,14 @@ import com.backend.water_management_system.entity.PaymentAllocation;
 import com.backend.water_management_system.entity.PaymentMethod;
 import com.backend.water_management_system.entity.PaymentStatus;
 import com.backend.water_management_system.entity.PaymentType;
+import com.backend.water_management_system.exception.CustomerNotFoundException;
 import com.backend.water_management_system.exception.InvalidPaymentException;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentAllocationRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -304,26 +306,31 @@ public class PaymentService {
             throw new InvalidPaymentException("Subscription number is required");
         }
 
-        customerRepository.findById(subscriptionNumber)
-                .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
+        if (!customerRepository.existsById(subscriptionNumber)) {
+            throw new CustomerNotFoundException("Customer not found: " + subscriptionNumber);
+        }
+
+        List<PaymentStatus> validStatuses = List.of(PaymentStatus.FULL, PaymentStatus.PARTIAL);
 
         return paymentRepository
-                .findBySubscriptionNumberOrderByCreatedAtDesc(subscriptionNumber)
+                .findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(subscriptionNumber, validStatuses)
                 .stream()
-                .map(p -> new PaymentHistoryItemResponse(
-                        p.getPaymentId(),
-                        p.getSubscriptionNumber(),
-                        p.getAmount(),
-                        p.getStatus().name(),
-                        p.getPaymentType().name(),
-                        p.getCreatedAt()))
+                .map(p -> PaymentHistoryItemResponse.builder()
+                        .paymentId(p.getPaymentId())
+                        .subscriptionNumber(p.getSubscriptionNumber())
+                        .amount(p.getAmount())
+                        .status(p.getStatus())
+                        .paymentType(p.getPaymentType())
+                        .paymentMethod(p.getPaymentMethod())
+                        .createdAt(p.getCreatedAt())
+                        .build())
                 .toList();
     }
 
     public CurrentBillResponse getCurrentBill(String subscriptionNumber) {
 
         customerRepository.findById(subscriptionNumber)
-                .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found: " + subscriptionNumber));
 
         Bill latest = billRepository.findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("No bills found for customer: " + subscriptionNumber));
