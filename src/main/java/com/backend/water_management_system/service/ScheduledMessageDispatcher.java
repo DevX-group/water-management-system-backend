@@ -7,6 +7,7 @@ import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.ScheduledMessage;
 import com.backend.water_management_system.entity.SentMessage;
+import com.backend.water_management_system.entity.SentMessageFailure;
 import com.backend.water_management_system.entity.TemplateSection;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
@@ -26,6 +27,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -158,7 +160,8 @@ public class ScheduledMessageDispatcher {
                         counts.emailSuccessCount,
                         counts.totalSms,
                         totalSmsFailed,
-                        counts.smsSuccessCount));
+                        counts.smsSuccessCount,
+                        counts.failedRecipients));
 
                 message.setLastMessageSentAt(now);
                 if (isOneTime(message)) {
@@ -192,9 +195,15 @@ public class ScheduledMessageDispatcher {
             Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
 
             // SMS attempt
+            boolean smsAttempted = false;
+            boolean smsFailed = false;
+            boolean emailAttempted = false;
+            boolean emailFailed = false;
+
             if (shouldSendSMS) {
                 String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
                 if (!toPhone.isEmpty()) {
+                    smsAttempted = true;
                     counts.totalSms++;
                     String smsTemplateToUse = resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
 
@@ -202,6 +211,8 @@ public class ScheduledMessageDispatcher {
 
                     if (smsOk) {
                         counts.smsSuccessCount++;
+                    } else {
+                        smsFailed = true;
                     }
                 }
             }
@@ -210,6 +221,7 @@ public class ScheduledMessageDispatcher {
             if (shouldSendEmail && mailSender != null) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
+                    emailAttempted = true;
                     counts.totalEmails++;
                     String emailTemplateToUse = resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
 
@@ -218,9 +230,20 @@ public class ScheduledMessageDispatcher {
 
                     if (emailOk) {
                         counts.emailSuccessCount++;
+                    } else {
+                        emailFailed = true;
                     }
 
                 }
+            }
+
+            if ((smsAttempted && smsFailed) || (emailAttempted && emailFailed)) {
+                SentMessageFailure failure = new SentMessageFailure();
+                failure.setCustomer(customer);
+                failure.setSmsFailed(smsAttempted && smsFailed);
+                failure.setEmailFailed(emailAttempted && emailFailed);
+
+                counts.failedRecipients.add(failure);
             }
         }
 
@@ -512,7 +535,8 @@ public class ScheduledMessageDispatcher {
             int totalEmailsDelivered,
             int totalSmsSent,
             int totalSmsFailed,
-            int totalSmsDelivered) {
+            int totalSmsDelivered,
+            List<SentMessageFailure> failedRecipients) {
         SentMessage sentMessage = new SentMessage();
         sentMessage.setSourceScheduledMessageId(scheduledMessage.getId());
         sentMessage.setName(scheduledMessage.getName());
@@ -531,6 +555,10 @@ public class ScheduledMessageDispatcher {
         sentMessage.setTotalSMSsSent(totalSmsSent);
         sentMessage.setTotalSMSsFailed(totalSmsFailed);
         sentMessage.setTotalSMSsDelivered(totalSmsDelivered);
+        if (failedRecipients != null && !failedRecipients.isEmpty()) {
+            failedRecipients.forEach(failure -> failure.setSentMessage(sentMessage));
+            sentMessage.setFailedRecipients(failedRecipients);
+        }
         return sentMessage;
     }
 
@@ -539,6 +567,7 @@ public class ScheduledMessageDispatcher {
         private int emailSuccessCount;
         private int totalSms;
         private int smsSuccessCount;
+        private List<SentMessageFailure> failedRecipients = new ArrayList<>();
     }
 
     private MessageTemplate copyTemplate(MessageTemplate source) {
