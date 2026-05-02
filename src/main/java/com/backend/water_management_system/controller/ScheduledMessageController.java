@@ -1,6 +1,7 @@
 package com.backend.water_management_system.controller;
 
 import com.backend.water_management_system.dto.ScheduledMessageDto;
+import com.backend.water_management_system.dto.SentMessageFailureDto;
 import com.backend.water_management_system.dto.SentMessageHistoryDto;
 import com.backend.water_management_system.service.ScheduledMessageService;
 import com.backend.water_management_system.service.SentMessageService;
@@ -35,6 +36,11 @@ public class ScheduledMessageController {
     @GetMapping("/{id}")
     public ResponseEntity<ScheduledMessageDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
+    }
+
+    @GetMapping("/failures/{sentMessageId}")
+    ResponseEntity<List<SentMessageFailureDto>> getFailures(@PathVariable Long sentMessageId){
+        return ResponseEntity.ok(sentMessageService.getFailures(sentMessageId));
     }
 
     @PostMapping

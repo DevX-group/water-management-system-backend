@@ -1,7 +1,6 @@
 package com.backend.water_management_system.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
