@@ -1,11 +1,15 @@
 package com.backend.water_management_system.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "sent_messages")
@@ -43,6 +47,9 @@ public class SentMessage extends Message {
 
     @Column(name = "total_smss_delivered")
     private Integer totalSMSsDelivered;
+
+    @OneToMany(mappedBy = "sentMessage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SentMessageFailure> failedRecipients = new ArrayList<>();
 
     public LocalDate getSentDate() {
         return sentDate;
@@ -130,5 +137,13 @@ public class SentMessage extends Message {
 
     public void setTotalSMSsDelivered(Integer totalSMSsDelivered) {
         this.totalSMSsDelivered = totalSMSsDelivered;
+    }
+
+    public List<SentMessageFailure> getFailedRecipients() {
+        return failedRecipients;
+    }
+
+    public void setFailedRecipients(List<SentMessageFailure> failedRecipients) {
+        this.failedRecipients = failedRecipients;
     }
 }

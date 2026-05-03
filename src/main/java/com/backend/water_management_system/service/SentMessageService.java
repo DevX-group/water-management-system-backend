@@ -1,5 +1,6 @@
 package com.backend.water_management_system.service;
 
+import com.backend.water_management_system.dto.SentMessageFailureDto;
 import com.backend.water_management_system.dto.SentMessageHistoryDto;
 import com.backend.water_management_system.entity.SentMessage;
 import com.backend.water_management_system.repository.SentMessageRepository;
@@ -36,9 +37,31 @@ public class SentMessageService {
         dto.setSentDate(entity.getSentDate());
         dto.setSentTime(entity.getSentTime());
         dto.setEmailSuccessRate(entity.getEmailSuccessRate());
+        dto.setSmsSuccessRate(entity.getSmsSuccessRate());
         dto.setTotalEmailsSent(entity.getTotalEmailsSent());
         dto.setTotalEmailsFailed(entity.getTotalEmailsFailed());
         dto.setTotalEmailsDelivered(entity.getTotalEmailsDelivered());
+        dto.setTotalSMSsSent(entity.getTotalSMSsSent());
+        dto.setTotalSMSsFailed(entity.getTotalSMSsFailed());
+        dto.setTotalSMSsDelivered(entity.getTotalSMSsDelivered());
         return dto;
+    }
+
+    public List<SentMessageFailureDto> getFailures(Long sentMessageId) {
+        SentMessage message = sentMessageRepository.findById(sentMessageId)
+                .orElseThrow();
+
+        return message.getFailedRecipients().stream()
+                .map(f -> {
+                    SentMessageFailureDto dto = new SentMessageFailureDto();
+                    dto.setSubscriptionNumber(f.getCustomer().getSubscriptionNumber());
+                    dto.setCustomerName(f.getCustomer().getAccountHolderName());
+                    dto.setPhoneNumber(f.getCustomer().getMobileNumber());
+                    dto.setEmail(f.getCustomer().getEmail());
+                    dto.setSmsFailed(f.isSmsFailed());
+                    dto.setEmailFailed(f.isEmailFailed());
+                    return dto;
+                })
+                .toList();
     }
 }
