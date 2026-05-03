@@ -136,7 +136,7 @@ public class ScheduledMessageDispatcher {
 
             dueCount++;
 
-            DispatchCounts counts = dispatchMessageToAll(customers, message);
+            DispatchCounts counts = dispatchMessageToAll(customers, message, canSendSms, canSendEmail);
 
             int totalEmailsFailed = Math.max(counts.totalEmails - counts.emailSuccessCount, 0);
             int totalSmsFailed = Math.max(counts.totalSms - counts.smsSuccessCount, 0);
@@ -177,7 +177,7 @@ public class ScheduledMessageDispatcher {
     }
 
     // Dispatches a due message as a SMS and/or Email and returns per-channel counts
-    private DispatchCounts dispatchMessageToAll(List<Customer> customers, ScheduledMessage message) {
+    private DispatchCounts dispatchMessageToAll(List<Customer> customers, ScheduledMessage message, boolean canSendSMS, boolean canSendEmail) {
 
         String subjectTemplate = buildSubject(message);
         String emailBodyTemplate = buildBodyFromTemplate(message.getEmailTemplate());
@@ -188,6 +188,14 @@ public class ScheduledMessageDispatcher {
         String channels = message.getChannels() != null ? message.getChannels().toLowerCase() : "";
         boolean shouldSendSMS = channels.contains("sms");
         boolean shouldSendEmail = channels.contains("email");
+
+        if (shouldSendSMS && !canSendSMS){
+            log.warn("Message {} should be sent as a SMS but SMS gateway is not configured. Skipping SMS.", message.getName());
+        }
+
+        if (shouldSendEmail && !canSendEmail){
+            log.warn("Message {} should be sent as an Email but MailSender is not configured. Skipping Email.", message.getName());
+        }
 
         DispatchCounts counts = new DispatchCounts();
 
@@ -201,7 +209,8 @@ public class ScheduledMessageDispatcher {
             boolean emailAttempted = false;
             boolean emailFailed = false;
 
-            if (shouldSendSMS) {
+            // SMS attempt
+            if (shouldSendSMS && canSendSMS) {
                 String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
                 if (!toPhone.isEmpty()) {
                     smsAttempted = true;
@@ -218,8 +227,8 @@ public class ScheduledMessageDispatcher {
                 }
             }
 
-            // Email attempt (only if MailSender exists and customer has an email)
-            if (shouldSendEmail && mailSender != null) {
+            // Email attempt (only if customer has an email)
+            if (shouldSendEmail && canSendEmail) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
                 if (isValidEmail(toEmail)) {
                     emailAttempted = true;
@@ -294,11 +303,6 @@ public class ScheduledMessageDispatcher {
     // Sends SMS using Text.lk gateway. Returns true if the gateway returned a
     // successful response.
     private boolean sendSms(String to, String message) {
-        if (textLkApiEndpoint == null || textLkApiEndpoint.isBlank()
-                || textLkApiToken == null || textLkApiToken.isBlank()) {
-            log.warn("Text.lk SMS gateway not configured; skipping SMS to {}", to);
-            return false;
-        }
 
         try {
             SMSGatewayRequestDTO payload = new SMSGatewayRequestDTO();
