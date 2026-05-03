@@ -73,6 +73,7 @@ public class ScheduledMessageDispatcher {
         this.billRepository = billRepository;
         this.sentMessageService = sentMessageService;
         this.mailSender = mailSenderProvider.getIfAvailable();
+        webClient = WebClient.create();
     }
 
     public String getFromAddress() {
@@ -299,10 +300,6 @@ public class ScheduledMessageDispatcher {
             return false;
         }
 
-        if (webClient == null) {
-            webClient = WebClient.builder().baseUrl(textLkApiEndpoint).build();
-        }
-
         try {
             SMSGatewayRequestDTO payload = new SMSGatewayRequestDTO();
             payload.setRecipient(to);
@@ -313,7 +310,7 @@ public class ScheduledMessageDispatcher {
             payload.setMessage(message == null ? "" : message);
 
             SMSGatewayResponseDTO response = webClient.post()
-                    .uri("")
+                    .uri(textLkApiEndpoint)
                     .header("Authorization", "Bearer " + textLkApiToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
