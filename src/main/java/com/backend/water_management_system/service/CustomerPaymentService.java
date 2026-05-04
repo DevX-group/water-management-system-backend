@@ -272,11 +272,11 @@ public class CustomerPaymentService {
         BigDecimal totalBalance = billRepository.getTotalPendingBalance(payment.getSubscriptionNumber());
 
         // Total amount charged for the current billing cycle (this month's usage only)
-        BigDecimal currentBillAmount = latestMonthlyBill.getTotalAmount();
+        BigDecimal currentBillAmount = latestMonthlyBill.getTotalAmount() != null ? latestMonthlyBill.getTotalAmount() : BigDecimal.ZERO;
 
         // Outstanding balance carried forward from previous billing cycles at the time
         // this bill was generated
-        BigDecimal outstandingAtIssue = latestMonthlyBill.getOutstandingAtIssue();
+        BigDecimal outstandingAtIssue = latestMonthlyBill.getOutstandingAtIssue() != null ? latestMonthlyBill.getOutstandingAtIssue() : BigDecimal.ZERO;
 
         // Total amount due for this billing cycle (current month charges + carried
         // forward outstanding balance)
@@ -296,7 +296,7 @@ public class CustomerPaymentService {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0)
                 break;
 
-            BigDecimal due = bill.getBalanceDue();
+            BigDecimal due = bill.getBalanceDue() != null ? bill.getBalanceDue() : BigDecimal.ZERO;
             BigDecimal applied;
 
             if (remaining.compareTo(due) >= 0) {
