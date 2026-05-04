@@ -13,7 +13,8 @@ import com.backend.water_management_system.dto.AddPaymentRequest;
 import com.backend.water_management_system.dto.AddPaymentResponse;
 import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
-import com.backend.water_management_system.dto.OutstandingBillItemResponse;
+import com.backend.water_management_system.dto.OutstandingBillResponse;
+import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.dto.PaymentResult;
 import com.backend.water_management_system.dto.RecentPaymentResponse;
@@ -25,12 +26,14 @@ import com.backend.water_management_system.entity.PaymentAllocation;
 import com.backend.water_management_system.entity.PaymentMethod;
 import com.backend.water_management_system.entity.PaymentStatus;
 import com.backend.water_management_system.entity.PaymentType;
+import com.backend.water_management_system.exception.CustomerNotFoundException;
 import com.backend.water_management_system.exception.InvalidPaymentException;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentAllocationRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -303,40 +306,50 @@ public class PaymentService {
             throw new InvalidPaymentException("Subscription number is required");
         }
 
-        customerRepository.findById(subscriptionNumber)
-                .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
+        if (!customerRepository.existsById(subscriptionNumber)) {
+            throw new CustomerNotFoundException("Customer not found: " + subscriptionNumber);
+        }
+
+        List<PaymentStatus> validStatuses = List.of(PaymentStatus.FULL, PaymentStatus.PARTIAL);
 
         return paymentRepository
-                .findBySubscriptionNumberOrderByCreatedAtDesc(subscriptionNumber)
+                .findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(subscriptionNumber, validStatuses)
                 .stream()
-                .map(p -> new PaymentHistoryItemResponse(
-                        p.getPaymentId(),
-                        p.getSubscriptionNumber(),
-                        p.getAmount(),
-                        p.getStatus().name(),
-                        p.getPaymentType().name(),
-                        p.getCreatedAt()))
+                .map(p -> PaymentHistoryItemResponse.builder()
+                        .paymentId(p.getPaymentId())
+                        .subscriptionNumber(p.getSubscriptionNumber())
+                        .amount(p.getAmount())
+                        .status(p.getStatus())
+                        .paymentType(p.getPaymentType())
+                        .paymentMethod(p.getPaymentMethod())
+                        .createdAt(p.getCreatedAt())
+                        .build())
                 .toList();
     }
 
     public CurrentBillResponse getCurrentBill(String subscriptionNumber) {
 
         customerRepository.findById(subscriptionNumber)
-                .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found: " + subscriptionNumber));
 
         Bill latest = billRepository.findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("No bills found for customer: " + subscriptionNumber));
+
+        BigDecimal total = latest.getTotalAmount() == null ? BigDecimal.ZERO : latest.getTotalAmount();
+        BigDecimal balance = latest.getBalanceDue() == null ? BigDecimal.ZERO : latest.getBalanceDue();
+        BigDecimal alreadyPaid = total.subtract(balance);
 
         return new CurrentBillResponse(
                 latest.getBillId(),
                 latest.getBillingPeriod(),
                 latest.getBillDate(),
-                latest.getTotalAmount() == null ? BigDecimal.ZERO : latest.getTotalAmount(),
-                latest.getBalanceDue() == null ? BigDecimal.ZERO : latest.getBalanceDue(),
+                total,
+                alreadyPaid,
+                balance,
                 latest.getStatus() == null ? "PENDING" : latest.getStatus());
     }
 
-    public List<OutstandingBillItemResponse> getOutstandingBills(String subscriptionNumber) {
+    public OutstandingBillsSummaryResponse getOutstandingBills(String subscriptionNumber) {
 
         customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
@@ -349,16 +362,16 @@ public class PaymentService {
                         subscriptionNumber, BigDecimal.ZERO, latest.getBillDate());
 
         if (bills.isEmpty()) {
-            return List.of();
+            return new OutstandingBillsSummaryResponse(List.of(), BigDecimal.ZERO);
         }
 
-        return bills.stream().map(b -> {
+        List<OutstandingBillResponse> outstandingBills = bills.stream().map(b -> {
 
-            BigDecimal total = b.getTotalAmount();
-            BigDecimal balance = b.getBalanceDue();
-            BigDecimal paid = (total != null && balance != null) ? total.subtract(balance) : BigDecimal.ZERO;
+            BigDecimal total = b.getTotalAmount() == null ? BigDecimal.ZERO : b.getTotalAmount();
+            BigDecimal balance = b.getBalanceDue() == null ? BigDecimal.ZERO : b.getBalanceDue();
+            BigDecimal paid = total.subtract(balance);
 
-            return new OutstandingBillItemResponse(
+            return new OutstandingBillResponse(
                     b.getBillId(),
                     b.getBillingPeriod(),
                     b.getBillDate(),
@@ -368,6 +381,12 @@ public class PaymentService {
                     paid);
 
         }).toList();
+
+        BigDecimal totalOutstandingAmount = outstandingBills.stream()
+                .map(OutstandingBillResponse::getBalanceDue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new OutstandingBillsSummaryResponse(outstandingBills, totalOutstandingAmount);
     }
 
     public PaymentCustomerInfoResponse getPaymentCustomerInfo(String subscriptionNumber) {
