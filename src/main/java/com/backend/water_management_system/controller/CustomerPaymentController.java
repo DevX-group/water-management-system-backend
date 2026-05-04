@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.backend.water_management_system.dto.AddPaymentRequest;
+import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.service.CustomerPaymentService;
+
+import jakarta.validation.Valid;
 
 @CrossOrigin(origins = "http://localhost:8080")
 @RestController
@@ -28,7 +30,7 @@ public class CustomerPaymentController {
     }
 
     @PostMapping("/initiate")
-    public ResponseEntity<CustomerPaymentResponse> initiateCustomerPayment(@RequestBody AddPaymentRequest request) {
+    public ResponseEntity<CustomerPaymentResponse> initiateCustomerPayment(@Valid @RequestBody CustomerAddPaymentRequest request) {
         CustomerPaymentResponse response = customerPaymentService.initiateCustomerPayment(request);
         return ResponseEntity.ok(response);
     }

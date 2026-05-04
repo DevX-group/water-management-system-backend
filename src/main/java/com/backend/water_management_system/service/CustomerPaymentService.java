@@ -5,25 +5,27 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.backend.water_management_system.config.PayHereConfig;
-import com.backend.water_management_system.dto.AddPaymentRequest;
+import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.dto.PaymentResult;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Payment;
 import com.backend.water_management_system.entity.PaymentStatus;
-import com.backend.water_management_system.entity.PaymentType;
 import com.backend.water_management_system.exception.InvalidPaymentException;
+import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
@@ -38,27 +40,22 @@ public class CustomerPaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final PayHereConfig payHereConfig;
+    private final BillRepository billRepository;
     private static final Logger log = LoggerFactory.getLogger(CustomerPaymentService.class);
 
-    public CustomerPaymentResponse initiateCustomerPayment(AddPaymentRequest request) {
+    public CustomerPaymentResponse initiateCustomerPayment(CustomerAddPaymentRequest request) {
 
-        paymentService.validateRequest(request);
-
-        BigDecimal amount = request.getAmount();
-        String subscriptionNumber = request.getSubscriptionNumber();
-
-        if (request.getPaymentType() == PaymentType.MONTHLY) {
-            Bill monthlyBill = paymentService.getLatestMonthlyBill(subscriptionNumber);
-            paymentService.validateMonthlyPayment(amount, monthlyBill);
-
-        } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
-            List<Bill> outstandingBills = paymentService.getOutstandingBillsEntites(subscriptionNumber);
-            paymentService.validateOutstandingPayment(amount, outstandingBills);
-
+        if (request.getPaymentMethod() == null) {
+            throw new InvalidPaymentException("Payment method is required");
         }
 
-        Payment payment = paymentService.createPaymentEntity(request);
-        payment.setStatus(PaymentStatus.PENDING);
+        BigDecimal amount = request.getAmount();
+        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+
+        BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
+        validateAmount(amount, totalBalance);
+
+        Payment payment = createOnlinePayment(request, subscriptionNumber);
 
         String orderId = "PAY-" + payment.getPaymentId();
         String merchantId = payHereConfig.getMerchantId();
@@ -110,6 +107,25 @@ public class CustomerPaymentService {
 
     }
 
+    public void validateAmount(BigDecimal amount, BigDecimal totalBalance) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidPaymentException("Payment amount must be greater than zero");
+        }
+        if (amount.compareTo(totalBalance) > 0) {
+            throw new InvalidPaymentException("Payment amount cannot exceed total balance due of " + totalBalance);
+        }
+    }
+
+    public Payment createOnlinePayment(CustomerAddPaymentRequest request, String subscriptionNumber) {
+        Payment payment = new Payment();
+        payment.setPaymentId(UUID.randomUUID().toString());
+        payment.setSubscriptionNumber(subscriptionNumber);
+        payment.setAmount(request.getAmount());
+        payment.setCreatedAt(LocalDateTime.now());
+        payment.setStatus(PaymentStatus.PENDING);
+        return payment;
+    }
+
     private String getMd5(String input) {
         if (input == null) {
             throw new IllegalArgumentException("MD5 input cannot be null — check all payment fields are populated");
@@ -132,12 +148,7 @@ public class CustomerPaymentService {
 
         log.info("params received = {}", params);
 
-        Map<String, String> cleanParams = new HashMap<>();
-        params.forEach((k, v) -> {
-            if (k != null) {
-                cleanParams.put(k.trim(), v == null ? "" : v.trim());
-            }
-        });
+        Map<String, String> cleanParams = parseAndCleanParams(params);
 
         String orderId = cleanParams.get("order_id");
         String payherePaymentId = cleanParams.get("payment_id");
@@ -146,10 +157,7 @@ public class CustomerPaymentService {
 
         log.info("PayHere notify received. orderId={}, statusCode={}", orderId, statusCode);
 
-        if (orderId == null || payherePaymentId == null || statusCode == null || md5sig == null) {
-            log.warn("Missing required PayHere parameters. orderId={}", orderId);
-            throw new InvalidPaymentException("Missing required parameters in PayHere notification");
-        }
+        validateBasicParams(orderId, payherePaymentId, statusCode, md5sig);
 
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> {
@@ -167,23 +175,7 @@ public class CustomerPaymentService {
             throw new InvalidPaymentException("Amount mismatch in PayHere notification for order ID " + orderId);
         }
 
-        String amountFormatted = amount.setScale(2, RoundingMode.HALF_UP).toString();
-
-        String merchantId = payHereConfig.getMerchantId();
-        String merchantSecret = payHereConfig.getMerchantSecret();
-        String currency = "LKR";
-
-        log.info("Validating PayHere hash. orderId={}", orderId);
-
-        String localHash = getMd5(
-                merchantId + orderId + amountFormatted + currency + statusCode + getMd5(merchantSecret));
-
-        if (!localHash.equalsIgnoreCase(md5sig)) {
-            log.warn("Invalid PayHere hash. orderId={}", orderId);
-            throw new InvalidPaymentException("Invalid MD5 signature in PayHere notification");
-        }
-
-        log.info("Hash validation successful. orderId={}", orderId);
+        validateHash(amount, orderId, statusCode, md5sig);
 
         if ("2".equals(statusCode)) { // SUCCESS
             // already processed → do nothing
@@ -206,7 +198,7 @@ public class CustomerPaymentService {
             // First-time success processing
             payment.setPayherePaymentId(payherePaymentId);
 
-            PaymentResult result = processPayherePayment(payment, amount);
+            PaymentResult result = processPayment(payment);
             payment.setStatus(result.getStatus());
 
             log.info("Payment processed successfully. orderId={}, finalStatus={}", orderId, result.getStatus());
@@ -227,24 +219,109 @@ public class CustomerPaymentService {
         paymentRepository.save(payment);
 
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
-
     }
 
-    public PaymentResult processPayherePayment(Payment payment, BigDecimal amount) {
-        PaymentResult result;
+    private Map<String, String> parseAndCleanParams(Map<String, String> params) {
+        Map<String, String> clean = new HashMap<>();
 
-        if (payment.getPaymentType() == PaymentType.MONTHLY) {
-            Bill monthlyBill = paymentService.getLatestMonthlyBill(payment.getSubscriptionNumber());
-            result = paymentService.processMonthlyPayment(payment, amount, monthlyBill);
+        params.forEach((k, v) -> {
+            if (k != null) {
+                clean.put(k.trim(), v == null ? "" : v.trim());
+            }
+        });
 
-        } else if (payment.getPaymentType() == PaymentType.OUTSTANDING) {
-            List<Bill> outstandingBills = paymentService.getOutstandingBillsEntites(payment.getSubscriptionNumber());
-            result = paymentService.processOutstandingPayment(payment, amount, outstandingBills);
+        return clean;
+    }
 
-        } else {
-            throw new InvalidPaymentException("Unknown payment type for payment ID " + payment.getPaymentId());
+    private void validateBasicParams(String orderId, String paymentId, String statusCode, String md5sig) {
+        if (orderId == null || paymentId == null || statusCode == null || md5sig == null) {
+            throw new InvalidPaymentException("Missing required PayHere parameters");
         }
-        return result;
+    }
+
+    private void validateHash(BigDecimal amount, String orderId, String statusCode,
+            String md5sig) {
+
+        String amountFormatted = amount.setScale(2, RoundingMode.HALF_UP).toString();
+
+        String merchantId = payHereConfig.getMerchantId();
+        String merchantSecret = payHereConfig.getMerchantSecret();
+        String currency = "LKR";
+
+        log.info("Validating PayHere hash. orderId={}", orderId);
+
+        String localHash = getMd5(
+                merchantId + orderId + amountFormatted + currency + statusCode + getMd5(merchantSecret));
+
+        if (!localHash.equalsIgnoreCase(md5sig)) {
+            log.warn("Invalid PayHere hash. orderId={}", orderId);
+            throw new InvalidPaymentException("Invalid MD5 signature in PayHere notification");
+        }
+    }
+
+    public PaymentResult processPayment(Payment payment) {
+
+        List<Bill> bills = billRepository
+                .findByCustomerSubscriptionNumberAndStatusOrderByGeneratedAtAsc(payment.getSubscriptionNumber(),
+                        "PENDING");
+        Bill latestMonthlyBill = paymentService.getLatestMonthlyBill(payment.getSubscriptionNumber());
+
+        // Total balance includes all pending bills (current month + any outstanding
+        // from previous months)
+        BigDecimal totalBalance = billRepository.getTotalPendingBalance(payment.getSubscriptionNumber());
+
+        // Total amount charged for the current billing cycle (this month's usage only)
+        BigDecimal currentBillAmount = latestMonthlyBill.getTotalAmount();
+
+        // Outstanding balance carried forward from previous billing cycles at the time
+        // this bill was generated
+        BigDecimal outstandingAtIssue = latestMonthlyBill.getOutstandingAtIssue();
+
+        // Total amount due for this billing cycle (current month charges + carried
+        // forward outstanding balance)
+        BigDecimal totalDue = currentBillAmount.add(outstandingAtIssue);
+
+        BigDecimal amount = payment.getAmount();
+
+        // Validate payment against system total
+        validateAmount(amount, totalBalance);
+
+        BigDecimal remaining = amount;
+        BigDecimal oldValue = totalBalance;
+
+        // Allocate payment to oldest bills first
+        for (Bill bill : bills) {
+
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0)
+                break;
+
+            BigDecimal due = bill.getBalanceDue();
+            BigDecimal applied;
+
+            if (remaining.compareTo(due) >= 0) {
+                applied = due;
+                remaining = remaining.subtract(due);
+                bill.setBalanceDue(BigDecimal.ZERO);
+                bill.setStatus("PAID");
+            } else {
+                applied = remaining;
+                bill.setBalanceDue(due.subtract(remaining));
+                remaining = BigDecimal.ZERO;
+                bill.setStatus("PENDING");
+            }
+
+            billRepository.save(bill);
+
+            // Record how payment was allocated to this bill
+            paymentService.saveAllocation(payment.getPaymentId(), bill.getBillId(), applied);
+        }
+
+        // Determine if this payment fully settles the current billing cycle
+        boolean isFull = amount.compareTo(totalDue) == 0;
+
+        return new PaymentResult(oldValue, remaining,
+                isFull ? PaymentStatus.FULL : PaymentStatus.PARTIAL);
+
     }
 
     // Returns current payment status for frontend polling after PayHere redirect

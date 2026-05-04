@@ -2,8 +2,6 @@ package com.backend.water_management_system.dto;
 
 import java.math.BigDecimal;
 
-import com.backend.water_management_system.entity.Region;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
