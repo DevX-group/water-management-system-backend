@@ -94,6 +94,7 @@ public class DataSeeder implements CommandLineRunner {
         b1.setBalanceDue(new BigDecimal("1850.00"));
         b1.setStatus("PENDING");
         b1.setGeneratedAt(OffsetDateTime.now());
+        b1.setOutstandingAtIssue(new BigDecimal("0.00"));
         billRepository.save(b1);
         // Supun Perera
         Bill b2 = new Bill();
@@ -109,6 +110,7 @@ public class DataSeeder implements CommandLineRunner {
         b2.setBalanceDue(new BigDecimal("2100.00"));
         b2.setStatus("PENDING");
         b2.setGeneratedAt(OffsetDateTime.now());
+        b2.setOutstandingAtIssue(new BigDecimal("3550.00"));
         billRepository.save(b2);
         // Kamani Silva
         Bill b3 = new Bill();
@@ -124,6 +126,7 @@ public class DataSeeder implements CommandLineRunner {
         b3.setBalanceDue(new BigDecimal("300.00"));
         b3.setStatus("PENDING");
         b3.setGeneratedAt(OffsetDateTime.now());
+        b3.setOutstandingAtIssue(new BigDecimal("0.00"));
         billRepository.save(b3);
         // Ruwan Jayawardena
         Bill b4 = new Bill();
@@ -139,6 +142,7 @@ public class DataSeeder implements CommandLineRunner {
         b4.setBalanceDue(new BigDecimal("3500.00"));
         b4.setStatus("PENDING");
         b4.setGeneratedAt(OffsetDateTime.now());
+        b4.setOutstandingAtIssue(new BigDecimal("0.00"));
         billRepository.save(b4);
         // Priyantha De Silva
         Bill b5 = new Bill();
@@ -154,6 +158,7 @@ public class DataSeeder implements CommandLineRunner {
         b5.setBalanceDue(new BigDecimal("1650.00"));
         b5.setStatus("PENDING");
         b5.setGeneratedAt(OffsetDateTime.now());
+        b5.setOutstandingAtIssue(new BigDecimal("1500.00"));
         billRepository.save(b5);
         // Priyantha De Silva - Outstanding bill (older unpaid bill)
         Bill b5_old1 = new Bill();
@@ -166,7 +171,8 @@ public class DataSeeder implements CommandLineRunner {
         b5_old1.setUsageCharge(new BigDecimal("1450.00"));
         b5_old1.setTaxAmount(BigDecimal.ZERO);
         b5_old1.setTotalAmount(new BigDecimal("1500.00"));
-        b5_old1.setBalanceDue(new BigDecimal("1500.00")); 
+        b5_old1.setBalanceDue(new BigDecimal("1500.00"));
+        b5_old1.setOutstandingAtIssue(new BigDecimal("0.00"));
         b5_old1.setStatus("PENDING");
         b5_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
         billRepository.save(b5_old1);
@@ -185,6 +191,7 @@ public class DataSeeder implements CommandLineRunner {
         b2_old1.setBalanceDue(new BigDecimal("1900.00")); // still unpaid
         b2_old1.setStatus("PENDING");
         b2_old1.setGeneratedAt(OffsetDateTime.now().minusMonths(1));
+        b2_old1.setOutstandingAtIssue(new BigDecimal("1650.00"));
         billRepository.save(b2_old1);
         // 2025-12 bill (fully unpaid)
         Bill b2_old2 = new Bill();
@@ -200,6 +207,7 @@ public class DataSeeder implements CommandLineRunner {
         b2_old2.setBalanceDue(new BigDecimal("1650.00")); // unpaid
         b2_old2.setStatus("PENDING");
         b2_old2.setGeneratedAt(OffsetDateTime.now().minusMonths(2));
+        b2_old2.setOutstandingAtIssue(new BigDecimal("0.00"));
         billRepository.save(b2_old2);
     }
 }
