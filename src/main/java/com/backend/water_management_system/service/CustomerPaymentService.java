@@ -123,6 +123,7 @@ public class CustomerPaymentService {
         payment.setAmount(request.getAmount());
         payment.setCreatedAt(LocalDateTime.now());
         payment.setStatus(PaymentStatus.PENDING);
+        payment.setPaymentMethod(request.getPaymentMethod());
         return payment;
     }
 
@@ -193,7 +194,7 @@ public class CustomerPaymentService {
                 return;
             }
 
-            log.info("Processing SUCCESS payment. orderId={}, type={}", orderId, payment.getPaymentType());
+            log.info("Processing SUCCESS payment. orderId={}", orderId);
 
             // First-time success processing
             payment.setPayherePaymentId(payherePaymentId);
