@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,9 +19,9 @@ spring:
             enable: true
 
 cloudinary:
-  cloud_name: ${CLOUDINARY_CLOUD_NAME}
-  api_key: ${CLOUDINARY_API_KEY}
-  api_secret: ${CLOUDINARY_API_SECRET}
+  cloud_name: df87pqbem
+  api_key: 626896215766676
+  api_secret: eHUnG-RbDliFhdR-TkW9iPHrs6s
 
 payhere:
   merchant_id: ${PAYHERE_MERCHANT_ID} 
@@ -27,6 +29,11 @@ payhere:
   return_url: ${PAYHERE_RETURN_URL}
   cancel_url: ${PAYHERE_CANCEL_URL}
   notify_url: ${PAYHERE_NOTIFY_URL}
+
+text-lk:
+  api-token: ${TEXT_LK_API_TOKEN}
+  sender-id: ${TEXT_LK_SENDER_ID}
+  api-endpoint: ${TEXT_LK_API_ENDPOINT}
 
 
 server:
