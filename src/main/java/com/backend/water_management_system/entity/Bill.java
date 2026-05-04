@@ -30,6 +30,8 @@ public class Bill {
 
     private BigDecimal balanceDue;
 
+    private BigDecimal outstandingAtIssue;
+
     private String status; // PENDING/PAID/OVERDUE
     private OffsetDateTime generatedAt;
 
@@ -60,6 +62,8 @@ public class Bill {
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public BigDecimal getBalanceDue() { return balanceDue; }
     public void setBalanceDue(BigDecimal balanceDue) { this.balanceDue = balanceDue; }
+    public BigDecimal getOutstandingAtIssue() { return outstandingAtIssue; }
+    public void setOutstandingAtIssue(BigDecimal outstandingAtIssue) { this.outstandingAtIssue = outstandingAtIssue; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public OffsetDateTime getGeneratedAt() { return generatedAt; }

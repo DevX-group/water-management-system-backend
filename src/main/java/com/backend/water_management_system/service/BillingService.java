@@ -48,6 +48,9 @@ public class BillingService {
         BigDecimal tax = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal total = subtotal.add(tax).setScale(2, RoundingMode.HALF_UP);
 
+        // Previous unpaid balance carried forward (not part of current month's bill)
+        BigDecimal outstandingAtIssue = billRepository.getTotalPendingBalance(customer.getSubscriptionNumber());
+
         // --- DEBUG LOG: Check your IntelliJ/Console logs for this line ---
         System.out.println("CALCULATION: Type=" + type + " Units=" + units + " Base=" + base + " Total=" + total);
 
@@ -66,7 +69,7 @@ public class BillingService {
         bill.setBillingPeriod(YearMonth.now().toString());
         bill.setGeneratedAt(OffsetDateTime.now());
         bill.setMeterReading(reading);
-
+        bill.setOutstandingAtIssue(outstandingAtIssue);
         return billRepository.save(bill);
     }
 
