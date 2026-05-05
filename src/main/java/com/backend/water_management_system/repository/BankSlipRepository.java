@@ -1,7 +1,6 @@
 package com.backend.water_management_system.repository;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -13,5 +12,6 @@ public interface BankSlipRepository extends JpaRepository<BankSlip, Long> {
 
     Boolean existsByBankReference(String bankReference);
 
+    List<BankSlip> findBySubscriptionNumberOrderByUploadedAtDesc(String subscriptionNumber);
 }
 

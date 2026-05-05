@@ -8,5 +8,5 @@ import lombok.Data;
 public class BankSlipActionRequest {
     private Long bankSlipId;
     private SlipStatus action; // APPROVE or REJECT
-
+    private String rejectionReason; // Optional, only needed if action is REJECT
 }

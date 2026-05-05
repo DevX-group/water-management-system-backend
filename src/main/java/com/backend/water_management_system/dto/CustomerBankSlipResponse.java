@@ -12,17 +12,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class AdminBankSlipResponse {
+public class CustomerBankSlipResponse {
     private Long slipId;
-    private String subscriptionNumber;
-    private String accountHolderName;
     private BigDecimal amount;
     private String bankReference;
     private String filePath;
     private SlipStatus status;
-    private LocalDate bankPaymentDate;
     private LocalDateTime uploadedAt;
+    private LocalDate bankPaymentDate;
+    private String rejectionReason; // Include reason if rejected
 }

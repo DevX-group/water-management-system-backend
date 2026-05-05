@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import com.backend.water_management_system.config.PayHereConfig;
 import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
-import com.backend.water_management_system.dto.PaymentResult;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Payment;
@@ -55,8 +54,10 @@ public class CustomerPaymentService {
         BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
         validateAmount(amount, totalBalance);
 
+        // Create a new payment record with PENDING status before redirecting to PayHere
         Payment payment = createOnlinePayment(request, subscriptionNumber);
 
+        // Prepare PayHere parameters and hash for redirect
         String orderId = "PAY-" + payment.getPaymentId();
         String merchantId = payHereConfig.getMerchantId();
         String merchantSecret = payHereConfig.getMerchantSecret();
@@ -68,6 +69,7 @@ public class CustomerPaymentService {
                 .orElseThrow(() -> new InvalidPaymentException(
                         "Customer with subscription number " + subscriptionNumber + " not found"));
 
+        // Split account holder name into first and last name for PayHere parameters
         String accountHolderName = customer.getAccountHolderName();
 
         String[] parts = accountHolderName.trim().split("\\s+");
@@ -83,9 +85,11 @@ public class CustomerPaymentService {
             lastName = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
         }
 
+        // Save payment before redirecting to PayHere (update it later in the notification handler)
         payment.setOrderId(orderId);
         paymentRepository.save(payment);
 
+        // Build response with all necessary parameters for frontend to redirect to PayHere
         return CustomerPaymentResponse.builder()
                 .orderId(orderId)
                 .merchantId(merchantId)
@@ -107,6 +111,7 @@ public class CustomerPaymentService {
 
     }
 
+    // Validates that the payment amount is positive and does not exceed the total balance due
     public void validateAmount(BigDecimal amount, BigDecimal totalBalance) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidPaymentException("Payment amount must be greater than zero");
@@ -116,6 +121,7 @@ public class CustomerPaymentService {
         }
     }
 
+    // Creates a new Payment entity with PENDING status for an online payment before redirecting to PayHere
     public Payment createOnlinePayment(CustomerAddPaymentRequest request, String subscriptionNumber) {
         Payment payment = new Payment();
         payment.setPaymentId(UUID.randomUUID().toString());
@@ -127,6 +133,7 @@ public class CustomerPaymentService {
         return payment;
     }
 
+    // Generates an MD5 hash of the input string, used for validating PayHere notifications
     private String getMd5(String input) {
         if (input == null) {
             throw new IllegalArgumentException("MD5 input cannot be null — check all payment fields are populated");
@@ -144,11 +151,13 @@ public class CustomerPaymentService {
         }
     }
 
+    // Handles PayHere payment notifications, validating the data and updating payment and bill records accordingly
     @Transactional
     public void handlePayhereNotification(java.util.Map<String, String> params) {
 
         log.info("params received = {}", params);
 
+        // Clean and trim all parameters to prevent issues with whitespace or null values
         Map<String, String> cleanParams = parseAndCleanParams(params);
 
         String orderId = cleanParams.get("order_id");
@@ -158,6 +167,7 @@ public class CustomerPaymentService {
 
         log.info("PayHere notify received. orderId={}, statusCode={}", orderId, statusCode);
 
+        // Validate that all required parameters are present before proceeding
         validateBasicParams(orderId, payherePaymentId, statusCode, md5sig);
 
         Payment payment = paymentRepository.findByOrderId(orderId)
@@ -172,10 +182,12 @@ public class CustomerPaymentService {
         }
         BigDecimal amount = new BigDecimal(amountStr);
 
+        // Validate that the amount in the notification matches the amount we expect for this payment
         if (amount.compareTo(payment.getAmount()) != 0) {
             throw new InvalidPaymentException("Amount mismatch in PayHere notification for order ID " + orderId);
         }
 
+        // Validating PayHere hash
         validateHash(amount, orderId, statusCode, md5sig);
 
         if ("2".equals(statusCode)) { // SUCCESS
@@ -199,10 +211,11 @@ public class CustomerPaymentService {
             // First-time success processing
             payment.setPayherePaymentId(payherePaymentId);
 
-            PaymentResult result = processPayment(payment);
-            payment.setStatus(result.getStatus());
+            // Process the payment and update bills accordingly, determining final status (FULL or PARTIAL)
+            PaymentStatus status = processPayment(payment);
+            payment.setStatus(status);
 
-            log.info("Payment processed successfully. orderId={}, finalStatus={}", orderId, result.getStatus());
+            log.info("Payment processed successfully. orderId={}, finalStatus={}", orderId, status);
 
         } else { // FAILED or other statuses
 
@@ -222,6 +235,7 @@ public class CustomerPaymentService {
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
     }
 
+    // Utility method to clean and trim all parameters from PayHere notification to prevent issues with whitespace or null values
     private Map<String, String> parseAndCleanParams(Map<String, String> params) {
         Map<String, String> clean = new HashMap<>();
 
@@ -234,14 +248,15 @@ public class CustomerPaymentService {
         return clean;
     }
 
+    // Validates that all required parameters are present in the PayHere notification before processing
     private void validateBasicParams(String orderId, String paymentId, String statusCode, String md5sig) {
         if (orderId == null || paymentId == null || statusCode == null || md5sig == null) {
             throw new InvalidPaymentException("Missing required PayHere parameters");
         }
     }
 
-    private void validateHash(BigDecimal amount, String orderId, String statusCode,
-            String md5sig) {
+    // Validates the MD5 hash of the PayHere notification to ensure its integrity
+    private void validateHash(BigDecimal amount, String orderId, String statusCode, String md5sig) {
 
         String amountFormatted = amount.setScale(2, RoundingMode.HALF_UP).toString();
 
@@ -260,7 +275,8 @@ public class CustomerPaymentService {
         }
     }
 
-    public PaymentResult processPayment(Payment payment) {
+    // Core logic to allocate a payment amount to the customer's pending bills, starting with the oldest, and updating bill statuses accordingly. 
+    public PaymentStatus processPayment(Payment payment) {
 
         List<Bill> bills = billRepository
                 .findByCustomerSubscriptionNumberAndStatusOrderByGeneratedAtAsc(payment.getSubscriptionNumber(),
@@ -288,7 +304,6 @@ public class CustomerPaymentService {
         validateAmount(amount, totalBalance);
 
         BigDecimal remaining = amount;
-        BigDecimal oldValue = totalBalance;
 
         // Allocate payment to oldest bills first
         for (Bill bill : bills) {
@@ -320,8 +335,7 @@ public class CustomerPaymentService {
         // Determine if this payment fully settles the current billing cycle
         boolean isFull = amount.compareTo(totalDue) == 0;
 
-        return new PaymentResult(oldValue, remaining,
-                isFull ? PaymentStatus.FULL : PaymentStatus.PARTIAL);
+        return isFull ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
 
     }
 
