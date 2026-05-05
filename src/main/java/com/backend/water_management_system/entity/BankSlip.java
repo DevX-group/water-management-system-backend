@@ -1,6 +1,7 @@
 package com.backend.water_management_system.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
@@ -32,7 +33,6 @@ public class BankSlip {
 
     private String subscriptionNumber;
     private BigDecimal amount;
-    private PaymentType paymentType;
     
     private String fileName;
     private String fileType;
@@ -43,6 +43,9 @@ public class BankSlip {
     @Enumerated(EnumType.STRING)
     private SlipStatus status;
 
+    private LocalDate bankPaymentDate; // Date on the bank slip, not when it was uploaded
     private LocalDateTime uploadedAt;
+    private LocalDateTime reviewedAt; // When admin approves/rejects the slip
+    private String rejectionReason; // Optional reason for rejection
 
 }
