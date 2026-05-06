@@ -403,7 +403,8 @@ public class PaymentService {
 
     public List<RecentPaymentResponse> getRecentPayments(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<Payment> payments = paymentRepository.findAllByOrderByCreatedAtDesc(pageable);
+        List<Payment> payments = paymentRepository.findByPaymentMethodInOrderByCreatedAtDesc(
+                List.of(PaymentMethod.MANUAL, PaymentMethod.BANK_TRANSFER), pageable);
         return payments.stream()
                 .map(p -> {
                     RecentPaymentResponse res = new RecentPaymentResponse();
@@ -418,6 +419,8 @@ public class PaymentService {
 
                     res.setAccountHolderName(
                             customer != null ? customer.getAccountHolderName() : "Unknown");
+                    res.setPaymentMethod(p.getPaymentMethod());
+                    res.setPaymentType(p.getPaymentType());
 
                     return res;
                 })
