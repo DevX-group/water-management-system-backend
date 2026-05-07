@@ -280,4 +280,16 @@ public class BankSlipService {
                                 .build();
         }
 
+        // Retrieves a specific bank slip by its ID and maps it to an
+        // AdminBankSlipResponse DTO for detailed viewing in the admin interface. This
+        // method is used when an admin clicks on a specific slip to view its details
+        // before approving or rejecting it.
+        public AdminBankSlipResponse getBankSlipById(Long slipId) {
+                BankSlip slip = bankSlipRepository.findById(slipId)
+                                .orElseThrow(() -> new BankSlipNotFoundException(
+                                                "Bank slip not found with ID: " + slipId));
+
+                return mapToAdminDTO(slip);
+        }
+
 }

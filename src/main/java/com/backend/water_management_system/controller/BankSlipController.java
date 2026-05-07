@@ -62,4 +62,9 @@ public class BankSlipController {
     public ResponseEntity<List<CustomerBankSlipResponse>> getMySlips() {
         return ResponseEntity.ok(bankSlipService.getBankSlipsBySubscriptionNumber());
     }
+
+    @GetMapping("/{slipId}")
+    public ResponseEntity<AdminBankSlipResponse> getBankSlipById(@PathVariable Long slipId){
+        return ResponseEntity.ok(bankSlipService.getBankSlipById(slipId));
+    }
 }
