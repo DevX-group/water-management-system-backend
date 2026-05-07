@@ -200,9 +200,9 @@ public class BankSlipService {
                         throw new IllegalArgumentException("Rejection reason is required when rejecting a bank slip.");
                 }
 
-                BankSlip slip = bankSlipRepository.findById(request.getBankSlipId())
+                BankSlip slip = bankSlipRepository.findById(request.getSlipId())
                                 .orElseThrow(() -> new BankSlipNotFoundException(
-                                                "Bank slip not found with ID: " + request.getBankSlipId()));
+                                                "Bank slip not found with ID: " + request.getSlipId()));
 
                 if (slip.getStatus() != SlipStatus.PENDING) {
                         throw new IllegalStateException("This bank slip has already been reviewed.");
