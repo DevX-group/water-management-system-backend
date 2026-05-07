@@ -241,6 +241,7 @@ public class BankSlipService {
                                 .subscriptionNumber(subscriptionNumber)
                                 .amount(amount)
                                 .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                                .createdAt(LocalDateTime.now())
                                 .bankSlip(slip)
                                 .build();
 
