@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -134,12 +137,28 @@ public class BankSlipService {
         // Retrieves all pending bank slips from the database, maps them to admin
         // response DTOs, and returns the list for display in the admin payment review
         // interface
-        public List<AdminBankSlipResponse> getPendingSlips() {
-                List<BankSlip> pendingSlips = bankSlipRepository.findByStatus(SlipStatus.PENDING);
+        public List<AdminBankSlipResponse> getAllPendingSlips() {
+                List<BankSlip> pendingSlips = bankSlipRepository.findByStatusOrderByUploadedAtDesc(SlipStatus.PENDING);
 
                 return pendingSlips.stream()
                                 .map(this::mapToAdminDTO)
                                 .toList();
+        }
+
+        // Retrieves pending bank slips with pagination and optional search
+        // functionality for the admin interface, allowing admins to filter slips by
+        // account holder name or subscription number while reviewing payments.
+        public Page<AdminBankSlipResponse> getPendingSlips(int page, int size, String search) {
+
+                Pageable pageable = PageRequest.of(page, size);
+
+                String searchText = (search == null || search.trim().isEmpty())
+                                ? null
+                                : search.trim();
+
+                Page<BankSlip> slips = bankSlipRepository.searchPendingSlips(searchText, pageable);
+
+                return slips.map(this::mapToAdminDTO);
         }
 
         // Utility method to map a BankSlip entity to an AdminBankSlipResponse DTO,
