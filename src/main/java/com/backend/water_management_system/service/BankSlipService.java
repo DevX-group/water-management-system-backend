@@ -27,6 +27,7 @@ import com.backend.water_management_system.entity.SlipStatus;
 import com.backend.water_management_system.exception.BankSlipNotFoundException;
 import com.backend.water_management_system.exception.BankSlipUploadException;
 import com.backend.water_management_system.repository.BankSlipRepository;
+import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
@@ -42,6 +43,7 @@ public class BankSlipService {
         private final BankSlipRepository bankSlipRepository;
         private final CustomerRepository customerRepository;
         private final PaymentRepository paymentRepository;
+        private final BillRepository billRepository;
 
         private final SimpMessagingTemplate messagingTemplate;
 
@@ -49,6 +51,13 @@ public class BankSlipService {
         // duplicate reference checks, saving to database, and notifying admins via
         // WebSocket
         public BankSlipUploadResponse uploadSlip(BankSlipUploadRequest request) {
+
+                String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+                
+                BigDecimal amount = request.getAmount();
+                BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
+                customerPaymentService.validateAmount(amount, totalBalance);
+
                 MultipartFile file = request.getFile();
 
                 // Validate file size and type before proceeding with upload
@@ -72,8 +81,6 @@ public class BankSlipService {
                 if (isDuplicateReference) {
                         throw new IllegalStateException("This bank reference number has already been used.");
                 }
-
-                String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
 
                 String imageUrl = null;
                 String publicId = null;

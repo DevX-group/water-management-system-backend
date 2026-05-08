@@ -40,7 +40,7 @@ public class BankSlipController {
     }
 
     @GetMapping("/pending/all")
-    public ResponseEntity<List<AdminBankSlipResponse>> getPendingSlips() {
+    public ResponseEntity<List<AdminBankSlipResponse>> getAllPendingSlips() {
         return ResponseEntity.ok(
                 bankSlipService.getAllPendingSlips());
     }
