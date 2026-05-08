@@ -1,5 +1,6 @@
 package com.backend.water_management_system.controller;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -12,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
+import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
+import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.service.CustomerPaymentService;
 
 import jakarta.validation.Valid;
@@ -47,4 +51,23 @@ public class CustomerPaymentController {
         String status = customerPaymentService.getPaymentStatus(orderId);
         return ResponseEntity.ok(status);
     }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<PaymentHistoryItemResponse>> getPaymentHistoryForCustomer() {
+        List<PaymentHistoryItemResponse> history = customerPaymentService.getPaymentHistoryForCustomer();
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/current-bill")
+    public ResponseEntity<CurrentBillResponse> getCurrentBillForCustomer(){
+        CurrentBillResponse response = customerPaymentService.getCurrentBillForCustomer();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/outstanding-bills")
+    public ResponseEntity<OutstandingBillsSummaryResponse> getOutstandingBillsForCustomer() {
+        OutstandingBillsSummaryResponse response = customerPaymentService.getOutstandingBillsForCustomer();
+        return ResponseEntity.ok(response);
+    }
+
 }

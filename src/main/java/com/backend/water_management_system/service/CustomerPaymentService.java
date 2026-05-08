@@ -17,8 +17,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.backend.water_management_system.config.PayHereConfig;
+import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
+import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
+import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Payment;
@@ -347,4 +350,24 @@ public class CustomerPaymentService {
 
         return payment.getStatus().name();
     }
+
+    public CurrentBillResponse getCurrentBillForCustomer(){
+        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+
+        return paymentService.getCurrentBill(subscriptionNumber);
+
+    }
+
+    public OutstandingBillsSummaryResponse getOutstandingBillsForCustomer() {
+        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+
+        return paymentService.getOutstandingBills(subscriptionNumber);
+    }
+
+    public List<PaymentHistoryItemResponse> getPaymentHistoryForCustomer() {
+        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+
+        return paymentService.getPaymentHistory(subscriptionNumber);
+    }
+    
 }
