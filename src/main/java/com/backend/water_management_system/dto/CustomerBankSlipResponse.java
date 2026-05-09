@@ -23,5 +23,6 @@ public class CustomerBankSlipResponse {
     private SlipStatus status;
     private LocalDateTime uploadedAt;
     private LocalDate bankPaymentDate;
+    private LocalDateTime reviewedAt;
     private String rejectionReason; // Include reason if rejected
 }
