@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/messages")
+@RequestMapping("/api/scheduled-messages")
 @CrossOrigin
 @RequiredArgsConstructor
 public class ScheduledMessageController {
