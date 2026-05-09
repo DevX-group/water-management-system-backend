@@ -6,6 +6,7 @@ import com.backend.water_management_system.entity.MessageTemplate;
 import com.backend.water_management_system.entity.ScheduledMessage;
 import com.backend.water_management_system.entity.TemplateSection;
 import com.backend.water_management_system.repository.ScheduledMessageRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,13 +17,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduledMessageService {
 
     private final ScheduledMessageRepository repository;
-
-    public ScheduledMessageService(ScheduledMessageRepository repository) {
-        this.repository = repository;
-    }
 
     public List<ScheduledMessageDto> getAll() {
         return repository.findAll().stream()
@@ -156,7 +154,8 @@ public class ScheduledMessageService {
             e.setEmailTemplate(mergeTemplate(e.getEmailTemplate(), dto.getTemplates().getEmail()));
         }
 
-        // checks if something related to scheduling is updated (either in a recurring or one-time message)
+        // checks if something related to scheduling is updated (either in a recurring
+        // or one-time message)
         boolean scheduleOrTargetingChanged = !Objects.equals(oldScheduleType, e.getScheduleType())
                 || !Objects.equals(oldDayOfMonth, e.getScheduleDayOfMonth())
                 || !Objects.equals(oldDate, e.getScheduleDate())

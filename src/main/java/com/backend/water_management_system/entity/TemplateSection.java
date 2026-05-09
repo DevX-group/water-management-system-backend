@@ -1,9 +1,15 @@
 package com.backend.water_management_system.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "template_sections")
+@NoArgsConstructor
+@Getter
+@Setter
 public class TemplateSection {
 
     @Id

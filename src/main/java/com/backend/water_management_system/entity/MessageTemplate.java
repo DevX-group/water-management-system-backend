@@ -3,9 +3,15 @@ package com.backend.water_management_system.entity;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "message_templates")
+@NoArgsConstructor
+@Getter
+@Setter
 public class MessageTemplate {
 
     @Id

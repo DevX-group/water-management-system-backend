@@ -3,7 +3,9 @@ package com.backend.water_management_system.service;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.Getter;
 
+@Getter
 public enum MessagePlaceholder {
     CUSTOMER_NAME("customer_name"),
     CUSTOMER_NUMBER("customer_number"),
@@ -27,10 +29,6 @@ public enum MessagePlaceholder {
 
     MessagePlaceholder(String key) {
         this.key = key;
-    }
-
-    public String getKey() {
-        return key;
     }
 
     public static List<String> keys() {

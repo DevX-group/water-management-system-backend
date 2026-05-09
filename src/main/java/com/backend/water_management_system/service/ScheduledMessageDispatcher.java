@@ -12,6 +12,8 @@ import com.backend.water_management_system.entity.TemplateSection;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.ScheduledMessageRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -32,6 +34,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduledMessageDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(ScheduledMessageDispatcher.class);
@@ -41,7 +44,8 @@ public class ScheduledMessageDispatcher {
     private final BillRepository billRepository;
     private final SentMessageService sentMessageService;
     private final MessagePlaceholderService messagePlaceholderService;
-    private final MailSender mailSender;
+    private final ObjectProvider<MailSender> mailSenderProvider;
+    private MailSender mailSender;
 
     @Value("${spring.mail.username:}")
     private String fromAddress;
@@ -61,19 +65,10 @@ public class ScheduledMessageDispatcher {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.%-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
-    public ScheduledMessageDispatcher(ScheduledMessageRepository scheduledMessageRepository,
-            CustomerRepository customerRepository,
-            BillRepository billRepository,
-            SentMessageService sentMessageService,
-            MessagePlaceholderService messagePlaceholderService,
-            ObjectProvider<MailSender> mailSenderProvider) {
-        this.scheduledMessageRepository = scheduledMessageRepository;
-        this.customerRepository = customerRepository;
-        this.billRepository = billRepository;
-        this.sentMessageService = sentMessageService;
-        this.messagePlaceholderService = messagePlaceholderService;
+    @PostConstruct
+    private void initMailSender() {
         this.mailSender = mailSenderProvider.getIfAvailable();
-        webClient = WebClient.create();
+        this.webClient = WebClient.create();
     }
 
     public String getFromAddress() {

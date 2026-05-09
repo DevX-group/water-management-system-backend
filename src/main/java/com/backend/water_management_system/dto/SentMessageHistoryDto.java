@@ -2,7 +2,13 @@ package com.backend.water_management_system.dto;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@NoArgsConstructor
+@Getter
+@Setter
 public class SentMessageHistoryDto {
     private Long id;
     private String name;

@@ -2,6 +2,7 @@ package com.backend.water_management_system.service;
 
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
+import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -10,8 +11,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@NoArgsConstructor
 public class MessagePlaceholderService {
 
+    // Takes a template string and replaces placeholders with actual values from the
+    // relevant customer and their bill.
     public String replacePlaceholders(String template, Customer customer, Bill currentBill) {
         if (template == null || template.isBlank()) {
             return "";

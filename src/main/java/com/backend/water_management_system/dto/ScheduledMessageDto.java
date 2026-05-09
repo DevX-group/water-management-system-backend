@@ -3,7 +3,13 @@ package com.backend.water_management_system.dto;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@NoArgsConstructor
+@Getter
+@Setter
 public class ScheduledMessageDto {
 
     private Long id;
@@ -16,6 +22,9 @@ public class ScheduledMessageDto {
 
     // --- Nested DTOs ---
 
+    @NoArgsConstructor
+    @Getter
+    @Setter
     public static class ScheduleDto {
         private String type;
         private Integer dayOfMonth;
@@ -55,6 +64,9 @@ public class ScheduledMessageDto {
         }
     }
 
+    @NoArgsConstructor
+    @Getter
+    @Setter
     public static class TemplateSectionDto {
         private String id;
         private String name;
@@ -85,6 +97,9 @@ public class ScheduledMessageDto {
         }
     }
 
+    @NoArgsConstructor
+    @Getter
+    @Setter
     public static class MessageTemplateDto {
         // Using Boolean (boxed) + getIsCustom() so Jackson maps to JSON key "isCustom"
         private Boolean isCustom;
@@ -125,6 +140,9 @@ public class ScheduledMessageDto {
         }
     }
 
+    @NoArgsConstructor
+    @Getter
+    @Setter
     public static class TemplatesDto {
         private MessageTemplateDto sms;
         private MessageTemplateDto email;

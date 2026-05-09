@@ -9,9 +9,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "sent_message_failures")
+@NoArgsConstructor
+@Getter
+@Setter
 public class SentMessageFailure {
 
     @Id

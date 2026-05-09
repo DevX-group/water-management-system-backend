@@ -6,6 +6,7 @@ import com.backend.water_management_system.dto.SentMessageHistoryDto;
 import com.backend.water_management_system.service.MessagePlaceholder;
 import com.backend.water_management_system.service.ScheduledMessageService;
 import com.backend.water_management_system.service.SentMessageService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,15 +15,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/messages")
 @CrossOrigin
+@RequiredArgsConstructor
 public class ScheduledMessageController {
 
     private final ScheduledMessageService service;
     private final SentMessageService sentMessageService;
-
-    public ScheduledMessageController(ScheduledMessageService service, SentMessageService sentMessageService) {
-        this.service = service;
-        this.sentMessageService = sentMessageService;
-    }
 
     @GetMapping
     public ResponseEntity<List<ScheduledMessageDto>> getAll() {

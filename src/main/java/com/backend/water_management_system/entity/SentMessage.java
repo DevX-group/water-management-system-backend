@@ -10,9 +10,15 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "sent_messages")
+@NoArgsConstructor
+@Getter
+@Setter
 public class SentMessage extends Message {
 
     @Column(name = "source_scheduled_message_id")

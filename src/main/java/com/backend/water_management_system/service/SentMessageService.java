@@ -4,18 +4,16 @@ import com.backend.water_management_system.dto.SentMessageFailureDto;
 import com.backend.water_management_system.dto.SentMessageHistoryDto;
 import com.backend.water_management_system.entity.SentMessage;
 import com.backend.water_management_system.repository.SentMessageRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class SentMessageService {
 
     private final SentMessageRepository sentMessageRepository;
-
-    public SentMessageService(SentMessageRepository sentMessageRepository) {
-        this.sentMessageRepository = sentMessageRepository;
-    }
 
     public SentMessage save(SentMessage sentMessage) {
         return sentMessageRepository.save(sentMessage);
