@@ -37,44 +37,4 @@ public class SentMessageFailure {
 
     @Column(name = "email_failed", nullable = false)
     private boolean emailFailed;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public SentMessage getSentMessage() {
-        return sentMessage;
-    }
-
-    public void setSentMessage(SentMessage sentMessage) {
-        this.sentMessage = sentMessage;
-    }
-
-    public Customer getCustomer() {
-        return customer;
-    }
-
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
-    }
-
-    public boolean isSmsFailed() {
-        return smsFailed;
-    }
-
-    public void setSmsFailed(boolean smsFailed) {
-        this.smsFailed = smsFailed;
-    }
-
-    public boolean isEmailFailed() {
-        return emailFailed;
-    }
-
-    public void setEmailFailed(boolean emailFailed) {
-        this.emailFailed = emailFailed;
-    }
 }
