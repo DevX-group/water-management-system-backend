@@ -16,7 +16,7 @@ public interface BankSlipRepository extends JpaRepository<BankSlip, Long> {
 
     Boolean existsByBankReference(String bankReference);
 
-    List<BankSlip> findBySubscriptionNumberOrderByUploadedAtDesc(String subscriptionNumber);
+    Page<BankSlip> findBySubscriptionNumberOrderByUploadedAtDesc(String subscriptionNumber, Pageable pageable);
 
     @Query("""
                 SELECT s FROM BankSlip s

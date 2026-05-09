@@ -21,6 +21,7 @@ import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
+import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
@@ -88,11 +89,13 @@ public class CustomerPaymentService {
             lastName = String.join(" ", Arrays.copyOfRange(parts, 1, parts.length));
         }
 
-        // Save payment before redirecting to PayHere (update it later in the notification handler)
+        // Save payment before redirecting to PayHere (update it later in the
+        // notification handler)
         payment.setOrderId(orderId);
         paymentRepository.save(payment);
 
-        // Build response with all necessary parameters for frontend to redirect to PayHere
+        // Build response with all necessary parameters for frontend to redirect to
+        // PayHere
         return CustomerPaymentResponse.builder()
                 .orderId(orderId)
                 .merchantId(merchantId)
@@ -114,7 +117,8 @@ public class CustomerPaymentService {
 
     }
 
-    // Validates that the payment amount is positive and does not exceed the total balance due
+    // Validates that the payment amount is positive and does not exceed the total
+    // balance due
     public void validateAmount(BigDecimal amount, BigDecimal totalBalance) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidPaymentException("Payment amount must be greater than zero");
@@ -124,7 +128,8 @@ public class CustomerPaymentService {
         }
     }
 
-    // Creates a new Payment entity with PENDING status for an online payment before redirecting to PayHere
+    // Creates a new Payment entity with PENDING status for an online payment before
+    // redirecting to PayHere
     public Payment createOnlinePayment(CustomerAddPaymentRequest request, String subscriptionNumber) {
         Payment payment = new Payment();
         payment.setPaymentId(UUID.randomUUID().toString());
@@ -136,7 +141,8 @@ public class CustomerPaymentService {
         return payment;
     }
 
-    // Generates an MD5 hash of the input string, used for validating PayHere notifications
+    // Generates an MD5 hash of the input string, used for validating PayHere
+    // notifications
     private String getMd5(String input) {
         if (input == null) {
             throw new IllegalArgumentException("MD5 input cannot be null — check all payment fields are populated");
@@ -154,13 +160,15 @@ public class CustomerPaymentService {
         }
     }
 
-    // Handles PayHere payment notifications, validating the data and updating payment and bill records accordingly
+    // Handles PayHere payment notifications, validating the data and updating
+    // payment and bill records accordingly
     @Transactional
     public void handlePayhereNotification(java.util.Map<String, String> params) {
 
         log.info("params received = {}", params);
 
-        // Clean and trim all parameters to prevent issues with whitespace or null values
+        // Clean and trim all parameters to prevent issues with whitespace or null
+        // values
         Map<String, String> cleanParams = parseAndCleanParams(params);
 
         String orderId = cleanParams.get("order_id");
@@ -185,7 +193,8 @@ public class CustomerPaymentService {
         }
         BigDecimal amount = new BigDecimal(amountStr);
 
-        // Validate that the amount in the notification matches the amount we expect for this payment
+        // Validate that the amount in the notification matches the amount we expect for
+        // this payment
         if (amount.compareTo(payment.getAmount()) != 0) {
             throw new InvalidPaymentException("Amount mismatch in PayHere notification for order ID " + orderId);
         }
@@ -214,7 +223,8 @@ public class CustomerPaymentService {
             // First-time success processing
             payment.setPayherePaymentId(payherePaymentId);
 
-            // Process the payment and update bills accordingly, determining final status (FULL or PARTIAL)
+            // Process the payment and update bills accordingly, determining final status
+            // (FULL or PARTIAL)
             PaymentStatus status = processPayment(payment);
             payment.setStatus(status);
 
@@ -238,7 +248,8 @@ public class CustomerPaymentService {
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
     }
 
-    // Utility method to clean and trim all parameters from PayHere notification to prevent issues with whitespace or null values
+    // Utility method to clean and trim all parameters from PayHere notification to
+    // prevent issues with whitespace or null values
     private Map<String, String> parseAndCleanParams(Map<String, String> params) {
         Map<String, String> clean = new HashMap<>();
 
@@ -251,7 +262,8 @@ public class CustomerPaymentService {
         return clean;
     }
 
-    // Validates that all required parameters are present in the PayHere notification before processing
+    // Validates that all required parameters are present in the PayHere
+    // notification before processing
     private void validateBasicParams(String orderId, String paymentId, String statusCode, String md5sig) {
         if (orderId == null || paymentId == null || statusCode == null || md5sig == null) {
             throw new InvalidPaymentException("Missing required PayHere parameters");
@@ -278,7 +290,8 @@ public class CustomerPaymentService {
         }
     }
 
-    // Core logic to allocate a payment amount to the customer's pending bills, starting with the oldest, and updating bill statuses accordingly. 
+    // Core logic to allocate a payment amount to the customer's pending bills,
+    // starting with the oldest, and updating bill statuses accordingly.
     public PaymentStatus processPayment(Payment payment) {
 
         List<Bill> bills = billRepository
@@ -291,11 +304,14 @@ public class CustomerPaymentService {
         BigDecimal totalBalance = billRepository.getTotalPendingBalance(payment.getSubscriptionNumber());
 
         // Total amount charged for the current billing cycle (this month's usage only)
-        BigDecimal currentBillAmount = latestMonthlyBill.getTotalAmount() != null ? latestMonthlyBill.getTotalAmount() : BigDecimal.ZERO;
+        BigDecimal currentBillAmount = latestMonthlyBill.getTotalAmount() != null ? latestMonthlyBill.getTotalAmount()
+                : BigDecimal.ZERO;
 
         // Outstanding balance carried forward from previous billing cycles at the time
         // this bill was generated
-        BigDecimal outstandingAtIssue = latestMonthlyBill.getOutstandingAtIssue() != null ? latestMonthlyBill.getOutstandingAtIssue() : BigDecimal.ZERO;
+        BigDecimal outstandingAtIssue = latestMonthlyBill.getOutstandingAtIssue() != null
+                ? latestMonthlyBill.getOutstandingAtIssue()
+                : BigDecimal.ZERO;
 
         // Total amount due for this billing cycle (current month charges + carried
         // forward outstanding balance)
@@ -351,7 +367,7 @@ public class CustomerPaymentService {
         return payment.getStatus().name();
     }
 
-    public CurrentBillResponse getCurrentBillForCustomer(){
+    public CurrentBillResponse getCurrentBillForCustomer() {
         String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
 
         return paymentService.getCurrentBill(subscriptionNumber);
@@ -364,10 +380,10 @@ public class CustomerPaymentService {
         return paymentService.getOutstandingBills(subscriptionNumber);
     }
 
-    public List<PaymentHistoryItemResponse> getPaymentHistoryForCustomer() {
+    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size) {
         String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
 
-        return paymentService.getPaymentHistory(subscriptionNumber);
+        return paymentService.getPaymentHistory(subscriptionNumber, page, size);
     }
-    
+
 }

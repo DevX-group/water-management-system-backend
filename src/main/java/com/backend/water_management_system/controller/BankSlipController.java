@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.backend.water_management_system.dto.BankSlipUploadResponse;
 import com.backend.water_management_system.dto.CustomerBankSlipResponse;
+import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.dto.BankSlipActionRequest;
 import com.backend.water_management_system.dto.BankSlipUploadRequest;
@@ -67,8 +68,11 @@ public class BankSlipController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<CustomerBankSlipResponse>> getMySlips() {
-        return ResponseEntity.ok(bankSlipService.getBankSlipsBySubscriptionNumber());
+    public ResponseEntity<PaginationResponse<CustomerBankSlipResponse>> getMySlips(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        return ResponseEntity.ok(bankSlipService.getBankSlipsBySubscriptionNumber(page, size));
     }
 
     @GetMapping("/{slipId}")

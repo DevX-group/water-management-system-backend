@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +18,7 @@ import com.backend.water_management_system.dto.BankSlipActionRequest;
 import com.backend.water_management_system.dto.BankSlipUploadResponse;
 import com.backend.water_management_system.dto.CloudinaryUploadResponse;
 import com.backend.water_management_system.dto.CustomerBankSlipResponse;
+import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.BankSlipUploadRequest;
 import com.backend.water_management_system.entity.BankSlip;
 import com.backend.water_management_system.entity.Customer;
@@ -53,7 +55,7 @@ public class BankSlipService {
         public BankSlipUploadResponse uploadSlip(BankSlipUploadRequest request) {
 
                 String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
-                
+
                 BigDecimal amount = request.getAmount();
                 BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
                 customerPaymentService.validateAmount(amount, totalBalance);
@@ -282,13 +284,27 @@ public class BankSlipService {
 
         // Retrieves all bank slips associated with the currently authenticated
         // customer's subscription number.
-        public List<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber() {
+        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size) {
+
                 String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
-                return bankSlipRepository
-                                .findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber)
+
+                Pageable pageable = PageRequest.of(page, size, Sort.by("uploadedAt").descending());
+
+                Page<BankSlip> slips = bankSlipRepository.findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber, pageable);
+
+                List<CustomerBankSlipResponse> content = slips.getContent()
                                 .stream()
                                 .map(this::mapToCustomerDTO)
                                 .toList();
+
+                return PaginationResponse.<CustomerBankSlipResponse>builder()
+                                .content(content)
+                                .currentPage(slips.getNumber())
+                                .totalPages(slips.getTotalPages())
+                                .totalElements(slips.getTotalElements())
+                                .pageSize(slips.getSize())
+                                .last(slips.isLast())
+                                .build();
         }
 
         // Utility method to map a BankSlip entity to a CustomerBankSlipResponse DTO,
@@ -303,6 +319,7 @@ public class BankSlipService {
                                 .status(slip.getStatus())
                                 .uploadedAt(slip.getUploadedAt())
                                 .bankPaymentDate(slip.getBankPaymentDate())
+                                .reviewedAt(slip.getReviewedAt())
                                 .rejectionReason(slip.getRejectionReason())
                                 .build();
         }

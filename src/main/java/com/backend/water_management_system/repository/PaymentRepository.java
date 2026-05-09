@@ -1,9 +1,9 @@
 package com.backend.water_management_system.repository;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Payment;
 import com.backend.water_management_system.entity.PaymentMethod;
 import com.backend.water_management_system.entity.PaymentStatus;
@@ -22,8 +22,8 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
         List<Payment> findByStatusAndPaymentMethodAndCreatedAtBefore(PaymentStatus status, PaymentMethod method,
                         LocalDateTime time);
 
-        List<Payment> findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(String subscriptionNumber,
-                        List<PaymentStatus> validStatuses);
+        Page<Payment> findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(String subscriptionNumber,
+                        List<PaymentStatus> validStatuses, Pageable pageable);
 
         List<Payment> findByPaymentMethodInOrderByCreatedAtDesc(List<PaymentMethod> methods, Pageable pageable);
 }

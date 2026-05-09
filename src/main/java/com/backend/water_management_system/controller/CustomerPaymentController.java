@@ -17,6 +17,7 @@ import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
+import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.service.CustomerPaymentService;
 
@@ -26,7 +27,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/customer/payments")
 public class CustomerPaymentController {
-    
+
     private final CustomerPaymentService customerPaymentService;
 
     public CustomerPaymentController(CustomerPaymentService customerPaymentService) {
@@ -34,7 +35,8 @@ public class CustomerPaymentController {
     }
 
     @PostMapping("/initiate")
-    public ResponseEntity<CustomerPaymentResponse> initiateCustomerPayment(@Valid @RequestBody CustomerAddPaymentRequest request) {
+    public ResponseEntity<CustomerPaymentResponse> initiateCustomerPayment(
+            @Valid @RequestBody CustomerAddPaymentRequest request) {
         CustomerPaymentResponse response = customerPaymentService.initiateCustomerPayment(request);
         return ResponseEntity.ok(response);
     }
@@ -53,13 +55,15 @@ public class CustomerPaymentController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<PaymentHistoryItemResponse>> getPaymentHistoryForCustomer() {
-        List<PaymentHistoryItemResponse> history = customerPaymentService.getPaymentHistoryForCustomer();
-        return ResponseEntity.ok(history);
+    public ResponseEntity<PaginationResponse<PaymentHistoryItemResponse>> getPaymentHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        return ResponseEntity.ok(customerPaymentService.getPaymentHistoryForCustomer(page, size));
     }
 
     @GetMapping("/current-bill")
-    public ResponseEntity<CurrentBillResponse> getCurrentBillForCustomer(){
+    public ResponseEntity<CurrentBillResponse> getCurrentBillForCustomer() {
         CurrentBillResponse response = customerPaymentService.getCurrentBillForCustomer();
         return ResponseEntity.ok(response);
     }
