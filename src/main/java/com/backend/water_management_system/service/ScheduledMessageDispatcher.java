@@ -24,13 +24,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -43,6 +40,7 @@ public class ScheduledMessageDispatcher {
     private final CustomerRepository customerRepository;
     private final BillRepository billRepository;
     private final SentMessageService sentMessageService;
+    private final MessagePlaceholderService messagePlaceholderService;
     private final MailSender mailSender;
 
     @Value("${spring.mail.username:}")
@@ -67,11 +65,13 @@ public class ScheduledMessageDispatcher {
             CustomerRepository customerRepository,
             BillRepository billRepository,
             SentMessageService sentMessageService,
+            MessagePlaceholderService messagePlaceholderService,
             ObjectProvider<MailSender> mailSenderProvider) {
         this.scheduledMessageRepository = scheduledMessageRepository;
         this.customerRepository = customerRepository;
         this.billRepository = billRepository;
         this.sentMessageService = sentMessageService;
+        this.messagePlaceholderService = messagePlaceholderService;
         this.mailSender = mailSenderProvider.getIfAvailable();
         webClient = WebClient.create();
     }
@@ -177,7 +177,8 @@ public class ScheduledMessageDispatcher {
     }
 
     // Dispatches a due message as a SMS and/or Email and returns per-channel counts
-    private DispatchCounts dispatchMessageToAll(List<Customer> customers, ScheduledMessage message, boolean canSendSMS, boolean canSendEmail) {
+    private DispatchCounts dispatchMessageToAll(List<Customer> customers, ScheduledMessage message, boolean canSendSMS,
+            boolean canSendEmail) {
 
         String subjectTemplate = buildSubject(message);
         String emailBodyTemplate = buildBodyFromTemplate(message.getEmailTemplate());
@@ -189,12 +190,14 @@ public class ScheduledMessageDispatcher {
         boolean shouldSendSMS = channels.contains("sms");
         boolean shouldSendEmail = channels.contains("email");
 
-        if (shouldSendSMS && !canSendSMS){
-            log.warn("Message {} should be sent as a SMS but SMS gateway is not configured. Skipping SMS.", message.getName());
+        if (shouldSendSMS && !canSendSMS) {
+            log.warn("Message {} should be sent as a SMS but SMS gateway is not configured. Skipping SMS.",
+                    message.getName());
         }
 
-        if (shouldSendEmail && !canSendEmail){
-            log.warn("Message {} should be sent as an Email but MailSender is not configured. Skipping Email.", message.getName());
+        if (shouldSendEmail && !canSendEmail) {
+            log.warn("Message {} should be sent as an Email but MailSender is not configured. Skipping Email.",
+                    message.getName());
         }
 
         DispatchCounts counts = new DispatchCounts();
@@ -262,7 +265,7 @@ public class ScheduledMessageDispatcher {
 
     // dispatches a due message to a single customer as a SMS
     private boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill) {
-        String smsBody = replacePlaceholders(smsTemplateToUse, customer, currentBill);
+        String smsBody = messagePlaceholderService.replacePlaceholders(smsTemplateToUse, customer, currentBill);
 
         boolean smsOk = sendSms(toPhone, smsBody);
 
@@ -277,8 +280,8 @@ public class ScheduledMessageDispatcher {
             String emailTemplateToUse,
             Bill currentBill) {
 
-        String subject = replacePlaceholders(subjectTemplate, customer, currentBill);
-        String body = replacePlaceholders(emailTemplateToUse, customer, currentBill);
+        String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill);
+        String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill);
 
         try {
             SimpleMailMessage mail = new SimpleMailMessage();
@@ -359,52 +362,6 @@ public class ScheduledMessageDispatcher {
     // with the template body of the other channel
     private String resolveTemplateBody(String primaryTemplate, String fallbackTemplate) {
         return (primaryTemplate != null && !primaryTemplate.isBlank() ? primaryTemplate : fallbackTemplate);
-    }
-
-    // replaces placeholders in the template with actual values from the relevant
-    // customer and their current bill, if available.
-    private String replacePlaceholders(String template, Customer customer, Bill currentBill) {
-        if (template == null || template.isBlank()) {
-            return "";
-        }
-
-        Map<String, String> values = new HashMap<>();
-        values.put("customer_name", safe(customer != null ? customer.getAccountHolderName() : null));
-        values.put("customer_number", safe(customer != null ? customer.getSubscriptionNumber() : null));
-        values.put("outstanding_balance", formatNumber(customer != null ? customer.getOutstandingBalance() : null));
-        values.put("outstanding balance", formatNumber(customer != null ? customer.getOutstandingBalance() : null));
-
-        values.put("billing_period", safe(currentBill != null ? currentBill.getBillingPeriod() : null));
-        values.put("bill_date", formatDate(currentBill != null ? currentBill.getBillDate() : null));
-        values.put("base_charge", formatNumber(currentBill != null ? currentBill.getBaseCharge() : null));
-        values.put("usage_units", formatInt(currentBill != null ? currentBill.getUsageUnits() : null));
-        values.put("usage_charge", formatNumber(currentBill != null ? currentBill.getUsageCharge() : null));
-        values.put("tax_amount", formatNumber(currentBill != null ? currentBill.getTaxAmount() : null));
-        values.put("monthly_fee", formatNumber(currentBill != null ? currentBill.getTotalAmount() : null));
-        values.put("total_balance", formatNumber(currentBill != null ? currentBill.getBalanceDue() : null));
-        values.put("due_date", formatDate(currentBill != null ? currentBill.getDueDate() : null));
-
-        String result = template;
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            result = result.replace("{" + entry.getKey() + "}", entry.getValue());
-        }
-        return result;
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String formatDate(LocalDate date) {
-        return date == null ? "" : date.toString();
-    }
-
-    private String formatNumber(BigDecimal value) {
-        return value == null ? "" : value.stripTrailingZeros().toPlainString();
-    }
-
-    private String formatInt(Integer value) {
-        return value == null ? "" : String.valueOf(value);
     }
 
     // returns whether the actual date and time the message should be sent is passed
