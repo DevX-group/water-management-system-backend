@@ -53,4 +53,20 @@ public interface UsageRecordRepository extends JpaRepository<UsageRecord, Long> 
     ORDER BY EXTRACT(MONTH FROM record_date)
 """, nativeQuery = true)
     List<Object[]> getMonthlyReport(@Param("year") int year);
+
+    //Customer Predictions
+    @Query(value = """
+    SELECT 
+        TO_CHAR(record_date, 'Mon') AS month,
+        SUM(usage) AS total_usage
+    FROM usage_records
+    WHERE customer_id = :customerId
+      AND EXTRACT(YEAR FROM record_date) = :year
+    GROUP BY EXTRACT(MONTH FROM record_date), TO_CHAR(record_date, 'Mon')
+    ORDER BY EXTRACT(MONTH FROM record_date)
+""", nativeQuery = true)
+    List<Object[]> getCustomerPredictionData(
+            @Param("customerId") String customerId,
+            @Param("year") int year
+    );
 }
