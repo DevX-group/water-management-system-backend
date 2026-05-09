@@ -3,6 +3,18 @@ package com.backend.water_management_system.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.backend.water_management_system.entity.PaymentMethod;
+import com.backend.water_management_system.entity.PaymentType;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class RecentPaymentResponse {
     private String paymentId;
     private String subscriptionNumber;
@@ -10,66 +22,7 @@ public class RecentPaymentResponse {
     private BigDecimal amountPaid;
     private String status;
     private LocalDateTime createdAt;
+    private PaymentMethod paymentMethod;
+    private PaymentType paymentType;
 
-    // Constructors
-    public RecentPaymentResponse() {
-    }
-
-    public RecentPaymentResponse(String paymentId, String subscriptionNumber, String accountHolderName, BigDecimal amountPaid, String status, LocalDateTime createdAt) {
-        this.paymentId = paymentId;
-        this.subscriptionNumber = subscriptionNumber;
-        this.accountHolderName = accountHolderName;
-        this.amountPaid = amountPaid;
-        this.status = status;
-        this.createdAt = createdAt;
-    }
-
-    // Getters and Setters
-    public String getPaymentId() {
-        return paymentId;
-    }
-
-    public void setPaymentId(String paymentId) {
-        this.paymentId = paymentId;
-    }
-
-    public String getSubscriptionNumber() {
-        return subscriptionNumber;
-    }
-
-    public void setSubscriptionNumber(String subscriptionNumber) {
-        this.subscriptionNumber = subscriptionNumber;
-    }
-
-    public String getAccountHolderName() {
-        return accountHolderName;
-    }
-
-    public void setAccountHolderName(String accountHolderName) {
-        this.accountHolderName = accountHolderName;
-    }
-
-    public BigDecimal getAmountPaid() {
-        return amountPaid;
-    }
-
-    public void setAmountPaid(BigDecimal amountPaid) {
-        this.amountPaid = amountPaid;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import com.backend.water_management_system.dto.AddPaymentRequest;
 import com.backend.water_management_system.dto.AddPaymentResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
+import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.PaymentCustomerInfoResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.dto.RecentPaymentResponse;
@@ -38,9 +39,12 @@ public class PaymentController {
     }
 
     @GetMapping("/history/{subscriptionNumber}")
-    public ResponseEntity<List<PaymentHistoryItemResponse>> getPaymentHistory(
-            @PathVariable String subscriptionNumber) {
-        return ResponseEntity.ok(paymentService.getPaymentHistory(subscriptionNumber));
+    public ResponseEntity<PaginationResponse<PaymentHistoryItemResponse>> getPaymentHistory(
+            @PathVariable String subscriptionNumber,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        return ResponseEntity.ok(paymentService.getPaymentHistory(subscriptionNumber, page, size));
     }
 
     @GetMapping("/customerInfo/{subscriptionNumber}")
@@ -54,12 +58,13 @@ public class PaymentController {
     }
 
     @PatchMapping("/{paymentId}")
-    public ResponseEntity<AddPaymentResponse> updatePaymentAmount(@PathVariable String paymentId, @RequestBody UpdatePaymentAmountRequest request) {
+    public ResponseEntity<AddPaymentResponse> updatePaymentAmount(@PathVariable String paymentId,
+            @RequestBody UpdatePaymentAmountRequest request) {
         AddPaymentResponse response = paymentService.updatePayment(paymentId, request.getAmount());
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{paymentId}")
+    @DeleteMapping("/delete/{paymentId}")
     public ResponseEntity<Void> deletePayment(@PathVariable String paymentId) {
         paymentService.deletePayment(paymentId);
         return ResponseEntity.noContent().build();

@@ -5,6 +5,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,6 +18,7 @@ import com.backend.water_management_system.dto.BankSlipActionRequest;
 import com.backend.water_management_system.dto.BankSlipUploadResponse;
 import com.backend.water_management_system.dto.CloudinaryUploadResponse;
 import com.backend.water_management_system.dto.CustomerBankSlipResponse;
+import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.BankSlipUploadRequest;
 import com.backend.water_management_system.entity.BankSlip;
 import com.backend.water_management_system.entity.Customer;
@@ -24,6 +29,7 @@ import com.backend.water_management_system.entity.SlipStatus;
 import com.backend.water_management_system.exception.BankSlipNotFoundException;
 import com.backend.water_management_system.exception.BankSlipUploadException;
 import com.backend.water_management_system.repository.BankSlipRepository;
+import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
@@ -39,6 +45,7 @@ public class BankSlipService {
         private final BankSlipRepository bankSlipRepository;
         private final CustomerRepository customerRepository;
         private final PaymentRepository paymentRepository;
+        private final BillRepository billRepository;
 
         private final SimpMessagingTemplate messagingTemplate;
 
@@ -46,6 +53,13 @@ public class BankSlipService {
         // duplicate reference checks, saving to database, and notifying admins via
         // WebSocket
         public BankSlipUploadResponse uploadSlip(BankSlipUploadRequest request) {
+
+                String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+
+                BigDecimal amount = request.getAmount();
+                BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
+                customerPaymentService.validateAmount(amount, totalBalance);
+
                 MultipartFile file = request.getFile();
 
                 // Validate file size and type before proceeding with upload
@@ -69,8 +83,6 @@ public class BankSlipService {
                 if (isDuplicateReference) {
                         throw new IllegalStateException("This bank reference number has already been used.");
                 }
-
-                String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
 
                 String imageUrl = null;
                 String publicId = null;
@@ -134,12 +146,28 @@ public class BankSlipService {
         // Retrieves all pending bank slips from the database, maps them to admin
         // response DTOs, and returns the list for display in the admin payment review
         // interface
-        public List<AdminBankSlipResponse> getPendingSlips() {
-                List<BankSlip> pendingSlips = bankSlipRepository.findByStatus(SlipStatus.PENDING);
+        public List<AdminBankSlipResponse> getAllPendingSlips() {
+                List<BankSlip> pendingSlips = bankSlipRepository.findByStatusOrderByUploadedAtDesc(SlipStatus.PENDING);
 
                 return pendingSlips.stream()
                                 .map(this::mapToAdminDTO)
                                 .toList();
+        }
+
+        // Retrieves pending bank slips with pagination and optional search
+        // functionality for the admin interface, allowing admins to filter slips by
+        // account holder name or subscription number while reviewing payments.
+        public Page<AdminBankSlipResponse> getPendingSlips(int page, int size, String search) {
+
+                Pageable pageable = PageRequest.of(page, size);
+
+                String searchText = (search == null || search.trim().isEmpty())
+                                ? null
+                                : search.trim();
+
+                Page<BankSlip> slips = bankSlipRepository.searchPendingSlips(searchText, pageable);
+
+                return slips.map(this::mapToAdminDTO);
         }
 
         // Utility method to map a BankSlip entity to an AdminBankSlipResponse DTO,
@@ -200,9 +228,9 @@ public class BankSlipService {
                         throw new IllegalArgumentException("Rejection reason is required when rejecting a bank slip.");
                 }
 
-                BankSlip slip = bankSlipRepository.findById(request.getBankSlipId())
+                BankSlip slip = bankSlipRepository.findById(request.getSlipId())
                                 .orElseThrow(() -> new BankSlipNotFoundException(
-                                                "Bank slip not found with ID: " + request.getBankSlipId()));
+                                                "Bank slip not found with ID: " + request.getSlipId()));
 
                 if (slip.getStatus() != SlipStatus.PENDING) {
                         throw new IllegalStateException("This bank slip has already been reviewed.");
@@ -241,6 +269,7 @@ public class BankSlipService {
                                 .subscriptionNumber(subscriptionNumber)
                                 .amount(amount)
                                 .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                                .createdAt(LocalDateTime.now())
                                 .bankSlip(slip)
                                 .build();
 
@@ -255,13 +284,27 @@ public class BankSlipService {
 
         // Retrieves all bank slips associated with the currently authenticated
         // customer's subscription number.
-        public List<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber() {
+        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size) {
+
                 String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
-                return bankSlipRepository
-                                .findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber)
+
+                Pageable pageable = PageRequest.of(page, size, Sort.by("uploadedAt").descending());
+
+                Page<BankSlip> slips = bankSlipRepository.findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber, pageable);
+
+                List<CustomerBankSlipResponse> content = slips.getContent()
                                 .stream()
                                 .map(this::mapToCustomerDTO)
                                 .toList();
+
+                return PaginationResponse.<CustomerBankSlipResponse>builder()
+                                .content(content)
+                                .currentPage(slips.getNumber())
+                                .totalPages(slips.getTotalPages())
+                                .totalElements(slips.getTotalElements())
+                                .pageSize(slips.getSize())
+                                .last(slips.isLast())
+                                .build();
         }
 
         // Utility method to map a BankSlip entity to a CustomerBankSlipResponse DTO,
@@ -276,8 +319,21 @@ public class BankSlipService {
                                 .status(slip.getStatus())
                                 .uploadedAt(slip.getUploadedAt())
                                 .bankPaymentDate(slip.getBankPaymentDate())
+                                .reviewedAt(slip.getReviewedAt())
                                 .rejectionReason(slip.getRejectionReason())
                                 .build();
+        }
+
+        // Retrieves a specific bank slip by its ID and maps it to an
+        // AdminBankSlipResponse DTO for detailed viewing in the admin interface. This
+        // method is used when an admin clicks on a specific slip to view its details
+        // before approving or rejecting it.
+        public AdminBankSlipResponse getBankSlipById(Long slipId) {
+                BankSlip slip = bankSlipRepository.findById(slipId)
+                                .orElseThrow(() -> new BankSlipNotFoundException(
+                                                "Bank slip not found with ID: " + slipId));
+
+                return mapToAdminDTO(slip);
         }
 
 }

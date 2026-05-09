@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,7 @@ import com.backend.water_management_system.dto.CurrentBillResponse;
 import com.backend.water_management_system.dto.CustomerPaymentSummaryResponse;
 import com.backend.water_management_system.dto.OutstandingBillResponse;
 import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
+import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.dto.PaymentResult;
 import com.backend.water_management_system.dto.RecentPaymentResponse;
@@ -300,20 +303,24 @@ public class PaymentService {
                 billStatus);
     }
 
-    public List<PaymentHistoryItemResponse> getPaymentHistory(String subscriptionNumber) {
+    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistory(String subscriptionNumber, int page, int size) {
 
         if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
             throw new InvalidPaymentException("Subscription number is required");
         }
 
         if (!customerRepository.existsById(subscriptionNumber)) {
-            throw new CustomerNotFoundException("Customer not found: " + subscriptionNumber);
+            throw new CustomerNotFoundException(
+                    "Customer not found: " + subscriptionNumber);
         }
 
         List<PaymentStatus> validStatuses = List.of(PaymentStatus.FULL, PaymentStatus.PARTIAL);
 
-        return paymentRepository
-                .findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(subscriptionNumber, validStatuses)
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Payment> payments = paymentRepository.findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(subscriptionNumber, validStatuses, pageable);
+
+        List<PaymentHistoryItemResponse> content = payments.getContent()
                 .stream()
                 .map(p -> PaymentHistoryItemResponse.builder()
                         .paymentId(p.getPaymentId())
@@ -325,6 +332,15 @@ public class PaymentService {
                         .createdAt(p.getCreatedAt())
                         .build())
                 .toList();
+
+        return PaginationResponse.<PaymentHistoryItemResponse>builder()
+                .content(content)
+                .currentPage(payments.getNumber())
+                .totalPages(payments.getTotalPages())
+                .totalElements(payments.getTotalElements())
+                .pageSize(payments.getSize())
+                .last(payments.isLast())
+                .build();
     }
 
     public CurrentBillResponse getCurrentBill(String subscriptionNumber) {
@@ -403,7 +419,8 @@ public class PaymentService {
 
     public List<RecentPaymentResponse> getRecentPayments(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        List<Payment> payments = paymentRepository.findAllByOrderByCreatedAtDesc(pageable);
+        List<Payment> payments = paymentRepository.findByPaymentMethodInOrderByCreatedAtDesc(
+                List.of(PaymentMethod.MANUAL, PaymentMethod.BANK_TRANSFER), pageable);
         return payments.stream()
                 .map(p -> {
                     RecentPaymentResponse res = new RecentPaymentResponse();
@@ -418,6 +435,8 @@ public class PaymentService {
 
                     res.setAccountHolderName(
                             customer != null ? customer.getAccountHolderName() : "Unknown");
+                    res.setPaymentMethod(p.getPaymentMethod());
+                    res.setPaymentType(p.getPaymentType());
 
                     return res;
                 })
