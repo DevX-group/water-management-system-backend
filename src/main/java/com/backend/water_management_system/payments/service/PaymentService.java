@@ -18,7 +18,7 @@ import com.backend.water_management_system.billing.dto.OutstandingBillResponse;
 import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
-import com.backend.water_management_system.dto.PaginationResponse;
+import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.customer.exceptions.CustomerNotFoundException;
 import com.backend.water_management_system.payments.exceptions.InvalidPaymentException;

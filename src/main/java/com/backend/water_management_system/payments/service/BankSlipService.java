@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.backend.water_management_system.billing.repository.BillRepository;
-import com.backend.water_management_system.dto.PaginationResponse;
+import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.payments.exceptions.BankSlipNotFoundException;
 import com.backend.water_management_system.payments.exceptions.BankSlipUploadException;

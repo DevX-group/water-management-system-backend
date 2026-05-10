@@ -1,3 +1,4 @@
+package com.backend.water_management_system.common.config;
 // package com.backend.water_management_system.config;
 
 // Spring Security is currently disabled.

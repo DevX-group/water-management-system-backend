@@ -1,4 +1,4 @@
-package com.backend.water_management_system.config;
+package com.backend.water_management_system.payments.config;
 
 import java.util.HashMap;
 import java.util.Map;

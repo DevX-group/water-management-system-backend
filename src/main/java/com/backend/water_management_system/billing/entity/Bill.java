@@ -5,8 +5,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
+import com.backend.water_management_system.common.entity.MeterReading;
 import com.backend.water_management_system.customer.entity.Customer;
-import com.backend.water_management_system.entity.MeterReading;
 
 @Entity
 @Table(name="bills")

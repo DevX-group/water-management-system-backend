@@ -1,4 +1,4 @@
-package com.backend.water_management_system.controller;
+package com.backend.water_management_system.common.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;

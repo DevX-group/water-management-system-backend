@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.backend.water_management_system.dto.PaginationResponse;
+import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.payments.dto.AddPaymentRequest;
 import com.backend.water_management_system.payments.dto.AddPaymentResponse;
 import com.backend.water_management_system.payments.dto.CustomerPaymentSummaryResponse;

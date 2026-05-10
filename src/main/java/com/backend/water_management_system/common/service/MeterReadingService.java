@@ -1,4 +1,4 @@
-package com.backend.water_management_system.service;
+package com.backend.water_management_system.common.service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -11,12 +11,12 @@ import com.backend.water_management_system.alerts.service.AlertService;
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.billing.service.BillingService;
-import com.backend.water_management_system.dto.MeterReadingCreateRequest;
-import com.backend.water_management_system.dto.MeterReadingTodayResponse;
+import com.backend.water_management_system.common.dto.MeterReadingCreateRequest;
+import com.backend.water_management_system.common.dto.MeterReadingTodayResponse;
+import com.backend.water_management_system.common.entity.MeterReading;
+import com.backend.water_management_system.common.repository.MeterReadingRepository;
 import com.backend.water_management_system.customer.entity.Customer;
-import com.backend.water_management_system.entity.MeterReading;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
-import com.backend.water_management_system.repository.MeterReadingRepository;
 @Service
 public class MeterReadingService {
     private final MeterReadingRepository meterReadingRepository;

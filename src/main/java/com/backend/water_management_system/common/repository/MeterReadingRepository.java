@@ -1,10 +1,11 @@
-package com.backend.water_management_system.repository;
+package com.backend.water_management_system.common.repository;
 
-import com.backend.water_management_system.entity.MeterReading;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import com.backend.water_management_system.common.entity.MeterReading;
 
 import java.time.LocalDate;
 import java.util.List;

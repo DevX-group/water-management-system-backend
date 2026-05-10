@@ -10,10 +10,10 @@ import org.springframework.stereotype.Service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
-import com.backend.water_management_system.entity.ConnectionRate;
+import com.backend.water_management_system.common.entity.ConnectionRate;
+import com.backend.water_management_system.common.entity.MeterReading;
+import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.customer.entity.Customer;
-import com.backend.water_management_system.entity.MeterReading;
-import com.backend.water_management_system.repository.RateRepository;
 
 @Service
 public class BillingService {

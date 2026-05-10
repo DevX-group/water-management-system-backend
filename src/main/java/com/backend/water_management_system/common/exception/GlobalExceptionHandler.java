@@ -1,4 +1,4 @@
-package com.backend.water_management_system.exception;
+package com.backend.water_management_system.common.exception;
 
 import java.util.Map;
 
