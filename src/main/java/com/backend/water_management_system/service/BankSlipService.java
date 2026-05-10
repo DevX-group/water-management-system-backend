@@ -39,13 +39,13 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class BankSlipService {
-
         private final CloudinaryService cloudinaryService;
         private final CustomerPaymentService customerPaymentService;
         private final BankSlipRepository bankSlipRepository;
         private final CustomerRepository customerRepository;
         private final PaymentRepository paymentRepository;
         private final BillRepository billRepository;
+        private final TriggeredMessageDispatcher triggeredMessageDispatcher;
 
         private final SimpMessagingTemplate messagingTemplate;
 
@@ -280,6 +280,11 @@ public class BankSlipService {
                 payment.setStatus(status);
                 paymentRepository.save(payment);
 
+                try {
+                        triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
+                } catch (Exception ex) {
+                        // Payment is recorded; messaging failures should not fail approval flow.
+                }
         }
 
         // Retrieves all bank slips associated with the currently authenticated
@@ -290,7 +295,8 @@ public class BankSlipService {
 
                 Pageable pageable = PageRequest.of(page, size, Sort.by("uploadedAt").descending());
 
-                Page<BankSlip> slips = bankSlipRepository.findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber, pageable);
+                Page<BankSlip> slips = bankSlipRepository
+                                .findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber, pageable);
 
                 List<CustomerBankSlipResponse> content = slips.getContent()
                                 .stream()

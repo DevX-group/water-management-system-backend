@@ -5,8 +5,6 @@ import java.time.LocalDate;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import com.backend.water_management_system.entity.PaymentType;
-
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
