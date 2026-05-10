@@ -38,7 +38,6 @@ import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentAllocationRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 

@@ -6,6 +6,7 @@ import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.Message;
 import com.backend.water_management_system.entity.MessageTemplate;
+import com.backend.water_management_system.entity.Payment;
 import jakarta.annotation.PostConstruct;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +80,18 @@ public class MessageDispatchHelper {
         return smsOk;
     }
 
+    // dispatches a due scheduled message or a triggered message to a single
+    // customer as a SMS with payment placeholders
+    public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill,
+            Payment payment) {
+        String smsBody = messagePlaceholderService.replacePlaceholders(smsTemplateToUse, customer, currentBill,
+                payment);
+
+        boolean smsOk = sendSms(toPhone, smsBody);
+
+        return smsOk;
+    }
+
     // dispatches a due message to a single customer as an email
     public boolean dispatchEmail(Customer customer,
             String toEmail,
@@ -89,6 +102,39 @@ public class MessageDispatchHelper {
 
         String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill);
         String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill);
+
+        try {
+            SimpleMailMessage mail = new SimpleMailMessage();
+
+            if (!fromAddressForMail.isBlank()) {
+                mail.setFrom(fromAddressForMail);
+            }
+
+            mail.setTo(toEmail);
+            mail.setSubject(subject);
+            mail.setText(body);
+
+            mailSender.send(mail);
+
+            return true;
+        } catch (Exception ex) {
+            log.warn("Failed to send email to {}: {}", toEmail, ex.getMessage());
+            return false;
+        }
+    }
+
+    // dispatches a due message to a single customer as an email with payment
+    // placeholders
+    public boolean dispatchEmail(Customer customer,
+            String toEmail,
+            String fromAddressForMail,
+            String subjectTemplate,
+            String emailTemplateToUse,
+            Bill currentBill,
+            Payment payment) {
+
+        String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill, payment);
+        String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill, payment);
 
         try {
             SimpleMailMessage mail = new SimpleMailMessage();

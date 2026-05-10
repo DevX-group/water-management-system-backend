@@ -72,7 +72,7 @@ public class TriggeredMessageDispatcher {
                 String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
                 if (!toPhone.isEmpty()) {
                     String smsTemplateToUse = dispatchHelper.resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
-                    dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
+                    dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment);
                 }
             }
 
@@ -81,7 +81,7 @@ public class TriggeredMessageDispatcher {
                 if (dispatchHelper.isValidEmail(toEmail)) {
                     String emailTemplateToUse = dispatchHelper.resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
                     dispatchHelper.dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate,
-                            emailTemplateToUse, currentBill);
+                            emailTemplateToUse, currentBill, payment);
                 }
             }
         }

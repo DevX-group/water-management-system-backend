@@ -2,6 +2,7 @@ package com.backend.water_management_system.service;
 
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.entity.Payment;
 import com.backend.water_management_system.enums.MessagePlaceholder;
 
 import lombok.NoArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,6 +21,12 @@ public class MessagePlaceholderService {
     // Takes a template string and replaces placeholders with actual values from the
     // relevant customer and their bill.
     public String replacePlaceholders(String template, Customer customer, Bill currentBill) {
+        return replacePlaceholders(template, customer, currentBill, null);
+    }
+
+    // Takes a template string and replaces placeholders with actual values from the
+    // relevant customer, bill, and optional payment.
+    public String replacePlaceholders(String template, Customer customer, Bill currentBill, Payment payment) {
         if (template == null || template.isBlank()) {
             return "";
         }
@@ -50,6 +58,17 @@ public class MessagePlaceholderService {
         values.put(MessagePlaceholder.DUE_DATE.getKey(),
                 formatDate(currentBill != null ? currentBill.getDueDate() : null));
 
+        values.put(MessagePlaceholder.AMOUNT_PAID.getKey(),
+                formatNumber(payment != null ? payment.getAmount() : null));
+        values.put(MessagePlaceholder.PAYMENT_DATE.getKey(),
+                formatDate(payment != null ? payment.getCreatedAt() : null));
+        values.put(MessagePlaceholder.PAYMENT_TIME.getKey(),
+                formatTime(payment != null ? payment.getCreatedAt() : null));
+        values.put(MessagePlaceholder.PAYMENT_METHOD.getKey(),
+                safe(payment != null && payment.getPaymentMethod() != null ? payment.getPaymentMethod().name() : null));
+        values.put(MessagePlaceholder.PAYMENT_ID.getKey(),
+                safe(payment != null ? payment.getPaymentId() : null));
+
         values.put(MessagePlaceholder.OVERDUE_THRESHOLD.getKey(), "");
         values.put(MessagePlaceholder.RECONNECTION_FEE.getKey(), "");
         values.put(MessagePlaceholder.PRADESHIYA_SABHA_ACC_NO.getKey(), "");
@@ -69,6 +88,14 @@ public class MessagePlaceholderService {
 
     private String formatDate(LocalDate date) {
         return date == null ? "" : date.toString();
+    }
+
+    private String formatDate(LocalDateTime dateTime) {
+        return dateTime == null ? "" : dateTime.toLocalDate().toString();
+    }
+
+    private String formatTime(LocalDateTime dateTime) {
+        return dateTime == null ? "" : dateTime.toLocalTime().toString();
     }
 
     private String formatNumber(BigDecimal value) {
