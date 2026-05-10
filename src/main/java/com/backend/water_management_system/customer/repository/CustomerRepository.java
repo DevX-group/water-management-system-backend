@@ -1,6 +1,4 @@
-package com.backend.water_management_system.repository;
-
-import com.backend.water_management_system.entity.Customer;
+package com.backend.water_management_system.customer.repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -8,6 +6,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.backend.water_management_system.customer.entity.Customer;
 
 public interface CustomerRepository extends JpaRepository<Customer, String> {
     @Query("""

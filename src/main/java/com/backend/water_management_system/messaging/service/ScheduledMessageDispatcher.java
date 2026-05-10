@@ -2,14 +2,14 @@ package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.ScheduledMessage;
 import com.backend.water_management_system.messaging.entity.SentMessage;
 import com.backend.water_management_system.messaging.entity.SentMessageFailure;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
 import com.backend.water_management_system.messaging.repository.ScheduledMessageRepository;
-import com.backend.water_management_system.repository.CustomerRepository;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

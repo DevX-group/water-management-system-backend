@@ -2,13 +2,13 @@ package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.messaging.entity.TriggeredMessage;
 import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.messaging.repository.TriggeredMessageRepository;
 import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentMethod;
-import com.backend.water_management_system.repository.CustomerRepository;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;

@@ -13,9 +13,9 @@ import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.billing.service.BillingService;
 import com.backend.water_management_system.dto.MeterReadingCreateRequest;
 import com.backend.water_management_system.dto.MeterReadingTodayResponse;
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.entity.MeterReading;
-import com.backend.water_management_system.repository.CustomerRepository;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.repository.MeterReadingRepository;
 @Service
 public class MeterReadingService {

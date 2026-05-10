@@ -1,4 +1,4 @@
-package com.backend.water_management_system.controller;
+package com.backend.water_management_system.customer.controller;
 
 import java.util.List;
 
@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.backend.water_management_system.dto.CustomerSearchResponse;
-import com.backend.water_management_system.entity.Customer;
-import com.backend.water_management_system.service.CustomerService;
+import com.backend.water_management_system.customer.dto.CustomerSearchResponse;
+import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.customer.service.CustomerService;
 
 @CrossOrigin(origins = "http://localhost:8080")
 @RestController

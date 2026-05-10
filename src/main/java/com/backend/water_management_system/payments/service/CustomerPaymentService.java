@@ -22,15 +22,15 @@ import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.config.PayHereConfig;
 import com.backend.water_management_system.dto.PaginationResponse;
-import com.backend.water_management_system.entity.Customer;
-import com.backend.water_management_system.exception.InvalidPaymentException;
+import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.payments.exceptions.InvalidPaymentException;
 import com.backend.water_management_system.payments.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.payments.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.payments.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentStatus;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
-import com.backend.water_management_system.repository.CustomerRepository;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

@@ -3,6 +3,8 @@ package com.backend.water_management_system.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
+import com.backend.water_management_system.customer.entity.Customer;
+
 @Entity
 @Table(name="meter_readings")
 public class MeterReading {

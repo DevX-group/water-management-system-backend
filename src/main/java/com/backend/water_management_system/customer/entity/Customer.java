@@ -1,6 +1,8 @@
-package com.backend.water_management_system.entity;
+package com.backend.water_management_system.customer.entity;
 
 import java.math.BigDecimal;
+
+import com.backend.water_management_system.entity.Region;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

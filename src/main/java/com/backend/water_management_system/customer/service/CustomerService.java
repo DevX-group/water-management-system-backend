@@ -1,13 +1,12 @@
-package com.backend.water_management_system.service;
-
-import com.backend.water_management_system.repository.CustomerRepository;
+package com.backend.water_management_system.customer.service;
 
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.backend.water_management_system.dto.CustomerSearchResponse;
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.dto.CustomerSearchResponse;
+import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 
 @Service
 public class CustomerService {
