@@ -169,7 +169,7 @@ public class ScheduledMessageDispatcher {
                     counts.totalSms++;
                     String smsTemplateToUse = dispatchHelper.resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
 
-                    boolean smsOk = dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
+                    boolean smsOk = dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, null);
 
                     if (smsOk) {
                         counts.smsSuccessCount++;
@@ -189,7 +189,7 @@ public class ScheduledMessageDispatcher {
 
                     boolean emailOk = dispatchHelper.dispatchEmail(customer, toEmail, fromAddressForMail,
                             subjectTemplate,
-                            emailTemplateToUse, currentBill);
+                            emailTemplateToUse, currentBill, null);
 
                     if (emailOk) {
                         counts.emailSuccessCount++;

@@ -70,20 +70,8 @@ public class MessageDispatchHelper {
         return "";
     }
 
-    // dispatches a due scheduled message or a triggered message to a single
-    // customer as a SMS
-    public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill) {
-        String smsBody = messagePlaceholderService.replacePlaceholders(smsTemplateToUse, customer, currentBill);
-
-        boolean smsOk = sendSms(toPhone, smsBody);
-
-        return smsOk;
-    }
-
-    // dispatches a due scheduled message or a triggered message to a single
-    // customer as a SMS with payment placeholders
-    public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill,
-            Payment payment) {
+    // dispatches a due scheduled message or a triggered message to a single customer as a SMS
+    public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill, Payment payment) {
         String smsBody = messagePlaceholderService.replacePlaceholders(smsTemplateToUse, customer, currentBill,
                 payment);
 
@@ -92,39 +80,7 @@ public class MessageDispatchHelper {
         return smsOk;
     }
 
-    // dispatches a due message to a single customer as an email
-    public boolean dispatchEmail(Customer customer,
-            String toEmail,
-            String fromAddressForMail,
-            String subjectTemplate,
-            String emailTemplateToUse,
-            Bill currentBill) {
-
-        String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill);
-        String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill);
-
-        try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-
-            if (!fromAddressForMail.isBlank()) {
-                mail.setFrom(fromAddressForMail);
-            }
-
-            mail.setTo(toEmail);
-            mail.setSubject(subject);
-            mail.setText(body);
-
-            mailSender.send(mail);
-
-            return true;
-        } catch (Exception ex) {
-            log.warn("Failed to send email to {}: {}", toEmail, ex.getMessage());
-            return false;
-        }
-    }
-
-    // dispatches a due message to a single customer as an email with payment
-    // placeholders
+    // dispatches a due message to a single customer as an email placeholders
     public boolean dispatchEmail(Customer customer,
             String toEmail,
             String fromAddressForMail,
