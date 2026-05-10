@@ -1,10 +1,8 @@
 package com.backend.water_management_system.service;
 
-import com.backend.water_management_system.entity.MessageTemplate;
-import com.backend.water_management_system.dto.SMSGatewayRequestDTO;
-import com.backend.water_management_system.dto.SMSGatewayResponseDTO;
 import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.entity.MessageTemplate;
 import com.backend.water_management_system.entity.ScheduledMessage;
 import com.backend.water_management_system.entity.SentMessage;
 import com.backend.water_management_system.entity.SentMessageFailure;
@@ -12,26 +10,17 @@ import com.backend.water_management_system.entity.TemplateSection;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.ScheduledMessageRepository;
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailSender;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.http.MediaType;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -43,48 +32,13 @@ public class ScheduledMessageDispatcher {
     private final CustomerRepository customerRepository;
     private final BillRepository billRepository;
     private final SentMessageService sentMessageService;
-    private final MessagePlaceholderService messagePlaceholderService;
-    private final ObjectProvider<MailSender> mailSenderProvider;
-    private MailSender mailSender;
-
-    @Value("${spring.mail.username:}")
-    private String fromAddress;
-
-    @Value("${text-lk.api-endpoint:}")
-    private String textLkApiEndpoint;
-
-    @Value("${text-lk.api-token:}")
-    private String textLkApiToken;
-
-    @Value("${text-lk.sender-id:}")
-    private String textLkSenderId;
-
-    private final String smsType = "plain";
-
-    private WebClient webClient;
-
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.%-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
-
-    @PostConstruct
-    private void initMailSender() {
-        this.mailSender = mailSenderProvider.getIfAvailable();
-        this.webClient = WebClient.create();
-    }
-
-    public String getFromAddress() {
-        return fromAddress;
-    }
-
-    public void setFromAddress(String fromAddress) {
-        this.fromAddress = fromAddress;
-    }
+    private final MessageDispatchHelper dispatchHelper;
 
     @Scheduled(fixedDelayString = "${app.messaging.scheduler-delay-ms:60000}")
     @Transactional
     public void sendDueScheduledMessages() {
-        boolean canSendEmail = mailSender != null;
-        boolean canSendSms = textLkApiEndpoint != null && !textLkApiEndpoint.isBlank()
-                && textLkApiToken != null && !textLkApiToken.isBlank();
+        boolean canSendEmail = dispatchHelper.canSendEmail();
+        boolean canSendSms = dispatchHelper.canSendSms();
 
         if (!canSendEmail && !canSendSms) {
             log.warn("No MailSender or SMS gateway configured; skipping scheduled message dispatch");
@@ -175,11 +129,11 @@ public class ScheduledMessageDispatcher {
     private DispatchCounts dispatchMessageToAll(List<Customer> customers, ScheduledMessage message, boolean canSendSMS,
             boolean canSendEmail) {
 
-        String subjectTemplate = buildSubject(message);
-        String emailBodyTemplate = buildBodyFromTemplate(message.getEmailTemplate());
-        String smsBodyTemplate = buildBodyFromTemplate(message.getSmsTemplate());
+        String subjectTemplate = dispatchHelper.buildSubject(message);
+        String emailBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getEmailTemplate());
+        String smsBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getSmsTemplate());
 
-        String fromAddressForMail = resolveFromAddress();
+        String fromAddressForMail = dispatchHelper.resolveFromAddress();
 
         String channels = message.getChannels() != null ? message.getChannels().toLowerCase() : "";
         boolean shouldSendSMS = channels.contains("sms");
@@ -213,9 +167,9 @@ public class ScheduledMessageDispatcher {
                 if (!toPhone.isEmpty()) {
                     smsAttempted = true;
                     counts.totalSms++;
-                    String smsTemplateToUse = resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
+                    String smsTemplateToUse = dispatchHelper.resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
 
-                    boolean smsOk = dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
+                    boolean smsOk = dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill);
 
                     if (smsOk) {
                         counts.smsSuccessCount++;
@@ -228,12 +182,13 @@ public class ScheduledMessageDispatcher {
             // Email attempt (only if customer has an email)
             if (shouldSendEmail && canSendEmail) {
                 String toEmail = customer.getEmail() != null ? customer.getEmail().trim() : "";
-                if (isValidEmail(toEmail)) {
+                if (dispatchHelper.isValidEmail(toEmail)) {
                     emailAttempted = true;
                     counts.totalEmails++;
-                    String emailTemplateToUse = resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
+                    String emailTemplateToUse = dispatchHelper.resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
 
-                    boolean emailOk = dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate,
+                    boolean emailOk = dispatchHelper.dispatchEmail(customer, toEmail, fromAddressForMail,
+                            subjectTemplate,
                             emailTemplateToUse, currentBill);
 
                     if (emailOk) {
@@ -256,107 +211,6 @@ public class ScheduledMessageDispatcher {
         }
 
         return counts;
-    }
-
-    // dispatches a due message to a single customer as a SMS
-    private boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill) {
-        String smsBody = messagePlaceholderService.replacePlaceholders(smsTemplateToUse, customer, currentBill);
-
-        boolean smsOk = sendSms(toPhone, smsBody);
-
-        return smsOk;
-    }
-
-    // dispatches a due message to a single customer as an email
-    private boolean dispatchEmail(Customer customer,
-            String toEmail,
-            String fromAddressForMail,
-            String subjectTemplate,
-            String emailTemplateToUse,
-            Bill currentBill) {
-
-        String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill);
-        String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill);
-
-        try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-
-            if (!fromAddressForMail.isBlank()) {
-                mail.setFrom(fromAddressForMail);
-            }
-
-            mail.setTo(toEmail);
-            mail.setSubject(subject);
-            mail.setText(body);
-
-            mailSender.send(mail);
-
-            return true;
-        } catch (Exception ex) {
-            log.warn("Failed to send scheduled email to {}: {}", toEmail, ex.getMessage());
-            return false;
-        }
-    }
-
-    // Sends SMS using Text.lk gateway. Returns true if the gateway returned a
-    // successful response.
-    private boolean sendSms(String to, String message) {
-
-        try {
-            SMSGatewayRequestDTO payload = new SMSGatewayRequestDTO();
-            payload.setRecipient(to);
-            if (textLkSenderId != null && !textLkSenderId.isBlank()) {
-                payload.setSender_id(textLkSenderId);
-            }
-            payload.setType(smsType);
-            payload.setMessage(message == null ? "" : message);
-
-            SMSGatewayResponseDTO response = webClient.post()
-                    .uri(textLkApiEndpoint)
-                    .header("Authorization", "Bearer " + textLkApiToken)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .bodyValue(payload)
-                    .exchangeToMono(resp -> resp.bodyToMono(SMSGatewayResponseDTO.class)
-                            .defaultIfEmpty(new SMSGatewayResponseDTO()))
-                    .block();
-
-            if (response == null) {
-                log.warn("Text.lk SMS request failed for {}: empty response", to);
-                return false;
-            }
-
-            if (response.getStatus() != null && "success".equalsIgnoreCase(response.getStatus())) {
-                return true;
-            }
-
-            log.warn("Text.lk SMS request failed for {} with status {} and message {}", to, response.getStatus(),
-                    response.getMessage());
-            return false;
-        } catch (Exception ex) {
-            log.warn("Failed to send scheduled SMS to {}: {}", to, ex.getMessage());
-            return false;
-        }
-    }
-
-    private boolean isValidEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return false;
-        }
-        return EMAIL_PATTERN.matcher(email.trim()).matches();
-    }
-
-    private String resolveFromAddress() {
-        if (fromAddress != null && !fromAddress.isBlank())
-            return getFromAddress().trim();
-
-        return "";
-    }
-
-    // if the template body is not available for the relevant channel, replace it
-    // with the template body of the other channel
-    private String resolveTemplateBody(String primaryTemplate, String fallbackTemplate) {
-        return (primaryTemplate != null && !primaryTemplate.isBlank() ? primaryTemplate : fallbackTemplate);
     }
 
     // returns whether the actual date and time the message should be sent is passed
@@ -434,49 +288,6 @@ public class ScheduledMessageDispatcher {
             return "";
         }
         return scheduleType.trim().toLowerCase();
-    }
-
-    private String buildSubject(ScheduledMessage message) {
-        MessageTemplate emailTemplate = message.getEmailTemplate();
-        if (emailTemplate != null && emailTemplate.getSubject() != null && !emailTemplate.getSubject().isBlank()) {
-            return emailTemplate.getSubject();
-        }
-
-        // if there is no subject entered, return the message name as the subject
-        if (message.getName() != null && !message.getName().isBlank()) {
-            return message.getName();
-        }
-
-        return "Pradeshiya Sabha Water Bill";
-    }
-
-    private String buildBodyFromTemplate(MessageTemplate template) {
-        if (template == null) {
-            return "";
-        }
-
-        // if it is a custom template and the content is not empty, return the content
-        if (template.getContent() != null && !template.getContent().isBlank()) {
-            return template.getContent();
-        }
-
-        /*
-         * if it is a custom template but there is nothing in content,
-         * or if it is not a custom template but there is nothing in the template
-         * sections,
-         * return an empty string
-         */
-        if (template.getSections() == null || template.getSections().isEmpty()) {
-            return "";
-        }
-
-        // if it is not a custom template and there is content available in the template
-        // sections, return the collected content
-        return template.getSections().stream()
-                .map(section -> section.getContent() == null ? "" : section.getContent())
-                .filter(content -> !content.isBlank())
-                .reduce((left, right) -> left + "\n\n" + right)
-                .orElse("");
     }
 
     private SentMessage toSentMessage(ScheduledMessage scheduledMessage,

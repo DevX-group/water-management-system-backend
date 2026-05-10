@@ -10,6 +10,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.backend.water_management_system.dto.AddPaymentRequest;
 import com.backend.water_management_system.dto.AddPaymentResponse;
@@ -44,10 +46,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PaymentService {
 
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
+
     private final CustomerRepository customerRepository;
     private final PaymentRepository paymentRepository;
     private final BillRepository billRepository;
     private final PaymentAllocationRepository paymentAllocationRepository;
+    private final TriggeredMessageDispatcher triggeredMessageDispatcher;
 
     @Transactional
     public AddPaymentResponse addPayment(AddPaymentRequest request) {
@@ -86,6 +91,14 @@ public class PaymentService {
 
         payment.setStatus(result.getStatus());
         paymentRepository.save(payment);
+
+        if (request.getPaymentMethod() == PaymentMethod.MANUAL) {
+            try {
+                triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
+            } catch (Exception ex) {
+                log.warn("Failed to dispatch payment confirmation for {}: {}", payment.getPaymentId(), ex.getMessage());
+            }
+        }
 
         return buildResponse(payment, result, subscriptionNumber, request.getPaymentType(), request.getPaymentMethod());
     }
@@ -303,7 +316,8 @@ public class PaymentService {
                 billStatus);
     }
 
-    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistory(String subscriptionNumber, int page, int size) {
+    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistory(String subscriptionNumber, int page,
+            int size) {
 
         if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
             throw new InvalidPaymentException("Subscription number is required");
@@ -318,7 +332,8 @@ public class PaymentService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        Page<Payment> payments = paymentRepository.findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(subscriptionNumber, validStatuses, pageable);
+        Page<Payment> payments = paymentRepository
+                .findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(subscriptionNumber, validStatuses, pageable);
 
         List<PaymentHistoryItemResponse> content = payments.getContent()
                 .stream()
