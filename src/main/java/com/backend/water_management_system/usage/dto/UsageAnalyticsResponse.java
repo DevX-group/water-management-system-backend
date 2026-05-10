@@ -1,4 +1,4 @@
-package com.backend.water_management_system.common.dto;
+package com.backend.water_management_system.usage.dto;
 import java.util.List;
 /**
  * Full response payload for the Usage Trends analytics page.

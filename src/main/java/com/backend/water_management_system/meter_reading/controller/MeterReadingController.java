@@ -1,10 +1,10 @@
-package com.backend.water_management_system.common.controller;
+package com.backend.water_management_system.meter_reading.controller;
 
 import com.backend.water_management_system.billing.entity.Bill;
-import com.backend.water_management_system.common.dto.MeterReadingCreateRequest;
-import com.backend.water_management_system.common.dto.MeterReadingCreateResponse;
-import com.backend.water_management_system.common.dto.MeterReadingTodayResponse;
-import com.backend.water_management_system.common.service.MeterReadingService;
+import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateRequest;
+import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateResponse;
+import com.backend.water_management_system.meter_reading.dto.MeterReadingTodayResponse;
+import com.backend.water_management_system.meter_reading.service.MeterReadingService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
