@@ -6,7 +6,7 @@ import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryRe
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.service.BillDocumentService;
 import com.backend.water_management_system.billing.service.BillService;
-import com.backend.water_management_system.service.PaymentService;
+import com.backend.water_management_system.payments.service.PaymentService;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

@@ -2,8 +2,8 @@ package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
-import com.backend.water_management_system.entity.Payment;
 import com.backend.water_management_system.messaging.enums.MessagePlaceholder;
+import com.backend.water_management_system.payments.entity.Payment;
 
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;

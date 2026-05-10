@@ -2,11 +2,11 @@ package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
-import com.backend.water_management_system.entity.Payment;
 import com.backend.water_management_system.messaging.dto.SMSGatewayRequestDTO;
 import com.backend.water_management_system.messaging.dto.SMSGatewayResponseDTO;
 import com.backend.water_management_system.messaging.entity.Message;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
+import com.backend.water_management_system.payments.entity.Payment;
 
 import jakarta.annotation.PostConstruct;
 import java.util.regex.Pattern;
