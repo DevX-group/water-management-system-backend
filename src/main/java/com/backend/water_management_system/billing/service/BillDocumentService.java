@@ -1,6 +1,6 @@
-package com.backend.water_management_system.service;
+package com.backend.water_management_system.billing.service;
 
-import com.backend.water_management_system.entity.Bill;
+import com.backend.water_management_system.billing.entity.Bill;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.stereotype.Service;

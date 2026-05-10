@@ -1,4 +1,4 @@
-package com.backend.water_management_system.repository;
+package com.backend.water_management_system.billing.repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -8,8 +8,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.MeterReading;
+import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 
 public interface BillRepository extends JpaRepository<Bill, Long> {

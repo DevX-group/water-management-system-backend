@@ -1,8 +1,9 @@
-package com.backend.water_management_system.repository;
+package com.backend.water_management_system.billing.repository;
 
-import com.backend.water_management_system.entity.Inquiry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import com.backend.water_management_system.billing.entity.Inquiry;
 
 @Repository
 public interface InquiryRepository extends JpaRepository<Inquiry, String> {

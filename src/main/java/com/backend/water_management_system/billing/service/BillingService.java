@@ -1,4 +1,4 @@
-package com.backend.water_management_system.service;
+package com.backend.water_management_system.billing.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -7,11 +7,12 @@ import java.time.OffsetDateTime;
 import java.time.YearMonth;
 
 import org.springframework.stereotype.Service;
-import com.backend.water_management_system.entity.Bill;
+
+import com.backend.water_management_system.billing.entity.Bill;
+import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.entity.ConnectionRate;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.MeterReading;
-import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.RateRepository;
 
 @Service

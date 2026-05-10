@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.dto.BankSlipActionRequest;
 import com.backend.water_management_system.dto.BankSlipUploadResponse;
@@ -30,7 +31,6 @@ import com.backend.water_management_system.exception.BankSlipNotFoundException;
 import com.backend.water_management_system.exception.BankSlipUploadException;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 import com.backend.water_management_system.repository.BankSlipRepository;
-import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 

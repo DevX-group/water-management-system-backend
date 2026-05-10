@@ -1,4 +1,4 @@
-package com.backend.water_management_system.dto;
+package com.backend.water_management_system.alerts.dto;
 
 import java.time.LocalDateTime;
 

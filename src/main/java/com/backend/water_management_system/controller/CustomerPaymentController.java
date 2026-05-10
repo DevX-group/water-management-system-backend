@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.backend.water_management_system.dto.CurrentBillResponse;
+import com.backend.water_management_system.billing.dto.CurrentBillResponse;
+import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
 import com.backend.water_management_system.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.dto.CustomerPaymentResponse;
-import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
 import com.backend.water_management_system.dto.PaginationResponse;
 import com.backend.water_management_system.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.service.CustomerPaymentService;

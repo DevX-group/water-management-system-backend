@@ -1,13 +1,13 @@
-package com.backend.water_management_system.service;
+package com.backend.water_management_system.billing.service;
 
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.backend.water_management_system.entity.Inquiry;
-import com.backend.water_management_system.entity.InquiryMessage;
-import com.backend.water_management_system.repository.InquiryRepository;
+import com.backend.water_management_system.billing.entity.Inquiry;
+import com.backend.water_management_system.billing.entity.InquiryMessage;
+import com.backend.water_management_system.billing.repository.InquiryRepository;
 
 @Service
 public class InquiryService {
