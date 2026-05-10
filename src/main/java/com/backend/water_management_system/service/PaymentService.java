@@ -36,7 +36,6 @@ import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentAllocationRepository;
 import com.backend.water_management_system.repository.PaymentRepository;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -214,20 +213,23 @@ public class PaymentService {
 
     public PaymentResult processOutstandingPayment(Payment payment, BigDecimal amount, List<Bill> bills) {
 
-        BigDecimal totalOutstanding = BigDecimal.ZERO;
+        BigDecimal totalOutstandingBalance = BigDecimal.ZERO;
 
         for (Bill bill : bills) {
             if (bill.getBalanceDue() != null) {
-                totalOutstanding = totalOutstanding.add(bill.getBalanceDue());
+                totalOutstandingBalance = totalOutstandingBalance.add(bill.getBalanceDue());
             }
         }
 
-        if (amount.compareTo(totalOutstanding) > 0) {
+        if (amount.compareTo(totalOutstandingBalance) > 0) {
             throw new InvalidPaymentException("Amount exceeds total outstanding balance");
         }
 
+        Bill monthlyBill = getLatestMonthlyBill(payment.getSubscriptionNumber());
+        BigDecimal totalOutstanding = monthlyBill.getOutstandingAtIssue();
+
         BigDecimal remaining = amount;
-        BigDecimal oldValue = totalOutstanding;
+        BigDecimal oldValue = totalOutstandingBalance;
 
         for (Bill bill : bills) {
 
@@ -413,6 +415,7 @@ public class PaymentService {
                 customer.getSubscriptionNumber(),
                 customer.getAccountHolderName(),
                 customer.getRegion().getRegionName(),
+                customer.getConnectionType(),
                 customer.getNic());
 
     }
@@ -514,15 +517,8 @@ public class PaymentService {
     }
 
     public PaymentStatus reapplyMonthlyPayment(Payment payment) {
-        List<Bill> bills = billRepository
-                .findByCustomer_SubscriptionNumberOrderByBillDateDesc(
-                        payment.getSubscriptionNumber());
-
-        if (bills.isEmpty()) {
-            throw new RuntimeException("No bills found");
-        }
-
-        Bill latest = bills.get(0);
+        
+        Bill latest = getLatestMonthlyBill(payment.getSubscriptionNumber());
 
         BigDecimal due = latest.getBalanceDue();
         if (due == null) {
@@ -560,22 +556,23 @@ public class PaymentService {
     public PaymentStatus reapplyOutstandingPayment(Payment payment) {
         BigDecimal remaining = payment.getAmount();
 
-        List<Bill> bills = billRepository
-                .findByCustomer_SubscriptionNumberOrderByBillDateAsc(
-                        payment.getSubscriptionNumber());
+        List<Bill> bills = getOutstandingBillsEntites(payment.getSubscriptionNumber());
 
-        BigDecimal totalOutstanding = BigDecimal.ZERO;
+        Bill monthlyBill = getLatestMonthlyBill(payment.getSubscriptionNumber());
+        BigDecimal totalOutstanding = monthlyBill.getOutstandingAtIssue();
+
+        BigDecimal totalOutstandingBalance = BigDecimal.ZERO;
 
         for (Bill bill : bills) {
             BigDecimal due = bill.getBalanceDue();
             if (due != null && due.compareTo(BigDecimal.ZERO) > 0) {
-                totalOutstanding = totalOutstanding.add(due);
+                totalOutstandingBalance = totalOutstandingBalance.add(due);
             }
         }
 
         boolean isFullOneShot = payment.getAmount().compareTo(totalOutstanding) == 0;
 
-        if (payment.getAmount().compareTo(totalOutstanding) > 0) {
+        if (payment.getAmount().compareTo(totalOutstandingBalance) > 0) {
             throw new InvalidPaymentException("Payment amount exceeds total outstanding balance");
         }
 
