@@ -23,7 +23,12 @@ public enum MessagePlaceholder {
     RECONNECTION_FEE("reconnection_fee_(LKR)"),
     PRADESHIYA_SABHA_ACC_NO("pradeshiya_sabha_acc_no"),
     WHATSAPP_NUMBER("whatsApp_number"),
-    ONLINE_BILL_PORTAL_LINK("online_bill_portal_link");
+    ONLINE_BILL_PORTAL_LINK("online_bill_portal_link"),
+    AMOUNT_PAID("amount_paid"),
+    PAYMENT_DATE("payment_date"),
+    PAYMENT_TIME("payment_time"),
+    PAYMENT_METHOD("payment_method"),
+    PAYMENT_ID("payment_id");
 
     private final String key;
 
