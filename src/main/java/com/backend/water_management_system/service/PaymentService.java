@@ -48,6 +48,7 @@ public class PaymentService {
     private final BillRepository billRepository;
     private final PaymentAllocationRepository paymentAllocationRepository;
 
+    // Main entry point for adding a manual payment. Handles validation, bill selection and processing
     @Transactional
     public AddPaymentResponse addPayment(AddPaymentRequest request) {
 
@@ -56,6 +57,7 @@ public class PaymentService {
         String subscriptionNumber = request.getSubscriptionNumber();
         BigDecimal amount = request.getAmount();
 
+        // Ensure customer exists
         customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException(
                         "Customer not found with subscription number: " + subscriptionNumber));
@@ -63,6 +65,7 @@ public class PaymentService {
         Bill monthlyBill = null;
         List<Bill> outstandingBills = null;
 
+        // Validate payment based on type
         if (request.getPaymentType() == PaymentType.MONTHLY) {
             monthlyBill = getLatestMonthlyBill(subscriptionNumber);
             validateMonthlyPayment(amount, monthlyBill);
@@ -75,6 +78,7 @@ public class PaymentService {
 
         PaymentResult result;
 
+        // Process payment based on type
         if (request.getPaymentType() == PaymentType.MONTHLY) {
             result = processMonthlyPayment(payment, amount, monthlyBill);
         } else if (request.getPaymentType() == PaymentType.OUTSTANDING) {
@@ -89,6 +93,7 @@ public class PaymentService {
         return buildResponse(payment, result, subscriptionNumber, request.getPaymentType(), request.getPaymentMethod());
     }
 
+    // Validates basic payment request fields.
     public void validateRequest(AddPaymentRequest request) {
         if (request.getSubscriptionNumber() == null || request.getSubscriptionNumber().isBlank()) {
             throw new InvalidPaymentException("Subscription number is required");
@@ -104,6 +109,7 @@ public class PaymentService {
         }
     }
 
+    // Creates Payment entity from request
     public Payment createPaymentEntity(AddPaymentRequest request) {
         Payment payment = new Payment();
         payment.setPaymentId(UUID.randomUUID().toString());
@@ -115,6 +121,7 @@ public class PaymentService {
         return payment;
     }
 
+    // Fetch latest unpaid monthly bill.
     public Bill getLatestMonthlyBill(String subscriptionNumber) {
         return billRepository
                 .findTopByCustomer_SubscriptionNumberAndBalanceDueGreaterThanOrderByBillDateDesc(
@@ -122,6 +129,7 @@ public class PaymentService {
                 .orElseThrow(() -> new InvalidPaymentException("No unpaid monthly bill found"));
     }
 
+    // Fetch all outstanding bills before latest bill date.
     public List<Bill> getOutstandingBillsEntites(String subscriptionNumber) {
 
         Bill latest = billRepository
@@ -167,6 +175,7 @@ public class PaymentService {
         return response;
     }
 
+    // Validate monthly payment amount
     public void validateMonthlyPayment(BigDecimal amount, Bill bill) {
 
         BigDecimal oldDue = bill.getBalanceDue() != null ? bill.getBalanceDue() : BigDecimal.ZERO;
@@ -176,12 +185,14 @@ public class PaymentService {
         }
     }
 
+    // Applies payment to monthly bill.
     public PaymentResult processMonthlyPayment(Payment payment, BigDecimal amount, Bill bill) {
 
         BigDecimal oldDue = bill.getBalanceDue() != null ? bill.getBalanceDue() : BigDecimal.ZERO;
 
         BigDecimal total = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
 
+        // Check if this is a full payment in one shot
         boolean isFull = oldDue.compareTo(total) == 0 && amount.compareTo(total) == 0;
 
         BigDecimal newDue = oldDue.subtract(amount);
@@ -196,6 +207,7 @@ public class PaymentService {
         return new PaymentResult(oldDue, newDue, isFull ? PaymentStatus.FULL : PaymentStatus.PARTIAL);
     }
 
+    // Validate outstanding payment amount
     public void validateOutstandingPayment(BigDecimal amount, List<Bill> bills) {
 
         BigDecimal totalOutstanding = BigDecimal.ZERO;
@@ -211,10 +223,12 @@ public class PaymentService {
         }
     }
 
+    // Applies payment across multiple outstanding bills.
     public PaymentResult processOutstandingPayment(Payment payment, BigDecimal amount, List<Bill> bills) {
 
         BigDecimal totalOutstandingBalance = BigDecimal.ZERO;
 
+        // // Calculate total outstanding balance
         for (Bill bill : bills) {
             if (bill.getBalanceDue() != null) {
                 totalOutstandingBalance = totalOutstandingBalance.add(bill.getBalanceDue());
@@ -226,6 +240,8 @@ public class PaymentService {
         }
 
         Bill monthlyBill = getLatestMonthlyBill(payment.getSubscriptionNumber());
+        // Outstanding balance carried forward from previous billing cycles at the time
+        // latest bill was generated
         BigDecimal totalOutstanding = monthlyBill.getOutstandingAtIssue();
 
         BigDecimal remaining = amount;
@@ -259,6 +275,7 @@ public class PaymentService {
             throw new InvalidPaymentException("Amount exceeds total outstanding balance");
         }
 
+        // Check if this is a full payment in one shot
         boolean isFull = amount.compareTo(totalOutstanding) == 0;
 
         return new PaymentResult(oldValue, BigDecimal.ZERO,
@@ -305,6 +322,7 @@ public class PaymentService {
                 billStatus);
     }
 
+    // Get payment history by subscription number
     public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistory(String subscriptionNumber, int page, int size) {
 
         if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
@@ -345,6 +363,7 @@ public class PaymentService {
                 .build();
     }
 
+    // Get current billl details for frontend.
     public CurrentBillResponse getCurrentBill(String subscriptionNumber) {
 
         customerRepository.findById(subscriptionNumber)
@@ -367,6 +386,7 @@ public class PaymentService {
                 latest.getStatus() == null ? "PENDING" : latest.getStatus());
     }
 
+    // Get outstanding bills details for frontend.
     public OutstandingBillsSummaryResponse getOutstandingBills(String subscriptionNumber) {
 
         customerRepository.findById(subscriptionNumber)
@@ -407,6 +427,7 @@ public class PaymentService {
         return new OutstandingBillsSummaryResponse(outstandingBills, totalOutstandingAmount);
     }
 
+    // Get customer details.
     public PaymentCustomerInfoResponse getPaymentCustomerInfo(String subscriptionNumber) {
         Customer customer = customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
@@ -420,6 +441,7 @@ public class PaymentService {
 
     }
 
+    // Get recently added payments(manual and bank transfer) by admin.
     public List<RecentPaymentResponse> getRecentPayments(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         List<Payment> payments = paymentRepository.findByPaymentMethodInOrderByCreatedAtDesc(
@@ -446,12 +468,15 @@ public class PaymentService {
                 .toList();
     }
 
+    // Main method to handle paymet updation.
     @Transactional
     public AddPaymentResponse updatePayment(String paymentId, BigDecimal newAmount) {
 
+        // Fetch existing payment
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
 
+        // Validate new amount
         if (newAmount == null || newAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidPaymentException("Payment amount must be greater than zero");
         }
@@ -461,16 +486,20 @@ public class PaymentService {
         BigDecimal oldBalance = BigDecimal.ZERO;
         BigDecimal newBalance = BigDecimal.ZERO;
 
+        // Step 1: Undo previous payment allocations from bills
         reversePaymentEffect(payment);
 
+        // Step 2: Update payment amount
         payment.setAmount(newAmount);
 
         PaymentStatus newStatus;
 
+        // Step 3: Re-apply payment logic based on type (MONTHLY / OUTSTANDING)
         newStatus = applyPaymentEffect(payment);
 
         payment.setStatus(newStatus);
 
+        // Save updated payment.
         paymentRepository.save(payment);
 
         AddPaymentResponse response = new AddPaymentResponse();
@@ -487,26 +516,34 @@ public class PaymentService {
         return response;
     }
 
+    // Reverses all effects of a payment. (Restores bill balances and Removes allocations)
     public void reversePaymentEffect(Payment payment) {
 
+        // Fetch all allocations linked to this payment.
         List<PaymentAllocation> allocations = paymentAllocationRepository.findByPaymentId(payment.getPaymentId());
 
         for (PaymentAllocation alloc : allocations) {
 
+            // Find affected bill
             Bill bill = billRepository.findById(alloc.getBillId())
                     .orElseThrow(() -> new RuntimeException("Bill not found"));
 
+            // Restore previous due amount
             BigDecimal currentDue = bill.getBalanceDue();
 
             bill.setBalanceDue(currentDue.add(alloc.getAmount()));
+            
+            // Reset bill status since payment is reversed
             bill.setStatus("PENDING");
 
             billRepository.save(bill);
         }
 
+        // Remove allocation records after reversal.
         paymentAllocationRepository.deleteAll(allocations);
     }
 
+    // Routes re-application logic based on payment type.
     public PaymentStatus applyPaymentEffect(Payment payment) {
         if (payment.getPaymentType() == PaymentType.MONTHLY) {
             return reapplyMonthlyPayment(payment);
@@ -516,6 +553,7 @@ public class PaymentService {
         throw new RuntimeException("Unsupported payment type");
     }
 
+    // Re-applies a MONTHLY payment after reversal.
     public PaymentStatus reapplyMonthlyPayment(Payment payment) {
         
         Bill latest = getLatestMonthlyBill(payment.getSubscriptionNumber());
@@ -540,6 +578,7 @@ public class PaymentService {
 
         latest.setStatus(latest.getBalanceDue().compareTo(BigDecimal.ZERO) == 0 ? "PAID" : "PENDING");
 
+        // Create new allocation record with same payment Id.
         PaymentAllocation allocation = new PaymentAllocation();
         allocation.setPaymentId(payment.getPaymentId());
         allocation.setBillId(latest.getBillId());
@@ -553,16 +592,20 @@ public class PaymentService {
 
     }
 
+    // Re-applies outstanding payment across multiple bills (FIFO order).
     public PaymentStatus reapplyOutstandingPayment(Payment payment) {
         BigDecimal remaining = payment.getAmount();
 
         List<Bill> bills = getOutstandingBillsEntites(payment.getSubscriptionNumber());
 
         Bill monthlyBill = getLatestMonthlyBill(payment.getSubscriptionNumber());
+        // Outstanding balance carried forward from previous billing cycles at the time
+        // latest bill was generated
         BigDecimal totalOutstanding = monthlyBill.getOutstandingAtIssue();
 
         BigDecimal totalOutstandingBalance = BigDecimal.ZERO;
 
+        // Recalculate total outstanding from bills
         for (Bill bill : bills) {
             BigDecimal due = bill.getBalanceDue();
             if (due != null && due.compareTo(BigDecimal.ZERO) > 0) {
@@ -576,6 +619,7 @@ public class PaymentService {
             throw new InvalidPaymentException("Payment amount exceeds total outstanding balance");
         }
 
+        // Distribute payment across bills (FIFO)
         for (Bill bill : bills) {
 
             if (remaining.compareTo(BigDecimal.ZERO) <= 0)
@@ -616,6 +660,7 @@ public class PaymentService {
         return isFullOneShot ? PaymentStatus.FULL : PaymentStatus.PARTIAL;
     }
 
+    // Deletes a payment.
     @Transactional
     public void deletePayment(String paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
