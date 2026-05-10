@@ -1,7 +1,8 @@
-package com.backend.water_management_system.repository;
+package com.backend.water_management_system.common.repository;
 
-import com.backend.water_management_system.entity.Region;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.backend.water_management_system.common.entity.Region;
 
 public interface RegionRepository extends JpaRepository<Region, String> {
 }

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.backend.water_management_system.dto.PaginationResponse;
+import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
 import com.backend.water_management_system.payments.dto.BankSlipUploadRequest;

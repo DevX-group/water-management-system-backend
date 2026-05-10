@@ -1,13 +1,14 @@
-package com.backend.water_management_system.config;
+package com.backend.water_management_system.common.config;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import com.backend.water_management_system.entity.Region;
+
 import com.backend.water_management_system.customer.repository.CustomerRepository;
-import com.backend.water_management_system.repository.RegionRepository;
-import com.backend.water_management_system.repository.RateRepository;
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
-import com.backend.water_management_system.entity.ConnectionRate;
+import com.backend.water_management_system.common.entity.ConnectionRate;
+import com.backend.water_management_system.common.entity.Region;
+import com.backend.water_management_system.common.repository.RateRepository;
+import com.backend.water_management_system.common.repository.RegionRepository;
 import com.backend.water_management_system.customer.entity.Customer;
 
 import java.math.BigDecimal;

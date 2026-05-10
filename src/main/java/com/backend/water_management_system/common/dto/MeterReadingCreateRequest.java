@@ -1,4 +1,4 @@
-package com.backend.water_management_system.dto;
+package com.backend.water_management_system.common.dto;
 import java.time.LocalDate;
 public class MeterReadingCreateRequest {
     public String meterNumber;

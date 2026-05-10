@@ -1,4 +1,4 @@
-package com.backend.water_management_system.entity;
+package com.backend.water_management_system.common.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

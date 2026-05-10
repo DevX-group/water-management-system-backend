@@ -1,7 +1,8 @@
-package com.backend.water_management_system.controller;
+package com.backend.water_management_system.common.controller;
 
-import com.backend.water_management_system.entity.ConnectionRate;
-import com.backend.water_management_system.repository.RateRepository;
+import com.backend.water_management_system.common.entity.ConnectionRate;
+import com.backend.water_management_system.common.repository.RateRepository;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
