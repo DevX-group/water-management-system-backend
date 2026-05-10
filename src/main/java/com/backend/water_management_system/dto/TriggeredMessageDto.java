@@ -1,7 +1,5 @@
 package com.backend.water_management_system.dto;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,27 +8,18 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class ScheduledMessageDto {
+public class TriggeredMessageDto {
 
     private Long id;
     private String name;
     private List<String> channels;
-    private ScheduleDto schedule;
     private String recipients;
     private TemplatesDto templates;
     private Boolean isDefault;
+    private String triggerType;
+    private Boolean active;
 
     // --- Nested DTOs ---
-
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    public static class ScheduleDto {
-        private String type;
-        private Integer dayOfMonth;
-        private LocalDate date;
-        private LocalTime time;
-    }
 
     @NoArgsConstructor
     @Getter
