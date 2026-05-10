@@ -1,4 +1,4 @@
-package com.backend.water_management_system.common.entity;
+package com.backend.water_management_system.meter_reading.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;

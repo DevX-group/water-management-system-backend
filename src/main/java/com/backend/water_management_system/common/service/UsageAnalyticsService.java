@@ -2,8 +2,8 @@ package com.backend.water_management_system.common.service;
 import com.backend.water_management_system.common.dto.UsageAnalyticsResponse;
 import com.backend.water_management_system.common.dto.UsageAnalyticsResponse.CategoryDataPoint;
 import com.backend.water_management_system.common.dto.UsageAnalyticsResponse.MonthlyDataPoint;
-import com.backend.water_management_system.common.entity.MeterReading;
-import com.backend.water_management_system.common.repository.MeterReadingRepository;
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.backend.water_management_system.meter_reading.repository.MeterReadingRepository;
 
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
