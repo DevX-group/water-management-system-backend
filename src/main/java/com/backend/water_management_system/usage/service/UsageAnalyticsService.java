@@ -1,7 +1,7 @@
-package com.backend.water_management_system.common.service;
-import com.backend.water_management_system.common.dto.UsageAnalyticsResponse;
-import com.backend.water_management_system.common.dto.UsageAnalyticsResponse.CategoryDataPoint;
-import com.backend.water_management_system.common.dto.UsageAnalyticsResponse.MonthlyDataPoint;
+package com.backend.water_management_system.usage.service;
+import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse;
+import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse.CategoryDataPoint;
+import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse.MonthlyDataPoint;
 import com.backend.water_management_system.meter_reading.entity.MeterReading;
 import com.backend.water_management_system.meter_reading.repository.MeterReadingRepository;
 
