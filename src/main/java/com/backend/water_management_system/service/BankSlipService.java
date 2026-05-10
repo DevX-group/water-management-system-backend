@@ -28,6 +28,7 @@ import com.backend.water_management_system.entity.PaymentStatus;
 import com.backend.water_management_system.entity.SlipStatus;
 import com.backend.water_management_system.exception.BankSlipNotFoundException;
 import com.backend.water_management_system.exception.BankSlipUploadException;
+import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 import com.backend.water_management_system.repository.BankSlipRepository;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
