@@ -1,4 +1,4 @@
-package com.backend.water_management_system.controller;
+package com.backend.water_management_system.payments.controller;
 
 import java.util.Map;
 

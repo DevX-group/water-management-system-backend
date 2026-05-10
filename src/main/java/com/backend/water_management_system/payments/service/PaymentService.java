@@ -19,9 +19,9 @@ import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryRe
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.dto.PaginationResponse;
-import com.backend.water_management_system.entity.Customer;
-import com.backend.water_management_system.exception.CustomerNotFoundException;
-import com.backend.water_management_system.exception.InvalidPaymentException;
+import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.customer.exceptions.CustomerNotFoundException;
+import com.backend.water_management_system.payments.exceptions.InvalidPaymentException;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 import com.backend.water_management_system.payments.dto.AddPaymentRequest;
 import com.backend.water_management_system.payments.dto.AddPaymentResponse;
@@ -37,7 +37,7 @@ import com.backend.water_management_system.payments.enums.PaymentStatus;
 import com.backend.water_management_system.payments.enums.PaymentType;
 import com.backend.water_management_system.payments.repository.PaymentAllocationRepository;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
-import com.backend.water_management_system.repository.CustomerRepository;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

@@ -15,9 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.dto.PaginationResponse;
-import com.backend.water_management_system.entity.Customer;
-import com.backend.water_management_system.exception.BankSlipNotFoundException;
-import com.backend.water_management_system.exception.BankSlipUploadException;
+import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.payments.exceptions.BankSlipNotFoundException;
+import com.backend.water_management_system.payments.exceptions.BankSlipUploadException;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
@@ -32,7 +32,7 @@ import com.backend.water_management_system.payments.enums.PaymentStatus;
 import com.backend.water_management_system.payments.enums.SlipStatus;
 import com.backend.water_management_system.payments.repository.BankSlipRepository;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
-import com.backend.water_management_system.repository.CustomerRepository;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

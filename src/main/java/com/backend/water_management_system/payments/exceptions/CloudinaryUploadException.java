@@ -1,4 +1,4 @@
-package com.backend.water_management_system.exception;
+package com.backend.water_management_system.payments.exceptions;
 
 public class CloudinaryUploadException extends RuntimeException {
 

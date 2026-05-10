@@ -1,7 +1,7 @@
 package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.messaging.enums.MessagePlaceholder;
 import com.backend.water_management_system.payments.entity.Payment;
 

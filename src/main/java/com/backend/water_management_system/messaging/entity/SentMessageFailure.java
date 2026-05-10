@@ -1,6 +1,6 @@
 package com.backend.water_management_system.messaging.entity;
 
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.entity.Customer;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

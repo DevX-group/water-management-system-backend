@@ -6,8 +6,8 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.backend.water_management_system.exception.CloudinaryDeleteException;
-import com.backend.water_management_system.exception.CloudinaryUploadException;
+import com.backend.water_management_system.payments.exceptions.CloudinaryDeleteException;
+import com.backend.water_management_system.payments.exceptions.CloudinaryUploadException;
 import com.backend.water_management_system.payments.dto.CloudinaryUploadResponse;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;

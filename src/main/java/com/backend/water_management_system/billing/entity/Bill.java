@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.entity.MeterReading;
 
 @Entity

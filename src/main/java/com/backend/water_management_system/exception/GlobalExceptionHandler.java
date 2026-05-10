@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.backend.water_management_system.payments.exceptions.InvalidPaymentException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidPaymentException.class)

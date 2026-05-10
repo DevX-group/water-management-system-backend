@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import com.backend.water_management_system.entity.MeterReading;
 import com.backend.water_management_system.billing.entity.Bill;
-import com.backend.water_management_system.entity.Customer;
+import com.backend.water_management_system.customer.entity.Customer;
 
 public interface BillRepository extends JpaRepository<Bill, Long> {
 
