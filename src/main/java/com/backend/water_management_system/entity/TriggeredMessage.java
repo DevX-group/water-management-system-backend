@@ -1,5 +1,7 @@
 package com.backend.water_management_system.entity;
 
+import com.backend.water_management_system.enums.TriggerType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
