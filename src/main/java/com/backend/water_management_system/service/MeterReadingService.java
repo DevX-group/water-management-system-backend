@@ -21,14 +21,17 @@ public class MeterReadingService {
     private final CustomerRepository customerRepository;
     private final BillingService billingService;
     private final BillRepository billRepository;
+    private final AlertService alertService;
     public MeterReadingService(MeterReadingRepository meterReadingRepository,
                                CustomerRepository customerRepository,
                                BillingService billingService,
-                               BillRepository billRepository) {
+                               BillRepository billRepository,
+                               AlertService alertService) {
         this.meterReadingRepository = meterReadingRepository;
         this.customerRepository = customerRepository;
         this.billingService = billingService;
         this.billRepository = billRepository;
+        this.alertService = alertService;
     }
     @Transactional
     public Bill submitReadingAndGenerateBill(MeterReadingCreateRequest req) {
@@ -55,6 +58,25 @@ public class MeterReadingService {
         reading.setNotes(req.notes);
         reading.setSubmittedBy(req.submittedBy);
         MeterReading savedReading = meterReadingRepository.save(reading);
+
+        // Check for high usage (e.g., > 100 units) and create an alert
+        if (usage > 100) {
+            alertService.createAlert(
+                "high",
+                "High Water Usage Detected",
+                "High usage detection",
+                usage + " Units"
+            );
+        } else {
+            // Normal reading alert
+            alertService.createAlert(
+                "info",
+                "Meter Reading Submitted",
+                "A normal meter reading was submitted successfully.",
+                usage + " Units"
+            );
+        }
+
         return billingService.generateBill(customer, savedReading);
     }
     public List<MeterReadingTodayResponse> getTodaysReadings() {
