@@ -1,4 +1,4 @@
-package com.backend.water_management_system.billing.dto;
+package com.backend.water_management_system.inquiry.dto;
 
 import lombok.Data;
 
