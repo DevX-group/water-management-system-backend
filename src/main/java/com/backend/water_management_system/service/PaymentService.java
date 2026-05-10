@@ -33,6 +33,7 @@ import com.backend.water_management_system.entity.PaymentStatus;
 import com.backend.water_management_system.entity.PaymentType;
 import com.backend.water_management_system.exception.CustomerNotFoundException;
 import com.backend.water_management_system.exception.InvalidPaymentException;
+import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.PaymentAllocationRepository;
