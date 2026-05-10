@@ -34,4 +34,16 @@ public class AlertService {
             alertRepository.save(alert);
         });
     }
+
+    public void createAlert(String severity, String title, String description, String usage) {
+        Alert alert = Alert.builder()
+                .severity(severity)
+                .title(title)
+                .description(description)
+                .usage(usage)
+                .time(java.time.LocalDateTime.now())
+                .dismissed(false)
+                .build();
+        alertRepository.save(alert);
+    }
 }
