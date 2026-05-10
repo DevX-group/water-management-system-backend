@@ -39,7 +39,7 @@ public class DataSeeder implements CommandLineRunner {
             meteredRate.setTaxRate(0.0); // or something
             rateRepository.save(meteredRate);
             ConnectionRate nonMeteredRate = new ConnectionRate();
-            nonMeteredRate.setConnectionType("non-metered");
+            nonMeteredRate.setConnectionType("non_metered");
             nonMeteredRate.setBaseRate(500.0);
             nonMeteredRate.setUnitRateTier1(0.0);
             nonMeteredRate.setUnitRateTier2(0.0);
@@ -67,13 +67,13 @@ public class DataSeeder implements CommandLineRunner {
             "45 Temple Street, Galle", "metered", southRegion);
         c2.setOutstandingBalance(new BigDecimal("500.00"));
         Customer c3 = new Customer("KS-7892", "Kamani Silva", "901234569V", "kamani@example.com", "0771234569",
-            "78 Main Street, Kandy", "non-metered", northRegion);
+            "78 Main Street, Kandy", "non_metered", northRegion);
         c3.setOutstandingBalance(new BigDecimal("1200.00"));
         Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", "851234570V", "ruwan@example.com", "0751234570",
             "101 Beach Road, Trincomalee", "metered", eastRegion);
         c4.setOutstandingBalance(new BigDecimal("2750.00"));
         Customer c5 = new Customer("PD-5678", "Priyantha De Silva", "931234571V", "priyantha@example.com", "0761234571",
-            "22 Forest Avenue, Kurunegala", "non-metered", westRegion);
+            "22 Forest Avenue, Kurunegala", "non_metered", westRegion);
         c5.setOutstandingBalance(new BigDecimal("0.00"));
         customerRepository.save(c1);
         customerRepository.save(c2);
