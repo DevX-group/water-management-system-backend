@@ -3,7 +3,7 @@ package com.backend.water_management_system.controller;
 import com.backend.water_management_system.dto.ScheduledMessageDto;
 import com.backend.water_management_system.dto.SentMessageFailureDto;
 import com.backend.water_management_system.dto.SentMessageHistoryDto;
-import com.backend.water_management_system.service.MessagePlaceholder;
+import com.backend.water_management_system.enums.MessagePlaceholder;
 import com.backend.water_management_system.service.ScheduledMessageService;
 import com.backend.water_management_system.service.SentMessageService;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.backend.water_management_system.service;
+package com.backend.water_management_system.enums;
 
 import java.util.List;
 import java.util.stream.Collectors;
