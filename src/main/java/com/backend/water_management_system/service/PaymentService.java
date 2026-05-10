@@ -289,7 +289,7 @@ public class PaymentService {
         }
 
         Customer customer = customerRepository.findById(subscriptionNumber)
-                .orElseThrow(() -> new RuntimeException("Customer not found: " + subscriptionNumber));
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found: " + subscriptionNumber));
 
         BigDecimal outstanding = customer.getOutstandingBalance();
         if (outstanding == null)
@@ -550,7 +550,7 @@ public class PaymentService {
         } else if (payment.getPaymentType() == PaymentType.OUTSTANDING) {
             return reapplyOutstandingPayment(payment);
         }
-        throw new RuntimeException("Unsupported payment type");
+        throw new InvalidPaymentException("Unsupported payment type");
     }
 
     // Re-applies a MONTHLY payment after reversal.
