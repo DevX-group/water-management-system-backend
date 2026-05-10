@@ -1,4 +1,4 @@
-package com.backend.water_management_system.billing.entity;
+package com.backend.water_management_system.blog.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
