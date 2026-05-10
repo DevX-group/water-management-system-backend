@@ -1,8 +1,9 @@
-package com.backend.water_management_system.service;
+package com.backend.water_management_system.billing.service;
 
-import com.backend.water_management_system.dto.BillResponse;
-import com.backend.water_management_system.entity.Bill;
-import com.backend.water_management_system.repository.BillRepository;
+import com.backend.water_management_system.billing.dto.BillResponse;
+import com.backend.water_management_system.billing.entity.Bill;
+import com.backend.water_management_system.billing.repository.BillRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;

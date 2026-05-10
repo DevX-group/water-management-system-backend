@@ -1,4 +1,4 @@
-package com.backend.water_management_system.entity;
+package com.backend.water_management_system.billing.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

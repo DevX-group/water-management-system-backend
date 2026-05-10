@@ -1,7 +1,8 @@
-package com.backend.water_management_system.service;
+package com.backend.water_management_system.alerts.service;
 
-import com.backend.water_management_system.entity.Alert;
-import com.backend.water_management_system.repository.AlertRepository;
+import com.backend.water_management_system.alerts.entity.Alert;
+import com.backend.water_management_system.alerts.repository.AlertRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

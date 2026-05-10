@@ -1,4 +1,4 @@
-package com.backend.water_management_system.dto;
+package com.backend.water_management_system.billing.dto;
 
 import java.math.BigDecimal;
 import java.util.List;

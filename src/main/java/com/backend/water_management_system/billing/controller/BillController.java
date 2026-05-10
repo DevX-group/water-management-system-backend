@@ -1,11 +1,11 @@
-package com.backend.water_management_system.controller;
+package com.backend.water_management_system.billing.controller;
 
-import com.backend.water_management_system.dto.BillResponse;
-import com.backend.water_management_system.dto.CurrentBillResponse;
-import com.backend.water_management_system.dto.OutstandingBillsSummaryResponse;
-import com.backend.water_management_system.entity.Bill;
-import com.backend.water_management_system.service.BillDocumentService;
-import com.backend.water_management_system.service.BillService;
+import com.backend.water_management_system.billing.dto.BillResponse;
+import com.backend.water_management_system.billing.dto.CurrentBillResponse;
+import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
+import com.backend.water_management_system.billing.entity.Bill;
+import com.backend.water_management_system.billing.service.BillDocumentService;
+import com.backend.water_management_system.billing.service.BillService;
 import com.backend.water_management_system.service.PaymentService;
 
 import org.springframework.http.HttpHeaders;

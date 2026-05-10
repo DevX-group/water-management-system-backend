@@ -1,12 +1,12 @@
-package com.backend.water_management_system.controller;
+package com.backend.water_management_system.billing.controller;
 
-import com.backend.water_management_system.entity.Blog;
-import com.backend.water_management_system.repository.BlogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.backend.water_management_system.service.CloudinaryService;
+import com.backend.water_management_system.billing.entity.Blog;
+import com.backend.water_management_system.billing.repository.BlogRepository;
 import com.backend.water_management_system.dto.CloudinaryUploadResponse;
 import java.util.Map;
 import java.util.HashMap;

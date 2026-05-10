@@ -7,12 +7,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.backend.water_management_system.alerts.service.AlertService;
+import com.backend.water_management_system.billing.entity.Bill;
+import com.backend.water_management_system.billing.repository.BillRepository;
+import com.backend.water_management_system.billing.service.BillingService;
 import com.backend.water_management_system.dto.MeterReadingCreateRequest;
 import com.backend.water_management_system.dto.MeterReadingTodayResponse;
-import com.backend.water_management_system.entity.Bill;
 import com.backend.water_management_system.entity.Customer;
 import com.backend.water_management_system.entity.MeterReading;
-import com.backend.water_management_system.repository.BillRepository;
 import com.backend.water_management_system.repository.CustomerRepository;
 import com.backend.water_management_system.repository.MeterReadingRepository;
 @Service
