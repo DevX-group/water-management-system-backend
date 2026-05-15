@@ -6,6 +6,9 @@ import com.backend.water_management_system.messaging.entity.SentMessage;
 import com.backend.water_management_system.messaging.repository.SentMessageRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,11 +23,14 @@ public class SentMessageService {
         return sentMessageRepository.save(sentMessage);
     }
 
-    public List<SentMessageHistoryDto> getHistory() {
-        return sentMessageRepository.findAllByOrderBySentDateDescSentTimeDescIdDesc()
-                .stream()
-                .map(this::toHistoryDto)
-                .toList();
+    public Page<SentMessageHistoryDto> getHistory(int page, int size) {
+        PageRequest pageRequest = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "sentDate", "sentTime", "id"));
+        
+                return sentMessageRepository.findAll(pageRequest)
+                .map(this::toHistoryDto);
     }
 
     private SentMessageHistoryDto toHistoryDto(SentMessage entity) {
