@@ -3,6 +3,8 @@ package com.backend.water_management_system.messaging.service;
 import com.backend.water_management_system.messaging.dto.SentMessageFailureDto;
 import com.backend.water_management_system.messaging.dto.SentMessageHistoryDto;
 import com.backend.water_management_system.messaging.entity.SentMessage;
+import com.backend.water_management_system.messaging.entity.SentMessageFailure;
+import com.backend.water_management_system.messaging.repository.SentMessageFailureRepository;
 import com.backend.water_management_system.messaging.repository.SentMessageRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import java.util.List;
 public class SentMessageService {
 
     private final SentMessageRepository sentMessageRepository;
+    private final SentMessageFailureRepository sentMessageFailureRepository;
 
     public SentMessage save(SentMessage sentMessage) {
         return sentMessageRepository.save(sentMessage);
@@ -28,8 +31,8 @@ public class SentMessageService {
                 page,
                 size,
                 Sort.by(Sort.Direction.DESC, "sentDate", "sentTime", "id"));
-        
-                return sentMessageRepository.findAll(pageRequest)
+
+        return sentMessageRepository.findAll(pageRequest)
                 .map(this::toHistoryDto);
     }
 
@@ -52,21 +55,26 @@ public class SentMessageService {
         return dto;
     }
 
-    public List<SentMessageFailureDto> getFailures(Long sentMessageId) {
-        SentMessage message = sentMessageRepository.findById(sentMessageId)
-                .orElseThrow();
+    public Page<SentMessageFailureDto> getFailures(Long sentMessageId, int page, int size) {
+        sentMessageRepository.findById(sentMessageId).orElseThrow();
 
-        return message.getFailedRecipients().stream()
-                .map(f -> {
-                    SentMessageFailureDto dto = new SentMessageFailureDto();
-                    dto.setSubscriptionNumber(f.getCustomer().getSubscriptionNumber());
-                    dto.setCustomerName(f.getCustomer().getAccountHolderName());
-                    dto.setPhoneNumber(f.getCustomer().getMobileNumber());
-                    dto.setEmail(f.getCustomer().getEmail());
-                    dto.setSmsFailed(f.isSmsFailed());
-                    dto.setEmailFailed(f.isEmailFailed());
-                    return dto;
-                })
-                .toList();
+        PageRequest pageRequest = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.ASC, "id"));
+
+        return sentMessageFailureRepository.findBySentMessageId(sentMessageId, pageRequest)
+                .map(this::toFailureDto);
+    }
+
+    private SentMessageFailureDto toFailureDto(SentMessageFailure entity) {
+        SentMessageFailureDto dto = new SentMessageFailureDto();
+        dto.setSubscriptionNumber(entity.getCustomer().getSubscriptionNumber());
+        dto.setCustomerName(entity.getCustomer().getAccountHolderName());
+        dto.setPhoneNumber(entity.getCustomer().getMobileNumber());
+        dto.setEmail(entity.getCustomer().getEmail());
+        dto.setSmsFailed(entity.isSmsFailed());
+        dto.setEmailFailed(entity.isEmailFailed());
+        return dto;
     }
 }

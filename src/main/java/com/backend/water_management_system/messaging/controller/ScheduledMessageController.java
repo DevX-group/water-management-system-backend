@@ -46,8 +46,11 @@ public class ScheduledMessageController {
     }
 
     @GetMapping("/failures/{sentMessageId}")
-    ResponseEntity<List<SentMessageFailureDto>> getFailures(@PathVariable Long sentMessageId) {
-        return ResponseEntity.ok(sentMessageService.getFailures(sentMessageId));
+    ResponseEntity<Page<SentMessageFailureDto>> getFailures(
+            @PathVariable Long sentMessageId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(sentMessageService.getFailures(sentMessageId, page, size));
     }
 
     @PostMapping
