@@ -5,9 +5,6 @@ import org.springframework.stereotype.Repository;
 
 import com.backend.water_management_system.messaging.entity.SentMessage;
 
-import java.util.List;
-
 @Repository
 public interface SentMessageRepository extends JpaRepository<SentMessage, Long> {
-    List<SentMessage> findAllByOrderBySentDateDescSentTimeDescIdDesc();
 }

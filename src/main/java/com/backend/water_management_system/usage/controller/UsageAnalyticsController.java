@@ -1,4 +1,4 @@
-package com.backend.water_management_system.common.controller;
+package com.backend.water_management_system.usage.controller;
 import java.time.LocalDate;
 
 import org.springframework.http.ResponseEntity;
@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.backend.water_management_system.common.dto.UsageAnalyticsResponse;
-import com.backend.water_management_system.common.service.UsageAnalyticsService;
+import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse;
+import com.backend.water_management_system.usage.service.UsageAnalyticsService;
 /**
  * REST endpoints for the Usage Trends analytics page.
  *

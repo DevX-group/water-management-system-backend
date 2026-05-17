@@ -8,6 +8,7 @@ import com.backend.water_management_system.messaging.service.ScheduledMessageSer
 import com.backend.water_management_system.messaging.service.SentMessageService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,8 +29,10 @@ public class ScheduledMessageController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<SentMessageHistoryDto>> getHistory() {
-        return ResponseEntity.ok(sentMessageService.getHistory());
+    public ResponseEntity<Page<SentMessageHistoryDto>> getHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(sentMessageService.getHistory(page, size));
     }
 
     @GetMapping("/placeholders")
@@ -43,8 +46,11 @@ public class ScheduledMessageController {
     }
 
     @GetMapping("/failures/{sentMessageId}")
-    ResponseEntity<List<SentMessageFailureDto>> getFailures(@PathVariable Long sentMessageId) {
-        return ResponseEntity.ok(sentMessageService.getFailures(sentMessageId));
+    ResponseEntity<Page<SentMessageFailureDto>> getFailures(
+            @PathVariable Long sentMessageId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(sentMessageService.getFailures(sentMessageId, page, size));
     }
 
     @PostMapping

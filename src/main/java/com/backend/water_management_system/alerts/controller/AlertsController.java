@@ -21,7 +21,7 @@ import com.backend.water_management_system.alerts.repository.AlertRepository;
 @RestController
 @RequestMapping("/api/alerts")
 @CrossOrigin(origins = "*") 
-public class AlertController {
+public class AlertsController {
 
     @Autowired
     private AlertRepository alertRepository;
