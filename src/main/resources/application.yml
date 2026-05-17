@@ -38,3 +38,14 @@ text-lk:
 
 server:
   port: ${PORT:8081}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiry-ms: ${JWT_EXPIRY_MS:86400000}
+
+app:
+  activation-token-expiry-hours: 72
+  super-admin:
+    nic: ${SUPER_ADMIN_NIC}
+    email: ${SUPER_ADMIN_EMAIL}
+    password: ${SUPER_ADMIN_PASSWORD}
