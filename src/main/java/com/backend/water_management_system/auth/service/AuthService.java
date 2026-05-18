@@ -10,6 +10,7 @@ import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.UserStatus;
 import com.backend.water_management_system.user.repository.ActivationTokenRepository;
 import com.backend.water_management_system.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
@@ -41,22 +43,6 @@ public class AuthService {
 
     @Value("${app.frontend-url:http://localhost:8080}")
     private String frontendUrl;
-
-    public AuthService(AuthenticationManager authenticationManager,
-                       JwtService jwtService,
-                       UserRepository userRepository,
-                       ActivationTokenRepository activationTokenRepository,
-                       PasswordEncoder passwordEncoder,
-                       MailSender mailSender) {
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-        this.userRepository = userRepository;
-        this.activationTokenRepository = activationTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
-    }
-
-    // ── Login ─────────────────────────────────────────────────────────────────
 
     public LoginResponse login(LoginRequest request) {
         // AuthenticationManager handles credential validation + account status checks
