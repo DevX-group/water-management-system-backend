@@ -12,8 +12,6 @@ import com.backend.water_management_system.user.repository.ActivationTokenReposi
 import com.backend.water_management_system.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailSender;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -33,16 +31,10 @@ public class AuthService {
     private final UserRepository userRepository;
     private final ActivationTokenRepository activationTokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final MailSender mailSender;
-
-    @Value("${spring.mail.username:}")
-    private String fromEmail;
+    private final ActivationMessageService activationMessageService;
 
     @Value("${app.activation-token-expiry-hours:72}")
     private int activationTokenExpiryHours;
-
-    @Value("${app.frontend-url:http://localhost:8080}")
-    private String frontendUrl;
 
     public LoginResponse login(LoginRequest request) {
         // AuthenticationManager handles credential validation + account status checks
@@ -81,8 +73,8 @@ public class AuthService {
                 .build();
         activationTokenRepository.save(activationToken);
 
-        // Send activation email
-        sendActivationEmail(user.getEmail(), tokenValue);
+        // Send activation message
+        activationMessageService.sendActivationEmail(user.getEmail(), tokenValue);
     }
 
     // Validates the activation token, sets the user's password, and marks the account as active.
@@ -111,26 +103,5 @@ public class AuthService {
 
         activationToken.setUsed(true);
         activationTokenRepository.save(activationToken);
-    }
-
-    // ── Email ─────────────────────────────────────────────────────────────────
-
-    private void sendActivationEmail(String toEmail, String token) {
-        String activationLink = frontendUrl + "/activate?token=" + token;
-
-        SimpleMailMessage mail = new SimpleMailMessage();
-        mail.setFrom(fromEmail);
-        mail.setTo(toEmail);
-        mail.setSubject("Activate your HydroPay account");
-        mail.setText(
-                "Welcome to HydroPay!\n\n" +
-                "Please click the link below to activate your account and set your password.\n" +
-                "This link is valid for " + activationTokenExpiryHours + " hours.\n\n" +
-                activationLink + "\n\n" +
-                "If you did not expect this email, please ignore it.\n\n" +
-                "HydroPay Water Management System"
-        );
-
-        mailSender.send(mail);
     }
 }
