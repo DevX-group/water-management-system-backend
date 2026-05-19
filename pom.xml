@@ -118,7 +118,7 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- dotenv (kept both artifact IDs to preserve all team members' configurations) -->
+		<!-- dotenv -->
 		<dependency>
 			<groupId>io.github.cdimascio</groupId>
 			<artifactId>java-dotenv</artifactId>

@@ -10,6 +10,10 @@ import com.backend.water_management_system.common.entity.Region;
 import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.common.repository.RegionRepository;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.user.entity.User;
+import com.backend.water_management_system.user.enums.Role;
+import com.backend.water_management_system.user.enums.UserStatus;
+import com.backend.water_management_system.user.repository.UserRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,12 +21,14 @@ import java.time.OffsetDateTime;
 @Component
 public class DataSeeder implements CommandLineRunner {
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final RegionRepository regionRepository;
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
-    public DataSeeder(CustomerRepository customerRepository, RegionRepository regionRepository,
+    public DataSeeder(CustomerRepository customerRepository, UserRepository userRepository, RegionRepository regionRepository,
             BillRepository billRepository, RateRepository rateRepository) {
         this.customerRepository = customerRepository;
+        this.userRepository = userRepository;
         this.regionRepository = regionRepository;
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
@@ -62,20 +68,29 @@ public class DataSeeder implements CommandLineRunner {
         regionRepository.save(southRegion);
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
-        Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", "921234567V", "hansana47@gmail.com", "0711234567",
-            "12 Lake Road, Colombo", "metered", northRegion);
+        User u1 = User.builder().nic("921234567V").email("hansana47@gmail.com").phoneNumber("0711234567").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        userRepository.save(u1);
+        Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", u1, "12 Lake Road, Colombo", "metered", northRegion);
         c1.setOutstandingBalance(new BigDecimal("0.00"));
-        Customer c2 = new Customer("SP-4589", "Hansana Malshan", "881234568V", "hanz4739@gmail.com", "0721234568",
-            "45 Temple Street, Galle", "metered", southRegion);
+
+        User u2 = User.builder().nic("881234568V").email("hanz4739@gmail.com").phoneNumber("0721234568").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        userRepository.save(u2);
+        Customer c2 = new Customer("SP-4589", "Hansana Malshan", u2, "45 Temple Street, Galle", "metered", southRegion);
         c2.setOutstandingBalance(new BigDecimal("500.00"));
-        Customer c3 = new Customer("KS-7892", "Kamani Silva", "901234569V", "kamani@example.com", "0771234569",
-            "78 Main Street, Kandy", "non_metered", northRegion);
+
+        User u3 = User.builder().nic("901234569V").email("kamani@example.com").phoneNumber("0771234569").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        userRepository.save(u3);
+        Customer c3 = new Customer("KS-7892", "Kamani Silva", u3, "78 Main Street, Kandy", "non_metered", northRegion);
         c3.setOutstandingBalance(new BigDecimal("1200.00"));
-        Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", "851234570V", "ruwan@example.com", "0751234570",
-            "101 Beach Road, Trincomalee", "metered", eastRegion);
+
+        User u4 = User.builder().nic("851234570V").email("ruwan@example.com").phoneNumber("0751234570").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        userRepository.save(u4);
+        Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", u4, "101 Beach Road, Trincomalee", "metered", eastRegion);
         c4.setOutstandingBalance(new BigDecimal("2750.00"));
-        Customer c5 = new Customer("PD-5678", "Priyantha De Silva", "931234571V", "priyantha@example.com", "0761234571",
-            "22 Forest Avenue, Kurunegala", "non_metered", westRegion);
+
+        User u5 = User.builder().nic("931234571V").email("priyantha@example.com").phoneNumber("0761234571").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        userRepository.save(u5);
+        Customer c5 = new Customer("PD-5678", "Priyantha De Silva", u5, "22 Forest Avenue, Kurunegala", "non_metered", westRegion);
         c5.setOutstandingBalance(new BigDecimal("0.00"));
         customerRepository.save(c1);
         customerRepository.save(c2);

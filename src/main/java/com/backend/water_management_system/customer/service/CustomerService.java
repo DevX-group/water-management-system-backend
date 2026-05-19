@@ -8,12 +8,31 @@ import com.backend.water_management_system.customer.dto.CustomerSearchResponse;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 
+import com.backend.water_management_system.customer.dto.CustomerRegistrationRequest;
+import com.backend.water_management_system.user.dto.UserCreateRequest;
+import com.backend.water_management_system.user.dto.UserResponse;
+import com.backend.water_management_system.user.entity.User;
+import com.backend.water_management_system.user.enums.Role;
+import com.backend.water_management_system.user.repository.UserRepository;
+import com.backend.water_management_system.user.service.UserService;
+import com.backend.water_management_system.common.entity.Region;
+import com.backend.water_management_system.common.repository.RegionRepository;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
 @Service
 public class CustomerService {
     private final CustomerRepository customerRepository;
+    private final UserService userService;
+    private final UserRepository userRepository;
+    private final RegionRepository regionRepository;
 
-    public CustomerService(CustomerRepository customerRepository) {
+    public CustomerService(CustomerRepository customerRepository, UserService userService, UserRepository userRepository, RegionRepository regionRepository) {
         this.customerRepository = customerRepository;
+        this.userService = userService;
+        this.userRepository = userRepository;
+        this.regionRepository = regionRepository;
     }
 
     public List<CustomerSearchResponse> searchCustomers(String query) {
@@ -31,5 +50,57 @@ public class CustomerService {
     public Customer getCustomerById(String subscriptionNumber)
     {
         return customerRepository.findById(subscriptionNumber).orElseThrow(() -> new RuntimeException("Customer not found by subscription number " + subscriptionNumber));
+    }
+
+    @Transactional
+    public Customer registerCustomer(CustomerRegistrationRequest request, Role requesterRole) {
+        // 1. Fetch Region
+        Region region = regionRepository.findById(request.regionCode())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid region code"));
+
+        // 2. Create Auth User (this also triggers the activation email)
+        UserCreateRequest userReq = new UserCreateRequest(
+                request.nic(),
+                request.email(),
+                Role.CUSTOMER,
+                request.phoneNumber()
+        );
+        UserResponse userRes = userService.createUser(userReq, requesterRole);
+        User user = userRepository.findById(userRes.id())
+                .orElseThrow(() -> new IllegalStateException("Failed to retrieve created user"));
+
+        // 3. Create Customer
+        String tempSubNumber = generateSubscriptionNumber(region.getRegionCode());
+        
+        Customer customer = new Customer(
+                tempSubNumber,
+                request.accountHolderName(),
+                user,
+                request.address(),
+                request.connectionType(),
+                region
+        );
+        customer.setOutstandingBalance(java.math.BigDecimal.ZERO);
+
+        return customerRepository.save(customer);
+    }
+
+    private String generateSubscriptionNumber(String regionCode) {
+        String subscriptionNumber;
+        int maxRetries = 10;
+        int attempts = 0;
+
+        do {
+            // Generate a random 8-digit number (10000000 to 99999999)
+            int randomNum = ThreadLocalRandom.current().nextInt(10000000, 100000000);
+            subscriptionNumber = String.format("%s-%08d", regionCode, randomNum);
+            attempts++;
+            
+            if (attempts > maxRetries) {
+                throw new IllegalStateException("Failed to generate unique subscription number after " + maxRetries + " attempts");
+            }
+        } while (customerRepository.existsById(subscriptionNumber));
+
+        return subscriptionNumber;
     }
 }

@@ -12,13 +12,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Authentication user entity — completely separate from the Customer business entity.
- *
- * A Customer entity may later hold a reference to a User (one-to-one),
- * but authentication data lives here only.
- *
- * passwordHash is nullable: it is null until the user completes account activation.
+/*
+  passwordHash is nullable: it is null until the user completes account activation.
  */
 @Entity
 @Table(name = "users")
@@ -44,7 +39,7 @@ public class User {
     @Column
     private String phoneNumber;
 
-    /**
+    /*
      * BCrypt-hashed password.
      * NULL until the user activates their account via the activation link.
      */

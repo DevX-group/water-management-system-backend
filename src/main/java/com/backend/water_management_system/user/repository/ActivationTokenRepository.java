@@ -13,6 +13,6 @@ public interface ActivationTokenRepository extends JpaRepository<ActivationToken
 
     Optional<ActivationToken> findByToken(String token);
 
-    /** Find the latest valid (unused) token for a given user */
+    // Find the latest valid (unused) token for a given user
     Optional<ActivationToken> findByUserAndUsedFalse(User user);
 }

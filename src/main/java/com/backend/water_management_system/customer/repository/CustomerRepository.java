@@ -21,18 +21,18 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
     Optional<Customer> findBySubscriptionNumber(String subscriptionNumber);
 
     @Query("""
-                    SELECT c.email
+                    SELECT c.user.email
                     FROM Customer c
-                    WHERE c.email IS NOT NULL
-                            AND TRIM(c.email) <> ''
+                    WHERE c.user.email IS NOT NULL
+                            AND TRIM(c.user.email) <> ''
             """)
     List<String> findAllCustomerEmails(); // finds all emails of all customers whose email field is not NULL
 
     @Query("""
                     SELECT c
                     FROM Customer c
-                    WHERE c.email IS NOT NULL
-                            AND TRIM(c.email) <> ''
+                    WHERE c.user.email IS NOT NULL
+                            AND TRIM(c.user.email) <> ''
             """)
     List<Customer> findAllCustomersWithEmail();
 }

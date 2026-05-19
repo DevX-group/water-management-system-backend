@@ -9,9 +9,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.backend.water_management_system.customer.dto.CustomerRegistrationRequest;
 import com.backend.water_management_system.customer.dto.CustomerSearchResponse;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.customer.service.CustomerService;
+import com.backend.water_management_system.security.UserPrincipal;
+import com.backend.water_management_system.user.enums.Role;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @CrossOrigin(origins = "http://localhost:8080")
 @RestController
@@ -21,6 +30,16 @@ public class CustomerController {
 
     public CustomerController(CustomerService customerService) {
         this.customerService = customerService;
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<Customer> registerCustomer(
+            @Valid @RequestBody CustomerRegistrationRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Role requesterRole = principal.getUser().getRole();
+        Customer createdCustomer = customerService.registerCustomer(request, requesterRole);
+        return ResponseEntity.status(201).body(createdCustomer);
     }
 
     @GetMapping("/search")
