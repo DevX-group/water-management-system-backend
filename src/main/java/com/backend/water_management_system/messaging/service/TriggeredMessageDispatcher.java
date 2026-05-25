@@ -33,7 +33,8 @@ public class TriggeredMessageDispatcher {
         }
 
         if (payment.getPaymentMethod() != PaymentMethod.MANUAL
-                && payment.getPaymentMethod() != PaymentMethod.BANK_TRANSFER) {
+                && payment.getPaymentMethod() != PaymentMethod.BANK_TRANSFER
+                && payment.getPaymentMethod() != PaymentMethod.ONLINE) {
             return;
         }
 

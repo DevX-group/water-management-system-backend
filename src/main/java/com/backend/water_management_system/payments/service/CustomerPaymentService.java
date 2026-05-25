@@ -32,6 +32,7 @@ import com.backend.water_management_system.payments.enums.PaymentStatus;
 import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
+import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class CustomerPaymentService {
     private final PaymentService paymentService;
     private final PayHereConfig payHereConfig;
     private final BillRepository billRepository;
+    private final TriggeredMessageDispatcher triggeredMessageDispatcher;
     private static final Logger log = LoggerFactory.getLogger(CustomerPaymentService.class);
 
     public CustomerPaymentResponse initiateCustomerPayment(CustomerAddPaymentRequest request) {
@@ -247,6 +249,12 @@ public class CustomerPaymentService {
         paymentRepository.save(payment);
 
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
+
+        try {
+            triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
+        } catch (Exception ex) {
+            log.warn("Failed to dispatch payment confirmation for {}: {}", payment.getPaymentId(), ex.getMessage());
+        }
     }
 
     // Utility method to clean and trim all parameters from PayHere notification to
