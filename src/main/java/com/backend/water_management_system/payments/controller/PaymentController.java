@@ -13,6 +13,7 @@ import com.backend.water_management_system.payments.dto.PaymentCustomerInfoRespo
 import com.backend.water_management_system.payments.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.payments.dto.RecentPaymentResponse;
 import com.backend.water_management_system.payments.dto.UpdatePaymentAmountRequest;
+import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.service.PaymentService;
 
 @CrossOrigin(origins = "http://localhost:8080")
@@ -42,9 +43,11 @@ public class PaymentController {
     public ResponseEntity<PaginationResponse<PaymentHistoryItemResponse>> getPaymentHistory(
             @PathVariable String subscriptionNumber,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) PaymentMethod paymentMethod) {
 
-        return ResponseEntity.ok(paymentService.getPaymentHistory(subscriptionNumber, page, size));
+        return ResponseEntity.ok(paymentService.getPaymentHistory(subscriptionNumber, page, size, year, paymentMethod));
     }
 
     @GetMapping("/customerInfo/{subscriptionNumber}")

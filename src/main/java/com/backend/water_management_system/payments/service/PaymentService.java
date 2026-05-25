@@ -331,7 +331,7 @@ public class PaymentService {
 
     // Get payment history by subscription number
     public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistory(String subscriptionNumber, int page,
-            int size) {
+            int size, Integer year, PaymentMethod paymentMethod) {
 
         if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
             throw new InvalidPaymentException("Subscription number is required");
@@ -347,7 +347,7 @@ public class PaymentService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         Page<Payment> payments = paymentRepository
-                .findBySubscriptionNumberAndStatusInOrderByCreatedAtDesc(subscriptionNumber, validStatuses, pageable);
+                .findBySubscriptionNumberAndFilters(subscriptionNumber, validStatuses, year, paymentMethod, pageable);
 
         List<PaymentHistoryItemResponse> content = payments.getContent()
                 .stream()

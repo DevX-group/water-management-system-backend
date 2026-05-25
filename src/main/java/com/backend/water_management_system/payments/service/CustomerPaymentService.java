@@ -29,6 +29,7 @@ import com.backend.water_management_system.payments.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.payments.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentStatus;
+import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 
@@ -380,10 +381,10 @@ public class CustomerPaymentService {
         return paymentService.getOutstandingBills(subscriptionNumber);
     }
 
-    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size) {
+    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size, Integer year, PaymentMethod paymentMethod) {
         String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
 
-        return paymentService.getPaymentHistory(subscriptionNumber, page, size);
+        return paymentService.getPaymentHistory(subscriptionNumber, page, size, year, paymentMethod);
     }
 
 }

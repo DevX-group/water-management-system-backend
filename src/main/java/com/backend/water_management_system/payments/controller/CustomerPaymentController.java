@@ -18,6 +18,7 @@ import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.payments.dto.CustomerAddPaymentRequest;
 import com.backend.water_management_system.payments.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.payments.dto.PaymentHistoryItemResponse;
+import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.service.CustomerPaymentService;
 
 import jakarta.validation.Valid;
@@ -56,9 +57,11 @@ public class CustomerPaymentController {
     @GetMapping("/history")
     public ResponseEntity<PaginationResponse<PaymentHistoryItemResponse>> getPaymentHistory(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) PaymentMethod paymentMethod) {
 
-        return ResponseEntity.ok(customerPaymentService.getPaymentHistoryForCustomer(page, size));
+        return ResponseEntity.ok(customerPaymentService.getPaymentHistoryForCustomer(page, size, year, paymentMethod));
     }
 
     @GetMapping("/current-bill")
