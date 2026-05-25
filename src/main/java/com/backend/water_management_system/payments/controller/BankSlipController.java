@@ -19,6 +19,7 @@ import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
 import com.backend.water_management_system.payments.dto.BankSlipUploadRequest;
 import com.backend.water_management_system.payments.dto.BankSlipUploadResponse;
 import com.backend.water_management_system.payments.dto.CustomerBankSlipResponse;
+import com.backend.water_management_system.payments.enums.SlipStatus;
 import com.backend.water_management_system.payments.service.BankSlipService;
 
 import jakarta.validation.Valid;
@@ -70,9 +71,11 @@ public class BankSlipController {
     @GetMapping("/my")
     public ResponseEntity<PaginationResponse<CustomerBankSlipResponse>> getMySlips(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) SlipStatus status) {
 
-        return ResponseEntity.ok(bankSlipService.getBankSlipsBySubscriptionNumber(page, size));
+        return ResponseEntity.ok(bankSlipService.getBankSlipsBySubscriptionNumber(page, size, year, status));
     }
 
     @GetMapping("/{slipId}")

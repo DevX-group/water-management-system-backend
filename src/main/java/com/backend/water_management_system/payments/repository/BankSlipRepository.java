@@ -19,6 +19,18 @@ public interface BankSlipRepository extends JpaRepository<BankSlip, Long> {
     Page<BankSlip> findBySubscriptionNumberOrderByUploadedAtDesc(String subscriptionNumber, Pageable pageable);
 
     @Query("""
+        SELECT s FROM BankSlip s
+        WHERE s.subscriptionNumber = :subscriptionNumber
+        AND (:year IS NULL OR YEAR(s.uploadedAt) = :year)
+        AND (:status IS NULL OR s.status = :status)
+    """)
+    Page<BankSlip> findBySubscriptionNumberAndFilters(
+            @Param("subscriptionNumber") String subscriptionNumber,
+            @Param("year") Integer year,
+            @Param("status") SlipStatus status,
+            Pageable pageable);
+
+    @Query("""
                 SELECT s FROM BankSlip s
                 JOIN Customer c ON s.subscriptionNumber = c.subscriptionNumber
                 WHERE s.status = 'PENDING'

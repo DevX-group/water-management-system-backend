@@ -288,16 +288,14 @@ public class BankSlipService {
                 }
         }
 
-        // Retrieves all bank slips associated with the currently authenticated
-        // customer's subscription number.
-        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size) {
+        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size, Integer year, SlipStatus status) {
 
                 String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
 
                 Pageable pageable = PageRequest.of(page, size, Sort.by("uploadedAt").descending());
 
                 Page<BankSlip> slips = bankSlipRepository
-                                .findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber, pageable);
+                                .findBySubscriptionNumberAndFilters(subscriptionNumber, year, status, pageable);
 
                 List<CustomerBankSlipResponse> content = slips.getContent()
                                 .stream()
