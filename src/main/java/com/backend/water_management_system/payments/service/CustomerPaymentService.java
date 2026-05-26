@@ -56,7 +56,7 @@ public class CustomerPaymentService {
         }
 
         BigDecimal amount = request.getAmount();
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
         validateAmount(amount, totalBalance);
