@@ -56,7 +56,7 @@ public class CustomerPaymentService {
         }
 
         BigDecimal amount = request.getAmount();
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
         validateAmount(amount, totalBalance);
@@ -377,20 +377,21 @@ public class CustomerPaymentService {
     }
 
     public CurrentBillResponse getCurrentBillForCustomer() {
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         return paymentService.getCurrentBill(subscriptionNumber);
 
     }
 
     public OutstandingBillsSummaryResponse getOutstandingBillsForCustomer() {
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         return paymentService.getOutstandingBills(subscriptionNumber);
     }
 
-    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size, Integer year, PaymentMethod paymentMethod) {
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size, Integer year,
+            PaymentMethod paymentMethod) {
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         return paymentService.getPaymentHistory(subscriptionNumber, page, size, year, paymentMethod);
     }
