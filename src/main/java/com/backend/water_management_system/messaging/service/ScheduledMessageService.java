@@ -5,13 +5,15 @@ import com.backend.water_management_system.messaging.dto.ScheduledMessageDto.*;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.ScheduledMessage;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
+import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.RecipientType;
+import com.backend.water_management_system.messaging.enums.ScheduleType;
 import com.backend.water_management_system.messaging.repository.ScheduledMessageRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -70,17 +72,22 @@ public class ScheduledMessageService {
         ScheduledMessageDto dto = new ScheduledMessageDto();
         dto.setId(e.getId());
         dto.setName(e.getName());
-        dto.setRecipients(e.getRecipients());
         dto.setIsDefault(e.isDefault());
+
+        dto.setRecipients(RecipientType.fromLabel(e.getRecipients()));
 
         // Channels: "SMS,Email" -> ["SMS", "Email"]
         if (e.getChannels() != null && !e.getChannels().isEmpty()) {
-            dto.setChannels(Arrays.asList(e.getChannels().split(",")));
+            List<MessageChannel> channels = java.util.Arrays.stream(e.getChannels().split(","))
+                    .map(MessageChannel::fromLabel)
+                    .filter(Objects::nonNull)
+                    .toList();
+            dto.setChannels(channels);
         }
 
         // Schedule
         ScheduleDto schedule = new ScheduleDto();
-        schedule.setType(e.getScheduleType());
+        schedule.setType(ScheduleType.fromLabel(e.getScheduleType()));
         schedule.setDayOfMonth(e.getScheduleDayOfMonth());
         schedule.setDate(e.getScheduleDate());
         schedule.setTime(e.getScheduleTime());
@@ -131,18 +138,21 @@ public class ScheduledMessageService {
         String oldRecipients = e.getRecipients();
 
         e.setName(dto.getName());
-        e.setRecipients(dto.getRecipients());
+        e.setRecipients(dto.getRecipients() != null ? dto.getRecipients().getLabel() : null);
         e.setDefault(dto.getIsDefault() != null && dto.getIsDefault());
 
         // Channels list -> comma-separated string
         if (dto.getChannels() != null) {
-            e.setChannels(String.join(",", dto.getChannels()));
+            e.setChannels(dto.getChannels().stream()
+                    .filter(Objects::nonNull)
+                    .map(MessageChannel::getLabel)
+                    .collect(Collectors.joining(",")));
         }
 
         // Schedule
         if (dto.getSchedule() != null) {
             ScheduleDto s = dto.getSchedule();
-            e.setScheduleType(s.getType());
+            e.setScheduleType(s.getType() != null ? s.getType().getLabel() : null);
             e.setScheduleDayOfMonth(s.getDayOfMonth());
             e.setScheduleDate(s.getDate());
             e.setScheduleTime(s.getTime());

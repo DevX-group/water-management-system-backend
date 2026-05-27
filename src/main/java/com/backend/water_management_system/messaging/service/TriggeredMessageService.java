@@ -5,10 +5,11 @@ import com.backend.water_management_system.messaging.dto.TriggeredMessageDto.*;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
 import com.backend.water_management_system.messaging.entity.TriggeredMessage;
+import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.RecipientType;
 import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.messaging.repository.TriggeredMessageRepository;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -58,13 +59,17 @@ public class TriggeredMessageService {
         TriggeredMessageDto dto = new TriggeredMessageDto();
         dto.setId(e.getId());
         dto.setName(e.getName());
-        dto.setRecipients(e.getRecipients());
+        dto.setRecipients(RecipientType.fromLabel(e.getRecipients()));
         dto.setIsDefault(e.isDefault());
         dto.setActive(e.isActive());
         dto.setTriggerType(e.getTriggerType() != null ? e.getTriggerType().name() : null);
 
         if (e.getChannels() != null && !e.getChannels().isEmpty()) {
-            dto.setChannels(Arrays.asList(e.getChannels().split(",")));
+            List<MessageChannel> channels = java.util.Arrays.stream(e.getChannels().split(","))
+                    .map(MessageChannel::fromLabel)
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+            dto.setChannels(channels);
         }
 
         TemplatesDto templates = new TemplatesDto();
@@ -105,13 +110,16 @@ public class TriggeredMessageService {
 
     private void updateEntity(TriggeredMessage e, TriggeredMessageDto dto) {
         e.setName(dto.getName());
-        e.setRecipients(dto.getRecipients());
+        e.setRecipients(dto.getRecipients() != null ? dto.getRecipients().getLabel() : null);
         e.setDefault(dto.getIsDefault() != null && dto.getIsDefault());
         e.setActive(dto.getActive() != null && dto.getActive());
         e.setTriggerType(dto.getTriggerType() != null ? TriggerType.valueOf(dto.getTriggerType()) : null);
 
         if (dto.getChannels() != null) {
-            e.setChannels(String.join(",", dto.getChannels()));
+            e.setChannels(dto.getChannels().stream()
+                    .filter(java.util.Objects::nonNull)
+                    .map(MessageChannel::getLabel)
+                    .collect(java.util.stream.Collectors.joining(",")));
         }
 
         if (dto.getTemplates() != null) {
