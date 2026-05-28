@@ -2,6 +2,9 @@ package com.backend.water_management_system.messaging.config;
 
 import com.backend.water_management_system.messaging.dto.ScheduledMessageDto;
 import com.backend.water_management_system.messaging.dto.ScheduledMessageDto.*;
+import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.RecipientType;
+import com.backend.water_management_system.messaging.enums.ScheduleType;
 import com.backend.water_management_system.messaging.service.ScheduledMessageService;
 
 import org.springframework.boot.ApplicationArguments;
@@ -46,12 +49,12 @@ public class MessagingDataSeeder implements ApplicationRunner {
     private ScheduledMessageDto buildMonthlyBillMessage() {
         ScheduledMessageDto dto = new ScheduledMessageDto();
         dto.setName("Monthly Bill Message");
-        dto.setChannels(Arrays.asList("SMS", "Email"));
+        dto.setChannels(Arrays.asList(MessageChannel.SMS, MessageChannel.EMAIL));
         dto.setIsDefault(true);
-        dto.setRecipients("All Customers");
+        dto.setRecipients(RecipientType.ALL_CUSTOMERS);
 
         ScheduleDto schedule = new ScheduleDto();
-        schedule.setType("Recurring");
+        schedule.setType(ScheduleType.RECURRING);
         schedule.setDayOfMonth(20);
         schedule.setTime(LocalTime.of(8, 0));
         dto.setSchedule(schedule);
@@ -95,12 +98,12 @@ public class MessagingDataSeeder implements ApplicationRunner {
     private ScheduledMessageDto buildOverdueAlert() {
         ScheduledMessageDto dto = new ScheduledMessageDto();
         dto.setName("Overdue Alert");
-        dto.setChannels(Arrays.asList("SMS"));
+        dto.setChannels(Arrays.asList(MessageChannel.SMS));
         dto.setIsDefault(true);
-        dto.setRecipients("Overdue Customers");
+        dto.setRecipients(RecipientType.OVERDUE_CUSTOMERS);
 
         ScheduleDto schedule = new ScheduleDto();
-        schedule.setType("Recurring");
+        schedule.setType(ScheduleType.RECURRING);
         schedule.setDayOfMonth(25);
         schedule.setTime(LocalTime.of(9, 0));
         dto.setSchedule(schedule);
@@ -109,11 +112,12 @@ public class MessagingDataSeeder implements ApplicationRunner {
         sms.setIsCustom(false);
         sms.setContent("");
         sms.setSections(Arrays.asList(
-                section("1", "Greeting","Dear {customer_name},"),
+                section("1", "Greeting", "Dear {customer_name},"),
                 section("2", "Exceeding Threshould", "Your balance exceeds the threshold of LKR {overdue_threshold}"),
-                section("3", "Disconnection Notice", "The Pradeshiya Sabha can disconnect the water line if payment is missed."),
-                section("4", "Reconnection Fee", "After disconnection, an additional charge of LKR {reconnection_fee} will be applied for reconnection.")
-                ));
+                section("3", "Disconnection Notice",
+                        "The Pradeshiya Sabha can disconnect the water line if payment is missed."),
+                section("4", "Reconnection Fee",
+                        "After disconnection, an additional charge of LKR {reconnection_fee} will be applied for reconnection.")));
 
         MessageTemplateDto email = new MessageTemplateDto();
         email.setIsCustom(false);
@@ -131,12 +135,12 @@ public class MessagingDataSeeder implements ApplicationRunner {
     private ScheduledMessageDto buildWaterCutoff() {
         ScheduledMessageDto dto = new ScheduledMessageDto();
         dto.setName("Water supply cut-off");
-        dto.setChannels(Arrays.asList("SMS"));
+        dto.setChannels(Arrays.asList(MessageChannel.SMS));
         dto.setIsDefault(true);
-        dto.setRecipients("Selected Customers");
+        dto.setRecipients(RecipientType.ALL_CUSTOMERS);
 
         ScheduleDto schedule = new ScheduleDto();
-        schedule.setType("One-Time");
+        schedule.setType(ScheduleType.ONE_TIME);
         schedule.setDate(LocalDate.parse("2026-01-15"));
         schedule.setTime(LocalTime.of(10, 0));
         dto.setSchedule(schedule);
@@ -162,12 +166,12 @@ public class MessagingDataSeeder implements ApplicationRunner {
     private ScheduledMessageDto buildCustomMessageA() {
         ScheduledMessageDto dto = new ScheduledMessageDto();
         dto.setName("Custom message A");
-        dto.setChannels(Arrays.asList("SMS"));
+        dto.setChannels(Arrays.asList(MessageChannel.SMS));
         dto.setIsDefault(false);
-        dto.setRecipients("All Customers");
+        dto.setRecipients(RecipientType.ALL_CUSTOMERS);
 
         ScheduleDto schedule = new ScheduleDto();
-        schedule.setType("One-Time");
+        schedule.setType(ScheduleType.ONE_TIME);
         schedule.setDate(LocalDate.parse("2026-02-01"));
         schedule.setTime(LocalTime.of(12, 0));
         dto.setSchedule(schedule);

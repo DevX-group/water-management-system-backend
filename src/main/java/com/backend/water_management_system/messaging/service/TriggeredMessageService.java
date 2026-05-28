@@ -5,10 +5,8 @@ import com.backend.water_management_system.messaging.dto.TriggeredMessageDto.*;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
 import com.backend.water_management_system.messaging.entity.TriggeredMessage;
-import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.messaging.repository.TriggeredMessageRepository;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,11 +59,8 @@ public class TriggeredMessageService {
         dto.setRecipients(e.getRecipients());
         dto.setIsDefault(e.isDefault());
         dto.setActive(e.isActive());
-        dto.setTriggerType(e.getTriggerType() != null ? e.getTriggerType().name() : null);
-
-        if (e.getChannels() != null && !e.getChannels().isEmpty()) {
-            dto.setChannels(Arrays.asList(e.getChannels().split(",")));
-        }
+        dto.setTriggerType(e.getTriggerType());
+        dto.setChannels(e.getChannels());
 
         TemplatesDto templates = new TemplatesDto();
         templates.setSms(toTemplateDto(e.getSmsTemplate()));
@@ -108,10 +103,10 @@ public class TriggeredMessageService {
         e.setRecipients(dto.getRecipients());
         e.setDefault(dto.getIsDefault() != null && dto.getIsDefault());
         e.setActive(dto.getActive() != null && dto.getActive());
-        e.setTriggerType(dto.getTriggerType() != null ? TriggerType.valueOf(dto.getTriggerType()) : null);
+        e.setTriggerType(dto.getTriggerType());
 
         if (dto.getChannels() != null) {
-            e.setChannels(String.join(",", dto.getChannels()));
+            e.setChannels(dto.getChannels());
         }
 
         if (dto.getTemplates() != null) {

@@ -1,10 +1,14 @@
 package com.backend.water_management_system.messaging.entity;
 
+import com.backend.water_management_system.messaging.enums.ScheduleType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,8 +20,9 @@ import lombok.Setter;
 @Setter
 public class ScheduledMessage extends Message {
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "schedule_type")
-    private String scheduleType; // "Recurring" | "One-Time"
+    private ScheduleType scheduleType;
 
     @Column(name = "schedule_day_of_month")
     private Integer scheduleDayOfMonth;
