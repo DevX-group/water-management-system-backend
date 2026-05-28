@@ -5,6 +5,8 @@ import com.backend.water_management_system.messaging.dto.ScheduledMessageDto.*;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.ScheduledMessage;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
+import com.backend.water_management_system.messaging.exceptions.MessagingNotFoundException;
+import com.backend.water_management_system.messaging.exceptions.MessagingValidationException;
 import com.backend.water_management_system.messaging.repository.ScheduledMessageRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -31,19 +33,25 @@ public class ScheduledMessageService {
     public ScheduledMessageDto getById(Long id) {
         return repository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new RuntimeException("Message not found: " + id));
+                .orElseThrow(() -> new MessagingNotFoundException("Scheduled message not found."));
     }
 
     @Transactional
     public ScheduledMessageDto create(ScheduledMessageDto dto) {
+        if (dto == null) {
+            throw new MessagingValidationException("Scheduled message payload is required.");
+        }
         ScheduledMessage entity = toEntity(dto);
         return toDto(repository.save(entity));
     }
 
     @Transactional
     public ScheduledMessageDto update(Long id, ScheduledMessageDto dto) {
+        if (dto == null) {
+            throw new MessagingValidationException("Scheduled message payload is required.");
+        }
         ScheduledMessage existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Message not found: " + id));
+                .orElseThrow(() -> new MessagingNotFoundException("Scheduled message not found."));
 
         updateEntity(existing, dto);
         return toDto(repository.save(existing));
@@ -51,6 +59,9 @@ public class ScheduledMessageService {
 
     @Transactional
     public void delete(Long id) {
+        if (!repository.existsById(id)) {
+            throw new MessagingNotFoundException("Scheduled message not found.");
+        }
         repository.deleteById(id);
     }
 

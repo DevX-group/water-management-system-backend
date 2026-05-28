@@ -5,6 +5,8 @@ import com.backend.water_management_system.messaging.dto.TriggeredMessageDto.*;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
 import com.backend.water_management_system.messaging.entity.TriggeredMessage;
+import com.backend.water_management_system.messaging.exceptions.MessagingNotFoundException;
+import com.backend.water_management_system.messaging.exceptions.MessagingValidationException;
 import com.backend.water_management_system.messaging.repository.TriggeredMessageRepository;
 
 import java.util.Collections;
@@ -29,19 +31,25 @@ public class TriggeredMessageService {
     public TriggeredMessageDto getById(Long id) {
         return repository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new RuntimeException("Message not found: " + id));
+                .orElseThrow(() -> new MessagingNotFoundException("Triggered message not found."));
     }
 
     @Transactional
     public TriggeredMessageDto create(TriggeredMessageDto dto) {
+        if (dto == null) {
+            throw new MessagingValidationException("Triggered message payload is required.");
+        }
         TriggeredMessage entity = toEntity(dto);
         return toDto(repository.save(entity));
     }
 
     @Transactional
     public TriggeredMessageDto update(Long id, TriggeredMessageDto dto) {
+        if (dto == null) {
+            throw new MessagingValidationException("Triggered message payload is required.");
+        }
         TriggeredMessage existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Message not found: " + id));
+                .orElseThrow(() -> new MessagingNotFoundException("Triggered message not found."));
 
         updateEntity(existing, dto);
         return toDto(repository.save(existing));
@@ -49,6 +57,9 @@ public class TriggeredMessageService {
 
     @Transactional
     public void delete(Long id) {
+        if (!repository.existsById(id)) {
+            throw new MessagingNotFoundException("Triggered message not found.");
+        }
         repository.deleteById(id);
     }
 
