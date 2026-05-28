@@ -245,7 +245,9 @@ public class PaymentService {
         Bill monthlyBill = getLatestMonthlyBill(payment.getSubscriptionNumber());
         // Outstanding balance carried forward from previous billing cycles at the time
         // latest bill was generated
-        BigDecimal totalOutstanding = monthlyBill.getOutstandingAtIssue();
+        BigDecimal totalOutstanding = monthlyBill != null && monthlyBill.getOutstandingAtIssue() != null
+                ? monthlyBill.getOutstandingAtIssue()
+                : BigDecimal.ZERO;
 
         BigDecimal remaining = amount;
         BigDecimal oldValue = totalOutstandingBalance;
@@ -255,7 +257,9 @@ public class PaymentService {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0)
                 break;
 
-            BigDecimal due = bill.getBalanceDue();
+            BigDecimal due = bill.getBalanceDue() != null
+                    ? bill.getBalanceDue()
+                    : BigDecimal.ZERO;
             BigDecimal applied;
 
             if (remaining.compareTo(due) >= 0) {
