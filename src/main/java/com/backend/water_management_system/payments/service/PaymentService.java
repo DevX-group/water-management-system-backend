@@ -242,10 +242,6 @@ public class PaymentService {
             }
         }
 
-        if (amount.compareTo(totalOutstandingBalance) > 0) {
-            throw new InvalidPaymentException("Amount exceeds total outstanding balance");
-        }
-
         Bill monthlyBill = getLatestMonthlyBill(payment.getSubscriptionNumber());
         // Outstanding balance carried forward from previous billing cycles at the time
         // latest bill was generated
@@ -276,10 +272,6 @@ public class PaymentService {
 
             billRepository.save(bill);
             saveAllocation(payment.getPaymentId(), bill.getBillId(), applied);
-        }
-
-        if (remaining.compareTo(BigDecimal.ZERO) > 0) {
-            throw new InvalidPaymentException("Amount exceeds total outstanding balance");
         }
 
         // Check if this is a full payment in one shot
