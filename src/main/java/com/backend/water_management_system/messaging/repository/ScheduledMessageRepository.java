@@ -15,16 +15,18 @@ import java.util.List;
 public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessage, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-                SELECT sm 
-                FROM ScheduledMessage sm
-                WHERE sm.scheduleTime IS NOT NULL   
-                        AND (
-                                (LOWER(TRIM(sm.scheduleType)) IN ('one-time', 'one time', 'onetime', 'one_time')
-                                    AND COALESCE(sm.oneTimeMessageSent, false) = false)
-                                OR LOWER(TRIM(sm.scheduleType)) = 'recurring'
-                            )
-        """)
-    List<ScheduledMessage> findAllEmailSchedulableWithLock(); 
-    //selects scheduled messages whose scheduleTime is not NULL and scheduleType is (recurring or if onetime -> not sent)
-    //it doesn't check scheduleDate is not NULL because in recurring messages it is NULL
+                    SELECT sm
+                    FROM ScheduledMessage sm
+                    WHERE sm.scheduleTime IS NOT NULL
+                            AND (
+                                    (sm.scheduleType = com.backend.water_management_system.messaging.enums.ScheduleType.ONE_TIME
+                                        AND COALESCE(sm.oneTimeMessageSent, false) = false)
+                                    OR sm.scheduleType = com.backend.water_management_system.messaging.enums.ScheduleType.RECURRING
+                                )
+            """)
+    List<ScheduledMessage> findAllEmailSchedulableWithLock();
+    // selects scheduled messages whose scheduleTime is not NULL and scheduleType is
+    // (recurring or if onetime -> not sent)
+    // it doesn't check scheduleDate is not NULL because in recurring messages it is
+    // NULL
 }

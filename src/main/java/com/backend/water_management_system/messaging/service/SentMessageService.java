@@ -38,8 +38,12 @@ public class SentMessageService {
         SentMessageHistoryDto dto = new SentMessageHistoryDto();
         dto.setId(entity.getId());
         dto.setName(entity.getName());
-        dto.setChannels(entity.getChannels());
-        dto.setRecipients(entity.getRecipients());
+        dto.setChannels(entity.getChannels() != null
+                ? entity.getChannels().stream()
+                        .map(com.backend.water_management_system.messaging.enums.MessageChannel::getLabel)
+                        .collect(java.util.stream.Collectors.joining(","))
+                : "");
+        dto.setRecipients(entity.getRecipients() != null ? entity.getRecipients().getLabel() : "");
         dto.setSentDate(entity.getSentDate());
         dto.setSentTime(entity.getSentTime());
         dto.setEmailSuccessRate(entity.getEmailSuccessRate());

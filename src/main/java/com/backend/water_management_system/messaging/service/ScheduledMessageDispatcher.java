@@ -8,6 +8,8 @@ import com.backend.water_management_system.messaging.entity.ScheduledMessage;
 import com.backend.water_management_system.messaging.entity.SentMessage;
 import com.backend.water_management_system.messaging.entity.SentMessageFailure;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
+import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.ScheduleType;
 import com.backend.water_management_system.messaging.repository.ScheduledMessageRepository;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 
@@ -115,7 +117,7 @@ public class ScheduledMessageDispatcher {
                         counts.failedRecipients));
 
                 message.setLastMessageSentAt(now);
-                if (isOneTime(message)) {
+                if (message.getScheduleType() == ScheduleType.ONE_TIME) {
                     message.setOneTimeMessageSent(true);
                 }
             }
@@ -136,9 +138,9 @@ public class ScheduledMessageDispatcher {
 
         String fromAddressForMail = dispatchHelper.resolveFromAddress();
 
-        String channels = message.getChannels() != null ? message.getChannels().toLowerCase() : "";
-        boolean shouldSendSMS = channels.contains("sms");
-        boolean shouldSendEmail = channels.contains("email");
+        List<MessageChannel> channels = message.getChannels();
+        boolean shouldSendSMS = channels != null && channels.contains(MessageChannel.SMS);
+        boolean shouldSendEmail = channels != null && channels.contains(MessageChannel.EMAIL);
 
         if (shouldSendSMS && !canSendSMS) {
             log.warn("Message {} should be sent as a SMS but SMS gateway is not configured. Skipping SMS.",
@@ -222,7 +224,7 @@ public class ScheduledMessageDispatcher {
 
         // if it is one-time, return whether the current date and time is after the
         // scheduled date and time
-        if (isOneTime(message)) {
+        if (message.getScheduleType() == ScheduleType.ONE_TIME) {
             LocalDate scheduledDate = message.getScheduleDate();
             if (scheduledDate == null) {
                 return false;
@@ -233,7 +235,7 @@ public class ScheduledMessageDispatcher {
         }
 
         // if it is recurring,
-        if (isRecurring(message)) {
+        if (message.getScheduleType() == ScheduleType.RECURRING) {
             Integer dayOfMonth = message.getScheduleDayOfMonth();
 
             // if scheduled day of month is not set, return false
@@ -270,25 +272,6 @@ public class ScheduledMessageDispatcher {
         }
 
         return false;
-    }
-
-    private boolean isOneTime(ScheduledMessage message) {
-        String scheduleType = normalizeScheduleType(message.getScheduleType());
-        return "one-time".equals(scheduleType)
-                || "one time".equals(scheduleType)
-                || "onetime".equals(scheduleType)
-                || "one_time".equals(scheduleType);
-    }
-
-    private boolean isRecurring(ScheduledMessage message) {
-        return "recurring".equals(normalizeScheduleType(message.getScheduleType()));
-    }
-
-    private String normalizeScheduleType(String scheduleType) {
-        if (scheduleType == null) {
-            return "";
-        }
-        return scheduleType.trim().toLowerCase();
     }
 
     private SentMessage toSentMessage(ScheduledMessage scheduledMessage,

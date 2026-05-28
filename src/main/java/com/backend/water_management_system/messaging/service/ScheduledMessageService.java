@@ -5,9 +5,6 @@ import com.backend.water_management_system.messaging.dto.ScheduledMessageDto.*;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.ScheduledMessage;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
-import com.backend.water_management_system.messaging.enums.MessageChannel;
-import com.backend.water_management_system.messaging.enums.RecipientType;
-import com.backend.water_management_system.messaging.enums.ScheduleType;
 import com.backend.water_management_system.messaging.repository.ScheduledMessageRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -73,21 +70,12 @@ public class ScheduledMessageService {
         dto.setId(e.getId());
         dto.setName(e.getName());
         dto.setIsDefault(e.isDefault());
-
-        dto.setRecipients(RecipientType.fromLabel(e.getRecipients()));
-
-        // Channels: "SMS,Email" -> ["SMS", "Email"]
-        if (e.getChannels() != null && !e.getChannels().isEmpty()) {
-            List<MessageChannel> channels = java.util.Arrays.stream(e.getChannels().split(","))
-                    .map(MessageChannel::fromLabel)
-                    .filter(Objects::nonNull)
-                    .toList();
-            dto.setChannels(channels);
-        }
+        dto.setRecipients(e.getRecipients());
+        dto.setChannels(e.getChannels());
 
         // Schedule
         ScheduleDto schedule = new ScheduleDto();
-        schedule.setType(ScheduleType.fromLabel(e.getScheduleType()));
+        schedule.setType(e.getScheduleType());
         schedule.setDayOfMonth(e.getScheduleDayOfMonth());
         schedule.setDate(e.getScheduleDate());
         schedule.setTime(e.getScheduleTime());
@@ -130,29 +118,25 @@ public class ScheduledMessageService {
     }
 
     private void updateEntity(ScheduledMessage e, ScheduledMessageDto dto) {
-        String oldScheduleType = e.getScheduleType();
+        var oldScheduleType = e.getScheduleType();
         Integer oldDayOfMonth = e.getScheduleDayOfMonth();
         java.time.LocalDate oldDate = e.getScheduleDate();
         java.time.LocalTime oldTime = e.getScheduleTime();
-        String oldChannels = e.getChannels();
-        String oldRecipients = e.getRecipients();
+        List<com.backend.water_management_system.messaging.enums.MessageChannel> oldChannels = e.getChannels();
+        var oldRecipients = e.getRecipients();
 
         e.setName(dto.getName());
-        e.setRecipients(dto.getRecipients() != null ? dto.getRecipients().getLabel() : null);
+        e.setRecipients(dto.getRecipients());
         e.setDefault(dto.getIsDefault() != null && dto.getIsDefault());
 
-        // Channels list -> comma-separated string
         if (dto.getChannels() != null) {
-            e.setChannels(dto.getChannels().stream()
-                    .filter(Objects::nonNull)
-                    .map(MessageChannel::getLabel)
-                    .collect(Collectors.joining(",")));
+            e.setChannels(dto.getChannels());
         }
 
         // Schedule
         if (dto.getSchedule() != null) {
             ScheduleDto s = dto.getSchedule();
-            e.setScheduleType(s.getType() != null ? s.getType().getLabel() : null);
+            e.setScheduleType(s.getType());
             e.setScheduleDayOfMonth(s.getDayOfMonth());
             e.setScheduleDate(s.getDate());
             e.setScheduleTime(s.getTime());
