@@ -2,6 +2,7 @@ package com.backend.water_management_system.messaging.controller;
 
 import com.backend.water_management_system.messaging.dto.MessagingEnumsResponse;
 import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.MessagePlaceholder;
 import com.backend.water_management_system.messaging.enums.RecipientType;
 import com.backend.water_management_system.messaging.enums.ScheduleType;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ public class MessagingEnumsController {
         return ResponseEntity.ok(new MessagingEnumsResponse(
                 MessageChannel.labels(),
                 ScheduleType.labels(),
-                RecipientType.labels()));
+                RecipientType.labels(),
+                MessagePlaceholder.keys()));
     }
 }
