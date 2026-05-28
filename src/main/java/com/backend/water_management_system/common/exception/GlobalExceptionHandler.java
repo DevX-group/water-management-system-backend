@@ -21,16 +21,27 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MessagingNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleMessagingNotFound(MessagingNotFoundException ex) {
+    public ResponseEntity<ApiError> handleMessagingNotFound(MessagingNotFoundException ex) {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", ex.getMessage()));
+                .body(new ApiError(ex.getMessage(), "MESSAGE_NOT_FOUND", 404));
     }
 
     @ExceptionHandler(MessagingValidationException.class)
-    public ResponseEntity<Map<String, String>> handleMessagingValidation(MessagingValidationException ex) {
+    public ResponseEntity<ApiError> handleMessagingValidation(MessagingValidationException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", ex.getMessage()));
+                .body(new ApiError(ex.getMessage(), "VALIDATION_ERROR", 400));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleGeneral(Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiError(
+                        "Something went wrong. Please try again.",
+                        "INTERNAL_ERROR",
+                        500
+                ));
     }
 }
