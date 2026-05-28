@@ -288,7 +288,9 @@ public class ScheduledMessageDispatcher {
         SentMessage sentMessage = new SentMessage();
         sentMessage.setSourceScheduledMessageId(scheduledMessage.getId());
         sentMessage.setName(scheduledMessage.getName());
-        sentMessage.setChannels(scheduledMessage.getChannels());
+        sentMessage.setChannels(scheduledMessage.getChannels() != null
+                ? new ArrayList<>(scheduledMessage.getChannels())
+                : new ArrayList<>());
         sentMessage.setRecipients(scheduledMessage.getRecipients());
         sentMessage.setDefault(scheduledMessage.isDefault());
         sentMessage.setSmsTemplate(copyTemplate(scheduledMessage.getSmsTemplate()));
