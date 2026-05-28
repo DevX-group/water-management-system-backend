@@ -4,6 +4,7 @@ import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.messaging.entity.TriggeredMessage;
+import com.backend.water_management_system.messaging.enums.MessageChannel;
 import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.messaging.repository.TriggeredMessageRepository;
 import com.backend.water_management_system.payments.entity.Payment;
@@ -62,9 +63,9 @@ public class TriggeredMessageDispatcher {
         Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
 
         for (TriggeredMessage message : messages) {
-            String channels = message.getChannels() != null ? message.getChannels().toLowerCase() : "";
-            boolean shouldSendSMS = channels.contains("sms");
-            boolean shouldSendEmail = channels.contains("email");
+            List<MessageChannel> channels = message.getChannels();
+            boolean shouldSendSMS = channels != null && channels.contains(MessageChannel.SMS);
+            boolean shouldSendEmail = channels != null && channels.contains(MessageChannel.EMAIL);
 
             String subjectTemplate = dispatchHelper.buildSubject(message);
             String emailBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getEmailTemplate());
