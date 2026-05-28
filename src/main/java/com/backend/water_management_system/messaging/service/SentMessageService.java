@@ -56,7 +56,7 @@ public class SentMessageService {
 
     public Page<SentMessageFailureDto> getFailures(Long sentMessageId, int page, int size) {
         sentMessageRepository.findById(sentMessageId)
-                .orElseThrow(() -> new MessagingNotFoundException("Message history entry not found."));
+                .orElseThrow(() -> new MessagingNotFoundException("Unable to find this message history."));
 
         PageRequest pageRequest = PageRequest.of(
                 page,

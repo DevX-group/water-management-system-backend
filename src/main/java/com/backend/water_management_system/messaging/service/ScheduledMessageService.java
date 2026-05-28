@@ -5,6 +5,7 @@ import com.backend.water_management_system.messaging.dto.ScheduledMessageDto.*;
 import com.backend.water_management_system.messaging.entity.MessageTemplate;
 import com.backend.water_management_system.messaging.entity.ScheduledMessage;
 import com.backend.water_management_system.messaging.entity.TemplateSection;
+import com.backend.water_management_system.messaging.enums.MessageChannel;
 import com.backend.water_management_system.messaging.exceptions.MessagingNotFoundException;
 import com.backend.water_management_system.messaging.exceptions.MessagingValidationException;
 import com.backend.water_management_system.messaging.repository.ScheduledMessageRepository;
@@ -33,25 +34,21 @@ public class ScheduledMessageService {
     public ScheduledMessageDto getById(Long id) {
         return repository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new MessagingNotFoundException("Scheduled message not found."));
+                .orElseThrow(() -> new MessagingNotFoundException("This message no longer exists."));
     }
 
     @Transactional
     public ScheduledMessageDto create(ScheduledMessageDto dto) {
-        if (dto == null) {
-            throw new MessagingValidationException("Scheduled message payload is required.");
-        }
+        validateScheduled(dto);
         ScheduledMessage entity = toEntity(dto);
         return toDto(repository.save(entity));
     }
 
     @Transactional
     public ScheduledMessageDto update(Long id, ScheduledMessageDto dto) {
-        if (dto == null) {
-            throw new MessagingValidationException("Scheduled message payload is required.");
-        }
+        validateScheduled(dto);
         ScheduledMessage existing = repository.findById(id)
-                .orElseThrow(() -> new MessagingNotFoundException("Scheduled message not found."));
+                .orElseThrow(() -> new MessagingNotFoundException("This message no longer exists."));
 
         updateEntity(existing, dto);
         return toDto(repository.save(existing));
@@ -60,9 +57,57 @@ public class ScheduledMessageService {
     @Transactional
     public void delete(Long id) {
         if (!repository.existsById(id)) {
-            throw new MessagingNotFoundException("Scheduled message not found.");
+            throw new MessagingNotFoundException("This message no longer exists.");
         }
         repository.deleteById(id);
+    }
+
+    private void validateScheduled(ScheduledMessageDto dto) {
+        if (dto == null) {
+            throw new MessagingValidationException("Please provide message details.");
+        }
+        if (dto.getName() == null || dto.getName().isBlank()) {
+            throw new MessagingValidationException("Message name is required.");
+        }
+        if (dto.getChannels() == null || dto.getChannels().isEmpty()) {
+            throw new MessagingValidationException("At least one channel must be selected.");
+        }
+        validateTemplates(dto.getTemplates(), dto.getChannels());
+    }
+
+    private void validateTemplates(TemplatesDto templates, List<MessageChannel> channels) {
+        if (templates == null) {
+            throw new MessagingValidationException("Please provide message content.");
+        }
+
+        if (channels.contains(MessageChannel.SMS)) {
+            if (!hasTemplateContent(templates.getSms())) {
+                throw new MessagingValidationException("Please add SMS message content.");
+            }
+        }
+
+        if (channels.contains(MessageChannel.EMAIL)) {
+            if (!hasTemplateContent(templates.getEmail())) {
+                throw new MessagingValidationException("Please add email message content.");
+            }
+        }
+    }
+
+    private boolean hasTemplateContent(MessageTemplateDto template) {
+        if (template == null) {
+            return false;
+        }
+
+        if (Boolean.TRUE.equals(template.getIsCustom())) {
+            return template.getContent() != null && !template.getContent().isBlank();
+        }
+
+        List<TemplateSectionDto> sections = template.getSections();
+        if (sections == null || sections.isEmpty()) {
+            return false;
+        }
+
+        return sections.stream().anyMatch(section -> section.getContent() != null && !section.getContent().isBlank());
     }
 
     public long count() {
