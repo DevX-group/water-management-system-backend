@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -247,14 +248,17 @@ public class CustomerPaymentService {
         }
 
         paymentRepository.save(payment);
+        Payment savedPayment = payment;
 
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
 
-        try {
-            triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
-        } catch (Exception ex) {
-            log.warn("Failed to dispatch payment confirmation for {}: {}", payment.getPaymentId(), ex.getMessage());
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                triggeredMessageDispatcher.dispatchPaymentConfirmed(savedPayment);
+            } catch (Exception ex) {
+                log.warn("Failed to dispatch payment confirmation for {}: {}", savedPayment.getPaymentId(),ex.getMessage());
+            }
+        });
     }
 
     // Utility method to clean and trim all parameters from PayHere notification to
