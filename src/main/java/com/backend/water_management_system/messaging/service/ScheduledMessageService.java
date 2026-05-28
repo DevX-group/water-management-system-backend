@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -70,13 +69,9 @@ public class ScheduledMessageService {
         ScheduledMessageDto dto = new ScheduledMessageDto();
         dto.setId(e.getId());
         dto.setName(e.getName());
-        dto.setRecipients(e.getRecipients());
         dto.setIsDefault(e.isDefault());
-
-        // Channels: "SMS,Email" -> ["SMS", "Email"]
-        if (e.getChannels() != null && !e.getChannels().isEmpty()) {
-            dto.setChannels(Arrays.asList(e.getChannels().split(",")));
-        }
+        dto.setRecipients(e.getRecipients());
+        dto.setChannels(e.getChannels());
 
         // Schedule
         ScheduleDto schedule = new ScheduleDto();
@@ -123,20 +118,19 @@ public class ScheduledMessageService {
     }
 
     private void updateEntity(ScheduledMessage e, ScheduledMessageDto dto) {
-        String oldScheduleType = e.getScheduleType();
+        var oldScheduleType = e.getScheduleType();
         Integer oldDayOfMonth = e.getScheduleDayOfMonth();
         java.time.LocalDate oldDate = e.getScheduleDate();
         java.time.LocalTime oldTime = e.getScheduleTime();
-        String oldChannels = e.getChannels();
-        String oldRecipients = e.getRecipients();
+        List<com.backend.water_management_system.messaging.enums.MessageChannel> oldChannels = e.getChannels();
+        var oldRecipients = e.getRecipients();
 
         e.setName(dto.getName());
         e.setRecipients(dto.getRecipients());
         e.setDefault(dto.getIsDefault() != null && dto.getIsDefault());
 
-        // Channels list -> comma-separated string
         if (dto.getChannels() != null) {
-            e.setChannels(String.join(",", dto.getChannels()));
+            e.setChannels(dto.getChannels());
         }
 
         // Schedule

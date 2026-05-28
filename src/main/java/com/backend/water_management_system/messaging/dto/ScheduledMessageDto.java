@@ -1,5 +1,8 @@
 package com.backend.water_management_system.messaging.dto;
 
+import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.RecipientType;
+import com.backend.water_management_system.messaging.enums.ScheduleType;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -14,9 +17,9 @@ public class ScheduledMessageDto {
 
     private Long id;
     private String name;
-    private List<String> channels;
+    private List<MessageChannel> channels;
     private ScheduleDto schedule;
-    private String recipients;
+    private RecipientType recipients;
     private TemplatesDto templates;
     private Boolean isDefault;
 
@@ -26,7 +29,7 @@ public class ScheduledMessageDto {
     @Getter
     @Setter
     public static class ScheduleDto {
-        private String type;
+        private ScheduleType type;
         private Integer dayOfMonth;
         private LocalDate date;
         private LocalTime time;

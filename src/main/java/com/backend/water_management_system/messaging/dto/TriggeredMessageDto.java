@@ -1,5 +1,8 @@
 package com.backend.water_management_system.messaging.dto;
 
+import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.RecipientType;
+import com.backend.water_management_system.messaging.enums.TriggerType;
 import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,11 +15,11 @@ public class TriggeredMessageDto {
 
     private Long id;
     private String name;
-    private List<String> channels;
-    private String recipients;
+    private List<MessageChannel> channels;
+    private RecipientType recipients;
     private TemplatesDto templates;
     private Boolean isDefault;
-    private String triggerType;
+    private TriggerType triggerType;
     private Boolean active;
 
     // --- Nested DTOs ---
