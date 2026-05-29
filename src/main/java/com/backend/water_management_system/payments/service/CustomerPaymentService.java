@@ -252,13 +252,13 @@ public class CustomerPaymentService {
 
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                triggeredMessageDispatcher.dispatchPaymentConfirmed(savedPayment);
-            } catch (Exception ex) {
-                log.warn("Failed to dispatch payment confirmation for {}: {}", savedPayment.getPaymentId(),ex.getMessage());
-            }
-        });
+        try {
+            triggeredMessageDispatcher.dispatchPaymentConfirmed(savedPayment);
+        } catch (Exception ex) {
+            log.warn("Failed to dispatch payment confirmation for {}: {}", savedPayment.getPaymentId(),
+                    ex.getMessage());
+        }
+
     }
 
     // Utility method to clean and trim all parameters from PayHere notification to
