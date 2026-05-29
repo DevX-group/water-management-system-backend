@@ -29,7 +29,7 @@ public class TriggeredMessageDispatcher {
     private final BillRepository billRepository;
     private final MessageDispatchHelper dispatchHelper;
 
-    @Async
+    //@Async
     public void dispatchPaymentConfirmed(Payment payment) {
         if (payment == null) {
             return;
