@@ -62,4 +62,21 @@ public class CustomerController {
     {
         return customerService.getCustomerById(subscriptionNumber);
     }
+
+    @org.springframework.web.bind.annotation.PutMapping("/{subscriptionNumber}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<Customer> updateCustomer(
+            @PathVariable String subscriptionNumber,
+            @Valid @RequestBody com.backend.water_management_system.customer.dto.CustomerUpdateRequest request) {
+        Customer updatedCustomer = customerService.updateCustomer(subscriptionNumber, request);
+        return ResponseEntity.ok(updatedCustomer);
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{subscriptionNumber}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<Void> deleteCustomer(@PathVariable String subscriptionNumber) {
+        customerService.deleteCustomer(subscriptionNumber);
+        return ResponseEntity.noContent().build();
+    }
 }
+

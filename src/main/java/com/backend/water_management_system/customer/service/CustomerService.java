@@ -85,6 +85,36 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
 
+    @Transactional
+    public Customer updateCustomer(String subscriptionNumber, com.backend.water_management_system.customer.dto.CustomerUpdateRequest request) {
+        Customer customer = customerRepository.findById(subscriptionNumber)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        Region region = regionRepository.findById(request.regionCode())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid region code"));
+
+        customer.setAccountHolderName(request.accountHolderName());
+        customer.setAddress(request.address());
+        customer.setConnectionType(request.connectionType());
+        customer.setRegion(region);
+
+        User user = customer.getUser();
+        user.setNic(request.nic());
+        user.setPhoneNumber(request.phoneNumber());
+        if (request.email() != null && !request.email().isEmpty()) {
+            user.setEmail(request.email());
+        }
+
+        return customerRepository.save(customer);
+    }
+
+    @Transactional
+    public void deleteCustomer(String subscriptionNumber) {
+        Customer customer = customerRepository.findById(subscriptionNumber)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        customerRepository.delete(customer);
+    }
+
     private String generateSubscriptionNumber(String regionCode) {
         String subscriptionNumber;
         int maxRetries = 10;
