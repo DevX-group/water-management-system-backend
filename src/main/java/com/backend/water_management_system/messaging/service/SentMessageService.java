@@ -4,6 +4,7 @@ import com.backend.water_management_system.messaging.dto.SentMessageFailureDto;
 import com.backend.water_management_system.messaging.dto.SentMessageHistoryDto;
 import com.backend.water_management_system.messaging.entity.SentMessage;
 import com.backend.water_management_system.messaging.entity.SentMessageFailure;
+import com.backend.water_management_system.messaging.exceptions.MessagingNotFoundException;
 import com.backend.water_management_system.messaging.repository.SentMessageFailureRepository;
 import com.backend.water_management_system.messaging.repository.SentMessageRepository;
 
@@ -54,7 +55,8 @@ public class SentMessageService {
     }
 
     public Page<SentMessageFailureDto> getFailures(Long sentMessageId, int page, int size) {
-        sentMessageRepository.findById(sentMessageId).orElseThrow();
+        sentMessageRepository.findById(sentMessageId)
+                .orElseThrow(() -> new MessagingNotFoundException("Unable to find this message history."));
 
         PageRequest pageRequest = PageRequest.of(
                 page,
