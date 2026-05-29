@@ -1,21 +1,28 @@
 package com.backend.water_management_system.billing.service;
 
-import com.backend.water_management_system.billing.entity.Bill;
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.PdfWriter;
-import org.springframework.stereotype.Service;
-
-import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 
+import javax.imageio.ImageIO;
+
+import org.springframework.stereotype.Service;
+
+import com.backend.water_management_system.billing.entity.Bill;
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
+
 @Service
 public class BillDocumentService {
 
-    public byte[] generateBillPdf(Bill bill) throws Exception {
+    public byte[] generateBillPdf(Bill bill) throws Exception {     // Generate a PDF document for the given bill using iText library
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
         PdfWriter.getInstance(document, baos);
@@ -65,7 +72,7 @@ public class BillDocumentService {
         return baos.toByteArray();
     }
 
-    public byte[] generateBillImage(Bill bill) throws IOException {
+    public byte[] generateBillImage(Bill bill) throws IOException {     
         int width = 800;
         int height = 1000;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);

@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service;
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.common.entity.ConnectionRate;
-import com.backend.water_management_system.meter_reading.entity.MeterReading;
 import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
 
 @Service
 public class BillingService {
@@ -27,7 +27,7 @@ public class BillingService {
     }
 
     public Bill generateBill(Customer customer, MeterReading reading) {
-        // 1. Get connection type (Ensure this is not null in your 'customer' table)
+        // 1. Get connection type
         final String type = (customer.getConnectionType() != null)
                 ? customer.getConnectionType()
                 : "metered";
@@ -52,7 +52,7 @@ public class BillingService {
         // Previous unpaid balance carried forward (not part of current month's bill)
         BigDecimal outstandingAtIssue = billRepository.getTotalPendingBalance(customer.getSubscriptionNumber());
 
-        // --- DEBUG LOG: Check your IntelliJ/Console logs for this line ---
+        // --- DEBUG LOG--
         System.out.println("CALCULATION: Type=" + type + " Units=" + units + " Base=" + base + " Total=" + total);
 
         // 4. Save the Bill

@@ -13,7 +13,7 @@ import lombok.Setter;
 public class InquiryMessage {
     private String msgId;
     
-    // Rename column to avoid PostgreSQL 'user' keyword error
+    
     @Column(name = "sender_role") 
     private String user; 
     

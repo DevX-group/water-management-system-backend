@@ -1,9 +1,6 @@
 package com.backend.water_management_system.usage.dto;
 import java.util.List;
-/**
- * Full response payload for the Usage Trends analytics page.
- * Maps directly to the chart data and stat cards shown in the frontend.
- */
+
 public class UsageAnalyticsResponse {
     // ── Summary stat cards ──────────────────────────────────────────────────
     public int averageUsage;   // Average monthly usage (units)

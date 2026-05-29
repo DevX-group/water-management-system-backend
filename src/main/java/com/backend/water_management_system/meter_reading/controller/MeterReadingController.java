@@ -1,15 +1,20 @@
 package com.backend.water_management_system.meter_reading.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateRequest;
 import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateResponse;
 import com.backend.water_management_system.meter_reading.dto.MeterReadingTodayResponse;
 import com.backend.water_management_system.meter_reading.service.MeterReadingService;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/meter-readings")
@@ -22,7 +27,7 @@ public class MeterReadingController {
         this.meterReadingService = meterReadingService;
     }
 
-    @PostMapping
+    @PostMapping                  // Submit a new meter reading and generate the corresponding bill
     public ResponseEntity<MeterReadingCreateResponse> submit(@RequestBody MeterReadingCreateRequest req) {
         Bill bill = meterReadingService.submitReadingAndGenerateBill(req);
 
@@ -36,7 +41,7 @@ public class MeterReadingController {
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/today")
+    @GetMapping("/today")  // Get all meter readings submitted today
     public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings() {
         return ResponseEntity.ok(meterReadingService.getTodaysReadings());
     }

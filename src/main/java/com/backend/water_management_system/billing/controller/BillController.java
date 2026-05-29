@@ -1,5 +1,16 @@
 package com.backend.water_management_system.billing.controller;
 
+import java.util.List;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.backend.water_management_system.billing.dto.BillResponse;
 import com.backend.water_management_system.billing.dto.CurrentBillResponse;
 import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
@@ -7,13 +18,6 @@ import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.service.BillDocumentService;
 import com.backend.water_management_system.billing.service.BillService;
 import com.backend.water_management_system.payments.service.PaymentService;
-
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/bills")
@@ -31,22 +35,22 @@ public class BillController {
         this.billDocumentService = billDocumentService;
     }
 
-    @GetMapping("/customer/{subscriptionNumber}")
+    @GetMapping("/customer/{subscriptionNumber}")       // Get all bills for a specific customer by subscription number
     public ResponseEntity<List<BillResponse>> getCustomerBills(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(billService.getBillsForCustomer(subscriptionNumber));
     }
 
-    @GetMapping("/current/{subscriptionNumber}")
+    @GetMapping("/current/{subscriptionNumber}")       // Get the current bill for a specific customer by subscription number
     public ResponseEntity<CurrentBillResponse> getCurrentBill(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(paymentService.getCurrentBill(subscriptionNumber));
     }
 
-    @GetMapping("/outstanding/{subscriptionNumber}")
+    @GetMapping("/outstanding/{subscriptionNumber}")      // Get a summary of outstanding bills 
     public ResponseEntity<OutstandingBillsSummaryResponse> getOutstandingBills(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(paymentService.getOutstandingBills(subscriptionNumber));
     }
 
-    @GetMapping("/{billId}/download")
+    @GetMapping("/{billId}/download")            // Download the bill as a PDF document
     public ResponseEntity<byte[]> downloadBillPdf(@PathVariable Long billId) {
         try {
             Bill bill = billService.getBillEntityById(billId);
@@ -64,7 +68,7 @@ public class BillController {
         }
     }
 
-    @GetMapping("/{billId}/image")
+    @GetMapping("/{billId}/image")          // Get the bill as an image (e.g., PNG) for display in the frontend
     public ResponseEntity<byte[]> getBillImage(@PathVariable Long billId) {
         try {
             Bill bill = billService.getBillEntityById(billId);

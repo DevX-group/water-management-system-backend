@@ -1,12 +1,12 @@
 package com.backend.water_management_system.billing.service;
 
-import com.backend.water_management_system.billing.dto.BillResponse;
-import com.backend.water_management_system.billing.entity.Bill;
-import com.backend.water_management_system.billing.repository.BillRepository;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.backend.water_management_system.billing.dto.BillResponse;
+import com.backend.water_management_system.billing.entity.Bill;
+import com.backend.water_management_system.billing.repository.BillRepository;
 
 @Service
 public class BillService {
@@ -17,14 +17,14 @@ public class BillService {
         this.billRepository = billRepository;
     }
 
-    public List<BillResponse> getBillsForCustomer(String subscriptionNumber) {
+    public List<BillResponse> getBillsForCustomer(String subscriptionNumber) {    // Retrieve all bills for a specific customer
         return billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
                 .stream()
                 .map(this::toDto)
                 .toList();
     }
 
-    public Bill getBillEntityById(Long id) {
+    public Bill getBillEntityById(Long id) {       // Retrieve a Bill entity by its ID, used for generating PDF or image 
         return billRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bill not found: " + id));
     }
