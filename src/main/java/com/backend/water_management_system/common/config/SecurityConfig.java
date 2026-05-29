@@ -59,10 +59,8 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         // Actuator health (if present)
                         .requestMatchers("/actuator/health").permitAll()
-                        // ── Everything else is permitted for now ─────────────────────────
-                        // Authorization rules (role-based access) will be added in a
-                        // separate step once the full auth flow is tested end-to-end.
-                        .anyRequest().permitAll()
+                        // Require authentication for all other endpoints
+                        .anyRequest().authenticated()
                 )
 
                 // Register JWT filter before Spring's default auth filter
