@@ -14,6 +14,7 @@ import com.backend.water_management_system.user.dto.UserResponse;
 import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.repository.UserRepository;
+import com.backend.water_management_system.user.repository.ActivationTokenRepository;
 import com.backend.water_management_system.user.service.UserService;
 import com.backend.water_management_system.common.entity.Region;
 import com.backend.water_management_system.common.repository.RegionRepository;
@@ -27,12 +28,14 @@ public class CustomerService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final RegionRepository regionRepository;
+    private final ActivationTokenRepository activationTokenRepository;
 
-    public CustomerService(CustomerRepository customerRepository, UserService userService, UserRepository userRepository, RegionRepository regionRepository) {
+    public CustomerService(CustomerRepository customerRepository, UserService userService, UserRepository userRepository, RegionRepository regionRepository, ActivationTokenRepository activationTokenRepository) {
         this.customerRepository = customerRepository;
         this.userService = userService;
         this.userRepository = userRepository;
         this.regionRepository = regionRepository;
+        this.activationTokenRepository = activationTokenRepository;
     }
 
     public List<CustomerSearchResponse> searchCustomers(String query) {
@@ -112,6 +115,7 @@ public class CustomerService {
     public void deleteCustomer(String subscriptionNumber) {
         Customer customer = customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
+        activationTokenRepository.deleteAllByUser(customer.getUser());
         customerRepository.delete(customer);
     }
 
