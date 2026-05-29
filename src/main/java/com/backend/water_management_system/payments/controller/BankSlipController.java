@@ -67,9 +67,11 @@ public class BankSlipController {
     }
 
     @DeleteMapping("/delete/{slipId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
-    public ResponseEntity<String> deleteSlip(@PathVariable Long slipId) {
-        bankSlipService.deleteBankSlip(slipId);
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    public ResponseEntity<String> deleteSlip(
+            @PathVariable Long slipId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        bankSlipService.deleteBankSlip(slipId, principal);
         return ResponseEntity.ok("Bank slip deleted successfully.");
     }
 

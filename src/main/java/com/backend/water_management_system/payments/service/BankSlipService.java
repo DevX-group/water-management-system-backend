@@ -20,6 +20,8 @@ import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
+import com.backend.water_management_system.customer.service.CustomerAccessService;
+import com.backend.water_management_system.security.UserPrincipal;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
@@ -37,6 +39,7 @@ import com.backend.water_management_system.payments.exceptions.BankSlipUploadExc
 import com.backend.water_management_system.payments.repository.BankSlipRepository;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
 
+
 @Service
 @RequiredArgsConstructor
 public class BankSlipService {
@@ -44,6 +47,7 @@ public class BankSlipService {
         private final CustomerPaymentService customerPaymentService;
         private final BankSlipRepository bankSlipRepository;
         private final CustomerRepository customerRepository;
+        private final CustomerAccessService customerAccessService;
         private final PaymentRepository paymentRepository;
         private final BillRepository billRepository;
         private final TriggeredMessageDispatcher triggeredMessageDispatcher;
@@ -194,10 +198,12 @@ public class BankSlipService {
 
         // Deletes a bank slip
         @Transactional
-        public void deleteBankSlip(Long slipId) {
+        public void deleteBankSlip(Long slipId, UserPrincipal principal) {
                 BankSlip slip = bankSlipRepository.findById(slipId)
                                 .orElseThrow(() -> new BankSlipNotFoundException(
                                                 "Bank slip not found with ID: " + slipId));
+
+                customerAccessService.enforceOwnership(principal, slip.getSubscriptionNumber());
 
                 if (slip.getStatus() != SlipStatus.PENDING) {
                         throw new IllegalStateException("Only pending bank slips can be deleted.");

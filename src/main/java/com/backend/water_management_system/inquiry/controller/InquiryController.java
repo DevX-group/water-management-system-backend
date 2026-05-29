@@ -38,8 +38,8 @@ public class InquiryController {
         return inquiryService.getAllInquiries();
     }
 
-    @PostMapping("/{id}/messages")      // Add a message to an existing inquiry
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/{id}/messages")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public Inquiry addMessage(@PathVariable String id, @RequestBody InquiryMessage message) {
         return inquiryService.addMessage(id, message);
     }

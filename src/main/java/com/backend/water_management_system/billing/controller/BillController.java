@@ -70,10 +70,16 @@ public class BillController {
         return ResponseEntity.ok(paymentService.getOutstandingBills(resolvedSubscription));
     }
 
-    @GetMapping("/{billId}/download")            // Download the bill as a PDF document
-    public ResponseEntity<byte[]> downloadBillPdf(@PathVariable Long billId) {
+    @GetMapping("/{billId}/download")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<byte[]> downloadBillPdf(
+            @PathVariable Long billId,
+            @AuthenticationPrincipal UserPrincipal principal) {
         try {
             Bill bill = billService.getBillEntityById(billId);
+            if (bill.getCustomer() != null) {
+                customerAccessService.enforceOwnership(principal, bill.getCustomer().getSubscriptionNumber());
+            }
             byte[] pdfBytes = billDocumentService.generateBillPdf(bill);
 
             HttpHeaders headers = new HttpHeaders();
@@ -88,10 +94,16 @@ public class BillController {
         }
     }
 
-    @GetMapping("/{billId}/image")          // Get the bill as an image (e.g., PNG) for display in the frontend
-    public ResponseEntity<byte[]> getBillImage(@PathVariable Long billId) {
+    @GetMapping("/{billId}/image")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<byte[]> getBillImage(
+            @PathVariable Long billId,
+            @AuthenticationPrincipal UserPrincipal principal) {
         try {
             Bill bill = billService.getBillEntityById(billId);
+            if (bill.getCustomer() != null) {
+                customerAccessService.enforceOwnership(principal, bill.getCustomer().getSubscriptionNumber());
+            }
             byte[] imageBytes = billDocumentService.generateBillImage(bill);
 
             HttpHeaders headers = new HttpHeaders();
