@@ -97,6 +97,9 @@ public class AuthService {
         }
 
         User user = activationToken.getUser();
+        if (user.getStatus() == UserStatus.INACTIVE || user.getStatus() == UserStatus.SUSPENDED) {
+            throw new IllegalStateException("This account is deactivated. Please contact support.");
+        }
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);

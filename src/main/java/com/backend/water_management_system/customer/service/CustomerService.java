@@ -13,6 +13,7 @@ import com.backend.water_management_system.user.dto.UserCreateRequest;
 import com.backend.water_management_system.user.dto.UserResponse;
 import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
+import com.backend.water_management_system.user.enums.UserStatus;
 import com.backend.water_management_system.user.repository.UserRepository;
 import com.backend.water_management_system.user.repository.ActivationTokenRepository;
 import com.backend.water_management_system.user.service.UserService;
@@ -115,8 +116,10 @@ public class CustomerService {
     public void deleteCustomer(String subscriptionNumber) {
         Customer customer = customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
-        activationTokenRepository.deleteAllByUser(customer.getUser());
-        customerRepository.delete(customer);
+        User user = customer.getUser();
+        activationTokenRepository.deleteAllByUser(user);
+        user.setStatus(UserStatus.INACTIVE);
+        userRepository.save(user);
     }
 
     private String generateSubscriptionNumber(String regionCode) {
