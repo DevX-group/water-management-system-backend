@@ -5,19 +5,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.customer.entity.Customer;
-import com.backend.water_management_system.payments.exceptions.BankSlipNotFoundException;
-import com.backend.water_management_system.payments.exceptions.BankSlipUploadException;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
@@ -30,12 +32,10 @@ import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.enums.PaymentStatus;
 import com.backend.water_management_system.payments.enums.SlipStatus;
+import com.backend.water_management_system.payments.exceptions.BankSlipNotFoundException;
+import com.backend.water_management_system.payments.exceptions.BankSlipUploadException;
 import com.backend.water_management_system.payments.repository.BankSlipRepository;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
-import com.backend.water_management_system.customer.repository.CustomerRepository;
-
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -53,9 +53,7 @@ public class BankSlipService {
         // Business logic for handling bank slip uploads, including file validation,
         // duplicate reference checks, saving to database, and notifying admins via
         // WebSocket
-        public BankSlipUploadResponse uploadSlip(BankSlipUploadRequest request) {
-
-                String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
+        public BankSlipUploadResponse uploadSlip(BankSlipUploadRequest request, String subscriptionNumber) {
 
                 BigDecimal amount = request.getAmount();
                 BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
@@ -201,12 +199,6 @@ public class BankSlipService {
                                 .orElseThrow(() -> new BankSlipNotFoundException(
                                                 "Bank slip not found with ID: " + slipId));
 
-                String currentUser = "SP-4589"; // TODO: replace with JWT auth context
-
-                if (!slip.getSubscriptionNumber().equals(currentUser)) {
-                        throw new SecurityException("You do not have permission to delete this bank slip.");
-                }
-
                 if (slip.getStatus() != SlipStatus.PENDING) {
                         throw new IllegalStateException("Only pending bank slips can be deleted.");
                 }
@@ -288,15 +280,14 @@ public class BankSlipService {
                 }
         }
 
-        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size,
-                        Integer year, SlipStatus status) {
-
-                String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
+        // Retrieves all bank slips associated with the currently authenticated
+        // customer's subscription number.
+        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size, String subscriptionNumber) {
 
                 Pageable pageable = PageRequest.of(page, size, Sort.by("uploadedAt").descending());
 
                 Page<BankSlip> slips = bankSlipRepository
-                                .findBySubscriptionNumberAndFilters(subscriptionNumber, year, status, pageable);
+                                .findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber, pageable);
 
                 List<CustomerBankSlipResponse> content = slips.getContent()
                                 .stream()

@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.AccessDeniedException;
 
 import com.backend.water_management_system.billing.dto.CurrentBillResponse;
 import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
@@ -50,15 +51,13 @@ public class CustomerPaymentService {
     private final TriggeredMessageDispatcher triggeredMessageDispatcher;
     private static final Logger log = LoggerFactory.getLogger(CustomerPaymentService.class);
 
-    public CustomerPaymentResponse initiateCustomerPayment(CustomerAddPaymentRequest request) {
+    public CustomerPaymentResponse initiateCustomerPayment(CustomerAddPaymentRequest request, String subscriptionNumber) {
 
         if (request.getPaymentMethod() == null) {
             throw new InvalidPaymentException("Payment method is required");
         }
 
         BigDecimal amount = request.getAmount();
-        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
-
         BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
         validateAmount(amount, totalBalance);
 
@@ -372,31 +371,28 @@ public class CustomerPaymentService {
     }
 
     // Returns current payment status for frontend polling after PayHere redirect
-    public String getPaymentStatus(String orderId) {
+    public String getPaymentStatus(String orderId, String subscriptionNumber) {
 
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
+        if (!payment.getSubscriptionNumber().equals(subscriptionNumber)) {
+            throw new AccessDeniedException("Forbidden");
+        }
+
         return payment.getStatus().name();
     }
 
-    public CurrentBillResponse getCurrentBillForCustomer() {
-        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
-
+    public CurrentBillResponse getCurrentBillForCustomer(String subscriptionNumber) {
         return paymentService.getCurrentBill(subscriptionNumber);
-
     }
 
-    public OutstandingBillsSummaryResponse getOutstandingBillsForCustomer() {
-        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
-
+    public OutstandingBillsSummaryResponse getOutstandingBillsForCustomer(String subscriptionNumber) {
         return paymentService.getOutstandingBills(subscriptionNumber);
     }
 
     public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size, Integer year,
-            PaymentMethod paymentMethod) {
-        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
-
+            PaymentMethod paymentMethod, String subscriptionNumber) {
         return paymentService.getPaymentHistory(subscriptionNumber, page, size, year, paymentMethod);
     }
 

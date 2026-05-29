@@ -20,6 +20,8 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
 
     Optional<Customer> findBySubscriptionNumber(String subscriptionNumber);
 
+        Optional<Customer> findByUser_Nic(String nic);
+
     @Query("""
                     SELECT c.user.email
                     FROM Customer c
