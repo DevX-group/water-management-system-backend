@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class ActivationMessageService {
 
@@ -24,10 +26,21 @@ public class ActivationMessageService {
     }
 
     public void sendActivationEmail(String toEmail, String token) {
-        String activationLink = frontendUrl + "/activate?token=" + token;
+        if (toEmail == null || toEmail.isBlank()) {
+            log.warn("Activation email skipped: missing recipient email.");
+            return;
+        }
+
+        String baseUrl = frontendUrl == null ? "" : frontendUrl.trim();
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        String activationLink = baseUrl + "/signup?token=" + token;
 
         SimpleMailMessage mail = new SimpleMailMessage();
-        mail.setFrom(fromEmail);
+        if (fromEmail != null && !fromEmail.isBlank()) {
+            mail.setFrom(fromEmail);
+        }
         mail.setTo(toEmail);
         mail.setSubject("Activate your HydroPay account");
         mail.setText(
@@ -39,7 +52,11 @@ public class ActivationMessageService {
                 "HydroPay Water Management System"
         );
 
-        mailSender.send(mail);
+        try {
+            mailSender.send(mail);
+        } catch (Exception ex) {
+            log.error("Failed to send activation email to {}", toEmail, ex);
+        }
     }
 
     // Future enhancement: public void sendActivationSms(String phoneNumber, String token) { ... }
