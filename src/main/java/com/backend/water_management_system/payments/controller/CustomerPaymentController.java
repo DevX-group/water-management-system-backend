@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.backend.water_management_system.billing.dto.CurrentBillResponse;
 import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
@@ -35,6 +36,7 @@ public class CustomerPaymentController {
     }
 
     @PostMapping("/initiate")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<CustomerPaymentResponse> initiateCustomerPayment(
             @Valid @RequestBody CustomerAddPaymentRequest request) {
         CustomerPaymentResponse response = customerPaymentService.initiateCustomerPayment(request);
@@ -49,12 +51,14 @@ public class CustomerPaymentController {
 
     // Endpoint used by frontend success page to poll latest payment status
     @GetMapping("/status/{orderId}")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<String> getPaymentStatus(@PathVariable String orderId) {
         String status = customerPaymentService.getPaymentStatus(orderId);
         return ResponseEntity.ok(status);
     }
 
     @GetMapping("/history")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<PaginationResponse<PaymentHistoryItemResponse>> getPaymentHistory(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -65,12 +69,14 @@ public class CustomerPaymentController {
     }
 
     @GetMapping("/current-bill")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<CurrentBillResponse> getCurrentBillForCustomer() {
         CurrentBillResponse response = customerPaymentService.getCurrentBillForCustomer();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/outstanding-bills")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<OutstandingBillsSummaryResponse> getOutstandingBillsForCustomer() {
         OutstandingBillsSummaryResponse response = customerPaymentService.getOutstandingBillsForCustomer();
         return ResponseEntity.ok(response);

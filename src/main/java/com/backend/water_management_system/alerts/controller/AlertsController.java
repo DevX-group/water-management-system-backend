@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.backend.water_management_system.alerts.entity.Alert;
 import com.backend.water_management_system.alerts.repository.AlertRepository;
@@ -21,6 +22,7 @@ import com.backend.water_management_system.alerts.repository.AlertRepository;
 @RestController
 @RequestMapping("/api/alerts")
 @CrossOrigin(origins = "*") 
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
 public class AlertsController {
 
     @Autowired

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,7 +23,6 @@ import com.backend.water_management_system.payments.service.PaymentService;
 @RestController
 @RequestMapping("/api/bills")
 @CrossOrigin(origins = { "http://localhost:8080"})
-
 public class BillController {
 
     private final BillService billService;
@@ -36,16 +36,19 @@ public class BillController {
     }
 
     @GetMapping("/customer/{subscriptionNumber}")       // Get all bills for a specific customer by subscription number
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<List<BillResponse>> getCustomerBills(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(billService.getBillsForCustomer(subscriptionNumber));
     }
 
     @GetMapping("/current/{subscriptionNumber}")       // Get the current bill for a specific customer by subscription number
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<CurrentBillResponse> getCurrentBill(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(paymentService.getCurrentBill(subscriptionNumber));
     }
 
     @GetMapping("/outstanding/{subscriptionNumber}")      // Get a summary of outstanding bills 
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<OutstandingBillsSummaryResponse> getOutstandingBills(@PathVariable String subscriptionNumber) {
         return ResponseEntity.ok(paymentService.getOutstandingBills(subscriptionNumber));
     }
@@ -85,4 +88,3 @@ public class BillController {
         }
     }
 }
-

@@ -15,10 +15,12 @@ import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateR
 import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateResponse;
 import com.backend.water_management_system.meter_reading.dto.MeterReadingTodayResponse;
 import com.backend.water_management_system.meter_reading.service.MeterReadingService;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/meter-readings")
 @CrossOrigin
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('METER_READER')")
 public class MeterReadingController {
 
     private final MeterReadingService meterReadingService;

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
@@ -36,18 +37,21 @@ public class BankSlipController {
     private final BankSlipService bankSlipService;
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<BankSlipUploadResponse> uploadSlip(@Valid @ModelAttribute BankSlipUploadRequest request) {
         return ResponseEntity.ok(
                 bankSlipService.uploadSlip(request));
     }
 
     @GetMapping("/pending/all")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
     public ResponseEntity<List<AdminBankSlipResponse>> getAllPendingSlips() {
         return ResponseEntity.ok(
                 bankSlipService.getAllPendingSlips());
     }
 
     @GetMapping("/pending")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
     public ResponseEntity<Page<AdminBankSlipResponse>> getPendingSlips(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -57,18 +61,21 @@ public class BankSlipController {
     }
 
     @DeleteMapping("/delete/{slipId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
     public ResponseEntity<String> deleteSlip(@PathVariable Long slipId) {
         bankSlipService.deleteBankSlip(slipId);
         return ResponseEntity.ok("Bank slip deleted successfully.");
     }
 
     @PostMapping("/review")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
     public ResponseEntity<String> processBankSlipReview(@RequestBody BankSlipActionRequest request) {
         bankSlipService.processBankSlipReview(request);
         return ResponseEntity.ok("Bank slip review processed successfully.");
     }
 
     @GetMapping("/my")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<PaginationResponse<CustomerBankSlipResponse>> getMySlips(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -79,6 +86,7 @@ public class BankSlipController {
     }
 
     @GetMapping("/{slipId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
     public ResponseEntity<AdminBankSlipResponse> getBankSlipById(@PathVariable Long slipId) {
         return ResponseEntity.ok(bankSlipService.getBankSlipById(slipId));
     }

@@ -43,18 +43,21 @@ public class CustomerController {
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<CustomerSearchResponse> searchCustomers(
             @RequestParam String query) {
         return customerService.searchCustomers(query);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<Customer> getAllCustomers() 
     {
         return customerService.getAllCustomers();
     }
 
     @GetMapping("{subscriptionNumber}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public Customer getCustomerById(@PathVariable String subscriptionNumber)
     {
         return customerService.getCustomerById(subscriptionNumber);

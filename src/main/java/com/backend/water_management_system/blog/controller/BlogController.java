@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,7 @@ public class BlogController {
     private CloudinaryService cloudinaryService;
 
     @PostMapping("/upload-image")  // Endpoint to handle image uploads for blog posts
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
         CloudinaryUploadResponse response = cloudinaryService.uploadFile(file);
         Map<String, String> result = new HashMap<>();
@@ -48,12 +50,14 @@ public class BlogController {
     }
 
     @PostMapping        // Create a new blog post with the current date
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public Blog createBlog(@RequestBody Blog blog) {
         blog.setDate(LocalDate.now());
         return blogRepository.save(blog);
     }
 
     @DeleteMapping("/{id}")         // Delete a blog post by its ID
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public void deleteBlog(@PathVariable Long id) {
         blogRepository.deleteById(id);
     }

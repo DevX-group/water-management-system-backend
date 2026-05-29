@@ -3,6 +3,7 @@ package com.backend.water_management_system.common.config;
 import com.backend.water_management_system.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -55,6 +56,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Auth endpoints are public
                         .requestMatchers("/api/auth/**").permitAll()
+                    // Public payment config
+                    .requestMatchers("/api/public/payments/**").permitAll()
+                    // PayHere notification callback
+                    .requestMatchers(HttpMethod.POST, "/api/customer/payments/notify").permitAll()
+                    // Public blog list
+                    .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
                         // WebSocket endpoint
                         .requestMatchers("/ws/**").permitAll()
                         // Actuator health (if present)

@@ -3,6 +3,7 @@ package com.backend.water_management_system.inquiry.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -26,21 +27,25 @@ public class InquiryController {
     private InquiryService inquiryService; // Use the service instead of repository
 
     @PostMapping     // Create a new inquiry
+    @PreAuthorize("hasRole('CUSTOMER')")
     public Inquiry createInquiry(@RequestBody Inquiry inquiry) {
         return inquiryService.createInquiry(inquiry);
     }
 
     @GetMapping   // Get all inquiries (for admin view)
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<Inquiry> getAllInquiries() {
         return inquiryService.getAllInquiries();
     }
 
     @PostMapping("/{id}/messages")      // Add a message to an existing inquiry
+    @PreAuthorize("hasRole('CUSTOMER')")
     public Inquiry addMessage(@PathVariable String id, @RequestBody InquiryMessage message) {
         return inquiryService.addMessage(id, message);
     }
 
     @PatchMapping("/{id}/status")     // Update the status of an inquiry   
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public Inquiry updateStatus(@PathVariable String id, @RequestParam String status) {
         return inquiryService.updateStatus(id, status);
     }
