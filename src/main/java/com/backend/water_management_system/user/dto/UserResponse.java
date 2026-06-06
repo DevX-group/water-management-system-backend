@@ -10,6 +10,7 @@ import java.util.UUID;
 public record UserResponse(
         UUID id,
         String nic,
+    String fullName,
         String email,
         Role role,
         UserStatus status,
@@ -21,6 +22,7 @@ public record UserResponse(
         return new UserResponse(
                 user.getId(),
                 user.getNic(),
+        user.getFullName(),
                 user.getEmail(),
                 user.getRole(),
                 user.getStatus(),

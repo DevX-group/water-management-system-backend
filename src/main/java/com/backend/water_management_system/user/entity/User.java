@@ -33,6 +33,9 @@ public class User {
     @Column(unique = true, nullable = false)
     private String nic;
 
+    @Column
+    private String fullName;
+
     @Column(unique = true, nullable = false)
     private String email;
 

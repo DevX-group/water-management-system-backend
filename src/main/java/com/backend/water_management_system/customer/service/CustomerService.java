@@ -65,6 +65,7 @@ public class CustomerService {
         // 2. Create Auth User (this also triggers the activation email)
         UserCreateRequest userReq = new UserCreateRequest(
                 request.nic(),
+                request.accountHolderName(),
                 request.email(),
                 Role.CUSTOMER,
                 request.phoneNumber()

@@ -3,6 +3,7 @@ package com.backend.water_management_system.user.controller;
 import com.backend.water_management_system.security.UserPrincipal;
 import com.backend.water_management_system.user.dto.UserCreateRequest;
 import com.backend.water_management_system.user.dto.UserResponse;
+import com.backend.water_management_system.user.dto.UserUpdateRequest;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.enums.UserStatus;
 import com.backend.water_management_system.user.service.UserService;
@@ -60,6 +61,21 @@ public class UserController {
         try {
             Role requesterRole = principal.getUser().getRole();
             UserResponse response = userService.updateUserStatus(id, status, requesterRole);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> updateAdmin(
+            @PathVariable UUID id,
+            @Valid @RequestBody UserUpdateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            Role requesterRole = principal.getUser().getRole();
+            UserResponse response = userService.updateAdmin(id, request, requesterRole);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
