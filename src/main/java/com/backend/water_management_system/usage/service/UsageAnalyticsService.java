@@ -1,29 +1,25 @@
 package com.backend.water_management_system.usage.service;
+import java.time.Month;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.backend.water_management_system.meter_reading.repository.MeterReadingRepository;
 import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse;
 import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse.CategoryDataPoint;
 import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse.MonthlyDataPoint;
-import com.backend.water_management_system.meter_reading.entity.MeterReading;
-import com.backend.water_management_system.meter_reading.repository.MeterReadingRepository;
 
-import org.springframework.stereotype.Service;
-import java.time.LocalDate;
-import java.time.Month;
-import java.time.format.TextStyle;
-import java.util.*;
-import java.util.stream.Collectors;
-/**
- * Aggregates MeterReading data into the shape expected by the
- * Usage Trends analytics page on the frontend.
- *
- * Two public methods are provided:
- *  - getAnalytics(year)                   → system-wide (admin view)
- *  - getAnalytics(subscriptionNumber, year) → single-customer view
- */
 @Service
 public class UsageAnalyticsService {
     // Monthly limit shown as a reference line on the Mix chart
     private static final int MONTHLY_LIMIT = 150;
-    // Pie-chart colour palette (must match frontend categoryData colours)
+    // Pie-chart colour palette 
     private static final String COLOR_DOMESTIC    = "#0ea5e9";
     private static final String COLOR_GARDEN      = "#38bdf8";
     private static final String COLOR_MAINTENANCE = "#bae6fd";
@@ -31,7 +27,7 @@ public class UsageAnalyticsService {
     public UsageAnalyticsService(MeterReadingRepository meterReadingRepository) {
         this.meterReadingRepository = meterReadingRepository;
     }
-    // ── Public API ────────────────────────────────────────────────────────────
+    
     /** System-wide analytics for the given calendar year. */
     public UsageAnalyticsResponse getAnalytics(int year) {
         List<MeterReading> readings = meterReadingRepository.findAllByYear(year);
@@ -43,21 +39,21 @@ public class UsageAnalyticsService {
                 meterReadingRepository.findByCustomerAndYear(subscriptionNumber, year);
         return buildResponse(readings);
     }
-    // ── Private helpers ───────────────────────────────────────────────────────
+     
     private UsageAnalyticsResponse buildResponse(List<MeterReading> readings) {
         UsageAnalyticsResponse response = new UsageAnalyticsResponse();
-        // ── 1. Aggregate usage per calendar month (1-12) ─────────────────────
+        
         // Sum usageUnits for every reading that falls in each month.
         Map<Integer, Integer> usageByMonth = new LinkedHashMap<>();
         for (int m = 1; m <= 12; m++) {
             usageByMonth.put(m, 0);
         }
-        for (MeterReading r : readings) {
+        for (MeterReading r : readings) {      // Guard against any null data that would break the analytics calculations
             if (r.getReadingDate() == null || r.getUsageUnits() == null) continue;
             int month = r.getReadingDate().getMonthValue();
             usageByMonth.merge(month, r.getUsageUnits(), Integer::sum);
         }
-        // ── 2. Build MonthlyDataPoint list ────────────────────────────────────
+         // ── 2. Build MonthlyDataPoint list (Bar / Mix chart) ───────────────────────
         List<MonthlyDataPoint> monthlyData = new ArrayList<>();
         for (Map.Entry<Integer, Integer> entry : usageByMonth.entrySet()) {
             String monthName = Month.of(entry.getKey())
@@ -65,6 +61,8 @@ public class UsageAnalyticsService {
             monthlyData.add(new MonthlyDataPoint(monthName, entry.getValue(), MONTHLY_LIMIT));
         }
         response.monthlyData = monthlyData;
+        
+
         // ── 3. Calculate summary statistics ──────────────────────────────────
         List<Integer> monthlyValues = new ArrayList<>(usageByMonth.values());
         int total = monthlyValues.stream().mapToInt(Integer::intValue).sum();
@@ -75,18 +73,10 @@ public class UsageAnalyticsService {
         response.peakUsage    = peak;
         response.minimumUsage = min;
         response.averageUsage = avg;
-        // ── 4. Build CategoryDataPoint list (Pie chart) ───────────────────────
-        // Category split is derived from connectionType on each reading's customer.
-        //   "metered"     → Domestic  (sky-500)
-        //   "garden"      → Garden    (sky-400)   ← future connection type
-        //   anything else → Maintenance            (sky-200)
-        //
-        // If no connectionType data is present the split falls back to the
-        // same proportions used in the frontend mock (65 / 20 / 15).
         response.categoryData = buildCategoryData(readings, total);
         return response;
     }
-    private List<CategoryDataPoint> buildCategoryData(List<MeterReading> readings, int total) {
+    private List<CategoryDataPoint> buildCategoryData(List<MeterReading> readings, int total) { // Calculate usage by category for the Pie chart
         // Use real connection-type split when readings are available
         int domesticUnits    = 0;
         int gardenUnits      = 0;
@@ -102,7 +92,7 @@ public class UsageAnalyticsService {
                 switch (type.toLowerCase()) {
                     case "garden"      -> gardenUnits      += r.getUsageUnits();
                     case "maintenance" -> maintenanceUnits += r.getUsageUnits();
-                    default            -> domesticUnits    += r.getUsageUnits(); // "metered" etc.
+                    default            -> domesticUnits    += r.getUsageUnits(); // "metered" etc
                 }
             }
         }

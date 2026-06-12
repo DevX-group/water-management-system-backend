@@ -11,17 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse;
 import com.backend.water_management_system.usage.service.UsageAnalyticsService;
-/**
- * REST endpoints for the Usage Trends analytics page.
- *
- * GET /api/analytics/usage?year=2026
- *      → System-wide monthly usage for the given year (admin view).
- *
- * GET /api/analytics/usage/{subscriptionNumber}?year=2026
- *      → Usage analytics scoped to a single customer.
- *
- * Both endpoints default to the current calendar year when 'year' is omitted.
- */
+
 @RestController
 @RequestMapping("/api/analytics")
 @CrossOrigin
@@ -30,25 +20,15 @@ public class UsageAnalyticsController {
     public UsageAnalyticsController(UsageAnalyticsService usageAnalyticsService) {
         this.usageAnalyticsService = usageAnalyticsService;
     }
-    /**
-     * System-wide usage analytics.
-     *
-     * Example:  GET /api/analytics/usage
-     *           GET /api/analytics/usage?year=2025
-     */
-    @GetMapping("/usage")
+   
+    @GetMapping("/usage")      // Get system-wide usage analytics, optionally filtered by year
     public ResponseEntity<UsageAnalyticsResponse> getSystemUsage(
             @RequestParam(required = false) Integer year) {
         int targetYear = (year != null) ? year : LocalDate.now().getYear();
         return ResponseEntity.ok(usageAnalyticsService.getAnalytics(targetYear));
     }
-    /**
-     * Per-customer usage analytics.
-     *
-     * Example:  GET /api/analytics/usage/SUB-001
-     *           GET /api/analytics/usage/SUB-001?year=2025
-     */
-    @GetMapping("/usage/{subscriptionNumber}")
+   
+    @GetMapping("/usage/{subscriptionNumber}")      // Get usage analytics for a specific customer by subscription number
     public ResponseEntity<UsageAnalyticsResponse> getCustomerUsage(
             @PathVariable String subscriptionNumber,
             @RequestParam(required = false) Integer year) {

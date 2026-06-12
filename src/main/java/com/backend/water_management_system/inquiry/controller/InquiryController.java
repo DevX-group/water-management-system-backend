@@ -25,22 +25,22 @@ public class InquiryController {
     @Autowired
     private InquiryService inquiryService; // Use the service instead of repository
 
-    @PostMapping
+    @PostMapping     // Create a new inquiry
     public Inquiry createInquiry(@RequestBody Inquiry inquiry) {
         return inquiryService.createInquiry(inquiry);
     }
 
-    @GetMapping
+    @GetMapping   // Get all inquiries (for admin view)
     public List<Inquiry> getAllInquiries() {
         return inquiryService.getAllInquiries();
     }
 
-    @PostMapping("/{id}/messages")
+    @PostMapping("/{id}/messages")      // Add a message to an existing inquiry
     public Inquiry addMessage(@PathVariable String id, @RequestBody InquiryMessage message) {
         return inquiryService.addMessage(id, message);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}/status")     // Update the status of an inquiry   
     public Inquiry updateStatus(@PathVariable String id, @RequestParam String status) {
         return inquiryService.updateStatus(id, status);
     }
