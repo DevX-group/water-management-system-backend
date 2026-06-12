@@ -63,7 +63,7 @@ import com.backend.water_management_system.payments.repository.PaymentAllocation
 import com.backend.water_management_system.payments.repository.PaymentRepository;
 
 @ExtendWith(MockitoExtension.class)
-public class PaymentServiceTest {
+class PaymentServiceTest {
 
         // Mock all dependencies found in the PaymentService constructor
         @Mock
@@ -87,7 +87,7 @@ public class PaymentServiceTest {
         private PaymentService paymentService;
 
         @Test
-        public void testLatestMonthlyBill_Success() {
+        void testLatestMonthlyBill_Success() {
                 String testSubscriptionNumber = "SUB123";
 
                 // Create a dummy Bill
@@ -111,7 +111,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testLatestMonthlyBill_ThrowsExceptionWhenNotFound() {
+        void testLatestMonthlyBill_ThrowsExceptionWhenNotFound() {
                 String testSubscriptionNumber = "SUB123";
 
                 // Teach the mock to return an empty Optional
@@ -129,7 +129,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testOutstandingBills_Success() {
+        void testOutstandingBills_Success() {
                 String testSubscriptionNumber = "SUB123";
 
                 // Create the "Outstanding Bill" dummy
@@ -152,7 +152,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testOutstandingBills_ThrowsExceptionWhenNotFound() {
+        void testOutstandingBills_ThrowsExceptionWhenNotFound() {
                 String testSubscriptionNumber = "SUB123";
 
                 when(billRepository.findOutstandingBillsExcludingLatest(testSubscriptionNumber))
@@ -166,7 +166,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateRequest_ThrowsExceptionIfSubscriptionNumberIsNull() {
+        void testValidateRequest_ThrowsExceptionIfSubscriptionNumberIsNull() {
                 AddPaymentRequest invalidRequest = new AddPaymentRequest();
                 invalidRequest.setSubscriptionNumber(null);
                 invalidRequest.setAmount(new BigDecimal("100.00"));
@@ -180,7 +180,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateRequest_ThrowsExceptionIfSubscriptionNumberIsBlank() {
+        void testValidateRequest_ThrowsExceptionIfSubscriptionNumberIsBlank() {
                 AddPaymentRequest invalidRequest = new AddPaymentRequest();
                 invalidRequest.setSubscriptionNumber("   ");
                 invalidRequest.setAmount(new BigDecimal("100.00"));
@@ -194,7 +194,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateRequest_ThrowsExceptionIfAmountIsZero() {
+        void testValidateRequest_ThrowsExceptionIfAmountIsZero() {
                 AddPaymentRequest invalidRequest = new AddPaymentRequest();
                 invalidRequest.setSubscriptionNumber("SUB123");
                 invalidRequest.setAmount(BigDecimal.ZERO);
@@ -208,7 +208,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateRequest_ThrowsExceptionIfAmountIsNegative() {
+        void testValidateRequest_ThrowsExceptionIfAmountIsNegative() {
                 AddPaymentRequest invalidRequest = new AddPaymentRequest();
                 invalidRequest.setSubscriptionNumber("SUB123");
                 invalidRequest.setAmount(new BigDecimal("-100.00"));
@@ -222,7 +222,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateRequest_ThrowsExceptionIfPaymentTypeIsNull() {
+        void testValidateRequest_ThrowsExceptionIfPaymentTypeIsNull() {
                 AddPaymentRequest invalidRequest = new AddPaymentRequest();
                 invalidRequest.setSubscriptionNumber("SUB123");
                 invalidRequest.setAmount(new BigDecimal("100.00"));
@@ -236,7 +236,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateRequest_ThrowsExceptionIfPaymentMethodIsNull() {
+        void testValidateRequest_ThrowsExceptionIfPaymentMethodIsNull() {
                 AddPaymentRequest invalidRequest = new AddPaymentRequest();
                 invalidRequest.setSubscriptionNumber("SUB123");
                 invalidRequest.setAmount(new BigDecimal("100.00"));
@@ -250,7 +250,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateRequest_Success() {
+        void testValidateRequest_Success() {
                 AddPaymentRequest validRequest = new AddPaymentRequest();
                 validRequest.setSubscriptionNumber("SUB123");
                 validRequest.setAmount(new BigDecimal("100.00"));
@@ -261,7 +261,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateMonthlyAmount_Success() {
+        void testValidateMonthlyAmount_Success() {
                 Bill bill = new Bill();
                 bill.setBalanceDue(new BigDecimal("100"));
 
@@ -270,7 +270,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateMonthlyAmount_ThrowsExceptionIfAmountIsGreaterThanBalanceDue() {
+        void testValidateMonthlyAmount_ThrowsExceptionIfAmountIsGreaterThanBalanceDue() {
                 Bill bill = new Bill();
                 bill.setBalanceDue(new BigDecimal("100"));
 
@@ -281,7 +281,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateOutstandingAmount_Success() {
+        void testValidateOutstandingAmount_Success() {
                 Bill bill1 = new Bill();
                 bill1.setBalanceDue(new BigDecimal("100"));
 
@@ -293,7 +293,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testValidateOutstandingAmount_ThrowsExceptionIfAmountIsGreaterThanTotalOutstandingAmount() {
+        void testValidateOutstandingAmount_ThrowsExceptionIfAmountIsGreaterThanTotalOutstandingAmount() {
                 Bill bill1 = new Bill();
                 bill1.setBalanceDue(new BigDecimal("100"));
 
@@ -308,7 +308,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testCreatePaymentEntity_Success() {
+        void testCreatePaymentEntity_Success() {
                 AddPaymentRequest request = new AddPaymentRequest();
                 request.setSubscriptionNumber("SUB123");
                 request.setAmount(new BigDecimal("200"));
@@ -324,7 +324,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testProcessMonthlyPayment_FullPayment() {
+        void testProcessMonthlyPayment_FullPayment() {
 
                 // Create payment
                 Payment payment = new Payment();
@@ -359,7 +359,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testProcessMonthlyPayment_PartialPayment() {
+        void testProcessMonthlyPayment_PartialPayment() {
 
                 // Create payment
                 Payment payment = new Payment();
@@ -394,7 +394,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testProcessMonthlyPayment_FullyClearsExistingPartialBill() {
+        void testProcessMonthlyPayment_FullyClearsExistingPartialBill() {
 
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
@@ -426,7 +426,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testProcessOutstandingPayment_PartialPaymentAcrossBills() {
+        void testProcessOutstandingPayment_PartialPaymentAcrossBills() {
 
                 // Create payment
                 Payment payment = new Payment();
@@ -478,7 +478,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testProcessOutstandingPayment_FullPayment() {
+        void testProcessOutstandingPayment_FullPayment() {
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
                 payment.setSubscriptionNumber("SUB123");
@@ -526,7 +526,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testProcessOutstandingPayment_FullyClearsExistingPartialBills() {
+        void testProcessOutstandingPayment_FullyClearsExistingPartialBills() {
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
                 payment.setSubscriptionNumber("SUB123");
@@ -573,7 +573,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testProcessOutstandingPayment_BreaksLoopWhenRemainingBecomesZero() {
+        void testProcessOutstandingPayment_BreaksLoopWhenRemainingBecomesZero() {
 
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
@@ -633,7 +633,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_MonthlyFullPaymentSuccess() {
+        void testAddPayment_MonthlyFullPaymentSuccess() {
 
                 // Create request
                 AddPaymentRequest request = new AddPaymentRequest();
@@ -685,7 +685,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_MonthlyPartialPaymentSuccess() {
+        void testAddPayment_MonthlyPartialPaymentSuccess() {
 
                 // Create request
                 AddPaymentRequest request = new AddPaymentRequest();
@@ -737,7 +737,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_MonthlyClearsExistingPartialBill() {
+        void testAddPayment_MonthlyClearsExistingPartialBill() {
 
                 // Create request
                 AddPaymentRequest request = new AddPaymentRequest();
@@ -782,7 +782,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_OutstandingFullPaymentSuccess() {
+        void testAddPayment_OutstandingFullPaymentSuccess() {
 
                 // Create request
                 AddPaymentRequest request = new AddPaymentRequest();
@@ -848,7 +848,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_OutstandingPartialPaymentSuccess() {
+        void testAddPayment_OutstandingPartialPaymentSuccess() {
 
                 // Create request
                 AddPaymentRequest request = new AddPaymentRequest();
@@ -914,7 +914,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_OutstandingClearsExistingPartialBills() {
+        void testAddPayment_OutstandingClearsExistingPartialBills() {
 
                 // Create request
                 AddPaymentRequest request = new AddPaymentRequest();
@@ -980,7 +980,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_ThrowsExceptionWhenCustomerNotFound() {
+        void testAddPayment_ThrowsExceptionWhenCustomerNotFound() {
 
                 // Create request
                 AddPaymentRequest request = new AddPaymentRequest();
@@ -1000,7 +1000,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_ThrowsExceptionWhenNoMonthlyBillFound() {
+        void testAddPayment_ThrowsExceptionWhenNoMonthlyBillFound() {
 
                 AddPaymentRequest request = new AddPaymentRequest();
 
@@ -1026,7 +1026,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_ThrowsExceptionWhenNoOutstandingBillsFound() {
+        void testAddPayment_ThrowsExceptionWhenNoOutstandingBillsFound() {
 
                 AddPaymentRequest request = new AddPaymentRequest();
 
@@ -1050,7 +1050,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_DoesNotDispatchMessageForBankTransfer() {
+        void testAddPayment_DoesNotDispatchMessageForBankTransfer() {
 
                 AddPaymentRequest request = new AddPaymentRequest();
 
@@ -1078,7 +1078,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testAddPayment_DispatchFailureDoesNotBreakPayment() {
+        void testAddPayment_DispatchFailureDoesNotBreakPayment() {
 
                 AddPaymentRequest request = new AddPaymentRequest();
 
@@ -1121,7 +1121,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_MonthlyFullToPartial() {
+        void testUpdatePayment_MonthlyFullToPartial() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1162,7 +1162,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_MonthlyPartialToFull() {
+        void testUpdatePayment_MonthlyPartialToFull() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1203,7 +1203,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_MonthlyPartialToPartial() {
+        void testUpdatePayment_MonthlyPartialToPartial() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1244,7 +1244,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_MonthlyFullToFull() {
+        void testUpdatePayment_MonthlyFullToFull() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1285,7 +1285,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_OutstandingFullToPartial() {
+        void testUpdatePayment_OutstandingFullToPartial() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1322,7 +1322,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_OutstandingPartialToFull() {
+        void testUpdatePayment_OutstandingPartialToFull() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1359,7 +1359,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_OutstandingPartialToPartial() {
+        void testUpdatePayment_OutstandingPartialToPartial() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1396,7 +1396,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_OutstandingFullToFull() {
+        void testUpdatePayment_OutstandingFullToFull() {
 
                 Payment existingPayment = new Payment();
                 existingPayment.setPaymentId("PAY123");
@@ -1433,7 +1433,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_InvalidAmount_Zero() {
+        void testUpdatePayment_InvalidAmount_Zero() {
 
                 Payment payment = new Payment();
 
@@ -1444,7 +1444,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_InvalidAmount_Negative() {
+        void testUpdatePayment_InvalidAmount_Negative() {
 
                 Payment payment = new Payment();
 
@@ -1455,7 +1455,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_InvalidAmount_Null() {
+        void testUpdatePayment_InvalidAmount_Null() {
 
                 Payment payment = new Payment();
 
@@ -1466,7 +1466,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testUpdatePayment_PaymentNotFound() {
+        void testUpdatePayment_PaymentNotFound() {
 
                 when(paymentRepository.findById("PAY123")).thenReturn(Optional.empty());
 
@@ -1475,7 +1475,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReversePaymentEffect_Success() {
+        void testReversePaymentEffect_Success() {
 
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
@@ -1505,7 +1505,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReversePaymentEffect_BillNotFound() {
+        void testReversePaymentEffect_BillNotFound() {
 
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
@@ -1522,7 +1522,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testApplyPaymentEffect_Monthly() {
+        void testApplyPaymentEffect_Monthly() {
 
                 Payment payment = new Payment();
                 payment.setPaymentType(PaymentType.MONTHLY);
@@ -1539,7 +1539,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testApplyPaymentEffect_Outstanding() {
+        void testApplyPaymentEffect_Outstanding() {
 
                 Payment payment = new Payment();
                 payment.setPaymentType(PaymentType.OUTSTANDING);
@@ -1556,7 +1556,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testApplyPaymentEffect_UnsupportedType() {
+        void testApplyPaymentEffect_UnsupportedType() {
 
                 Payment payment = new Payment();
 
@@ -1565,7 +1565,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReapplyMonthlyPayment_FullPayment() {
+        void testReapplyMonthlyPayment_FullPayment() {
 
                 Payment payment = new Payment();
                 payment.setAmount(new BigDecimal("100"));
@@ -1591,7 +1591,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReapplyMonthlyPayment_PartialPayment() {
+        void testReapplyMonthlyPayment_PartialPayment() {
 
                 Payment payment = new Payment();
                 payment.setAmount(new BigDecimal("70"));
@@ -1618,7 +1618,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReapplyMonthlyPayment_ThrowsExceptionWhenAmountExceedsDue() {
+        void testReapplyMonthlyPayment_ThrowsExceptionWhenAmountExceedsDue() {
                 Payment payment = new Payment();
                 payment.setAmount(new BigDecimal("150"));
                 payment.setSubscriptionNumber("SUB123");
@@ -1638,7 +1638,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReapplyMonthlyPayment_NullBalanceDue() {
+        void testReapplyMonthlyPayment_NullBalanceDue() {
                 Payment payment = new Payment();
                 payment.setAmount(new BigDecimal("50"));
                 payment.setSubscriptionNumber("SUB123");
@@ -1659,7 +1659,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReapplyOutstandingPayment_FullPayment() {
+        void testReapplyOutstandingPayment_FullPayment() {
 
                 Payment payment = new Payment();
                 payment.setAmount(new BigDecimal("300"));
@@ -1689,7 +1689,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testReapplyOutstandingPayment_PartialPayment() {
+        void testReapplyOutstandingPayment_PartialPayment() {
 
                 Payment payment = new Payment();
                 payment.setAmount(new BigDecimal("150"));
@@ -1720,7 +1720,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testDeletePayment_Success() {
+        void testDeletePayment_Success() {
 
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
@@ -1740,7 +1740,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testDeletePayment_NotFound() {
+        void testDeletePayment_NotFound() {
 
                 when(paymentRepository.findById("PAY123"))
                                 .thenReturn(Optional.empty());
@@ -1750,7 +1750,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetPaymentHistory_InvalidSubscriptionNumber() {
+        void testGetPaymentHistory_InvalidSubscriptionNumber() {
 
                 InvalidPaymentException exception = assertThrows(
                                 InvalidPaymentException.class,
@@ -1760,7 +1760,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetPaymentHistory_BlankSubscriptionNumber() {
+        void testGetPaymentHistory_BlankSubscriptionNumber() {
 
                 InvalidPaymentException exception = assertThrows(
                                 InvalidPaymentException.class,
@@ -1770,7 +1770,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetPaymentHistory_CustomerNotFound() {
+        void testGetPaymentHistory_CustomerNotFound() {
 
                 when(customerRepository.existsById("SUB123")).thenReturn(false);
 
@@ -1782,7 +1782,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetPaymentHistory_Success() {
+        void testGetPaymentHistory_Success() {
 
                 Payment payment = new Payment();
                 payment.setPaymentId("PAY123");
@@ -1832,7 +1832,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetPaymentHistory_EmptyResult() {
+        void testGetPaymentHistory_EmptyResult() {
 
                 Page<Payment> emptyPage = new PageImpl<>(
                                 Collections.emptyList(),
@@ -1860,7 +1860,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetPaymentHistory_VerifyRepositoryCall() {
+        void testGetPaymentHistory_VerifyRepositoryCall() {
 
                 when(customerRepository.existsById("SUB123"))
                                 .thenReturn(true);
@@ -2257,7 +2257,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_NullSubscriptionNumber() {
+        void testGetCustomerPaymentSummary_NullSubscriptionNumber() {
 
                 InvalidPaymentException exception = assertThrows(InvalidPaymentException.class,
                                 () -> paymentService.getCustomerPaymentSummary(null));
@@ -2266,7 +2266,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_BlankSubscriptionNumber() {
+        void testGetCustomerPaymentSummary_BlankSubscriptionNumber() {
 
                 InvalidPaymentException exception = assertThrows(InvalidPaymentException.class,
                                 () -> paymentService.getCustomerPaymentSummary(" "));
@@ -2275,7 +2275,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_CustomerNotFound() {
+        void testGetCustomerPaymentSummary_CustomerNotFound() {
 
                 when(customerRepository.findById("SUB123")).thenReturn(Optional.empty());
 
@@ -2286,7 +2286,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_WithOutstandingBill() {
+        void testGetCustomerPaymentSummary_WithOutstandingBill() {
 
                 Customer customer = new Customer();
                 customer.setSubscriptionNumber("SUB123");
@@ -2312,7 +2312,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_AllBillsPaid() {
+        void testGetCustomerPaymentSummary_AllBillsPaid() {
 
                 Customer customer = new Customer();
                 customer.setSubscriptionNumber("SUB123");
@@ -2337,7 +2337,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_NullOutstandingBalance() {
+        void testGetCustomerPaymentSummary_NullOutstandingBalance() {
 
                 Customer customer = new Customer();
                 customer.setSubscriptionNumber("SUB123");
@@ -2357,7 +2357,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_NullBillStatus() {
+        void testGetCustomerPaymentSummary_NullBillStatus() {
 
                 Customer customer = new Customer();
                 customer.setOutstandingBalance(new BigDecimal("50"));
@@ -2379,7 +2379,7 @@ public class PaymentServiceTest {
         }
 
         @Test
-        public void testGetCustomerPaymentSummary_SelectFirstUnpaidBill() {
+        void testGetCustomerPaymentSummary_SelectFirstUnpaidBill() {
 
                 Customer customer = new Customer();
                 customer.setOutstandingBalance(BigDecimal.ZERO);
