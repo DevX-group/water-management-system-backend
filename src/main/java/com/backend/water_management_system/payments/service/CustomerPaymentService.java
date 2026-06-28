@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import com.backend.water_management_system.payments.dto.CustomerPaymentResponse;
 import com.backend.water_management_system.payments.dto.PaymentHistoryItemResponse;
 import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentStatus;
+import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
@@ -55,7 +57,7 @@ public class CustomerPaymentService {
         }
 
         BigDecimal amount = request.getAmount();
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
         validateAmount(amount, totalBalance);
@@ -246,14 +248,17 @@ public class CustomerPaymentService {
         }
 
         paymentRepository.save(payment);
+        Payment savedPayment = payment;
 
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
 
         try {
-            triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
+            triggeredMessageDispatcher.dispatchPaymentConfirmed(savedPayment);
         } catch (Exception ex) {
-            log.warn("Failed to dispatch payment confirmation for {}: {}", payment.getPaymentId(), ex.getMessage());
+            log.warn("Failed to dispatch payment confirmation for {}: {}", savedPayment.getPaymentId(),
+                    ex.getMessage());
         }
+
     }
 
     // Utility method to clean and trim all parameters from PayHere notification to
@@ -376,22 +381,23 @@ public class CustomerPaymentService {
     }
 
     public CurrentBillResponse getCurrentBillForCustomer() {
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         return paymentService.getCurrentBill(subscriptionNumber);
 
     }
 
     public OutstandingBillsSummaryResponse getOutstandingBillsForCustomer() {
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
         return paymentService.getOutstandingBills(subscriptionNumber);
     }
 
-    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size) {
-        String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+    public PaginationResponse<PaymentHistoryItemResponse> getPaymentHistoryForCustomer(int page, int size, Integer year,
+            PaymentMethod paymentMethod) {
+        String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
-        return paymentService.getPaymentHistory(subscriptionNumber, page, size);
+        return paymentService.getPaymentHistory(subscriptionNumber, page, size, year, paymentMethod);
     }
 
 }

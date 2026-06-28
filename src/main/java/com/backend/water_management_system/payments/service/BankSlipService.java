@@ -55,7 +55,7 @@ public class BankSlipService {
         // WebSocket
         public BankSlipUploadResponse uploadSlip(BankSlipUploadRequest request) {
 
-                String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+                String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
                 BigDecimal amount = request.getAmount();
                 BigDecimal totalBalance = billRepository.getTotalPendingBalance(subscriptionNumber);
@@ -201,7 +201,7 @@ public class BankSlipService {
                                 .orElseThrow(() -> new BankSlipNotFoundException(
                                                 "Bank slip not found with ID: " + slipId));
 
-                String currentUser = "SK-2341"; // TODO: replace with JWT auth context
+                String currentUser = "SP-4589"; // TODO: replace with JWT auth context
 
                 if (!slip.getSubscriptionNumber().equals(currentUser)) {
                         throw new SecurityException("You do not have permission to delete this bank slip.");
@@ -288,16 +288,15 @@ public class BankSlipService {
                 }
         }
 
-        // Retrieves all bank slips associated with the currently authenticated
-        // customer's subscription number.
-        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size) {
+        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size,
+                        Integer year, SlipStatus status) {
 
-                String subscriptionNumber = "SK-2341"; // TODO: replace with JWT auth context
+                String subscriptionNumber = "SP-4589"; // TODO: replace with JWT auth context
 
                 Pageable pageable = PageRequest.of(page, size, Sort.by("uploadedAt").descending());
 
                 Page<BankSlip> slips = bankSlipRepository
-                                .findBySubscriptionNumberOrderByUploadedAtDesc(subscriptionNumber, pageable);
+                                .findBySubscriptionNumberAndFilters(subscriptionNumber, year, status, pageable);
 
                 List<CustomerBankSlipResponse> content = slips.getContent()
                                 .stream()

@@ -28,6 +28,13 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
                         BigDecimal amount,
                         LocalDate billDate);
 
+        @Query("SELECT b FROM Bill b WHERE b.customer.subscriptionNumber = :subscriptionNumber " +
+                        "AND b.balanceDue > 0 " +
+                        "AND b.billDate < (SELECT MAX(b2.billDate) FROM Bill b2 WHERE b2.customer.subscriptionNumber = :subscriptionNumber) "
+                        +
+                        "ORDER BY b.billDate ASC")
+        List<Bill> findOutstandingBillsExcludingLatest(String subscriptionNumber);
+
         Optional<Bill> findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
 
         Optional<Bill> findTopByCustomerOrderByBillDateDesc(Customer customer);
