@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ import java.util.List;
 @RequestMapping("/api/scheduled-messages")
 @CrossOrigin
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
 public class ScheduledMessageController {
 
     private final ScheduledMessageService service;

@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: prod
+    active: dev
   jpa:
     hibernate:
       ddl-auto: update
@@ -38,3 +38,15 @@ text-lk:
 
 server:
   port: ${PORT:8081}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiry-ms: ${JWT_EXPIRY_MS:86400000}
+
+app:
+  activation-token-expiry-hours: 72
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  super-admin:
+    nic: ${SUPER_ADMIN_NIC}
+    email: ${SUPER_ADMIN_EMAIL}
+    password: ${SUPER_ADMIN_PASSWORD}

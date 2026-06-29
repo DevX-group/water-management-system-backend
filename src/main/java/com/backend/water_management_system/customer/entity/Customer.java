@@ -24,14 +24,9 @@ public class Customer {
 
     private String accountHolderName;
     
-    @Column(unique = true, nullable = false)
-    private String nic; // National Identity Card number
-    
-    @Column(unique = true, nullable = false)
-    private String email;
-    
-    @Column(nullable = false)
-    private String mobileNumber;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private com.backend.water_management_system.user.entity.User user;
     
     @Column(nullable = false)
     private String address;
@@ -45,17 +40,25 @@ public class Customer {
     @JoinColumn(name = "region_code")
     private Region region;
 
-    public Customer(String subscriptionNumber, String accountHolderName, String nic, String email, String mobileNumber,
+    public Customer(String subscriptionNumber, String accountHolderName, com.backend.water_management_system.user.entity.User user,
             String address, String connectionType, Region region) {
         this.subscriptionNumber = subscriptionNumber;
         this.accountHolderName = accountHolderName;
-        this.nic = nic;
-        this.email = email;
-        this.mobileNumber = mobileNumber;
+        this.user = user;
         this.address = address;
         this.connectionType = connectionType;
         this.region = region;
     }
-    
-    
+
+    public String getNic() {
+        return user != null ? user.getNic() : null;
+    }
+
+    public String getEmail() {
+        return user != null ? user.getEmail() : null;
+    }
+
+    public String getMobileNumber() {
+        return user != null ? user.getPhoneNumber() : null;
+    }
 }
