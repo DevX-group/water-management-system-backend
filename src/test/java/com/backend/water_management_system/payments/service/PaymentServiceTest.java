@@ -43,6 +43,7 @@ import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.common.entity.Region;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.customer.exceptions.CustomerNotFoundException;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
@@ -2122,20 +2123,23 @@ class PaymentServiceTest {
                 Region region = new Region();
                 region.setRegionName("North");
 
+                User user = new User();
+                user.setNic("199945217451V");
+
                 Customer customer = new Customer();
                 customer.setSubscriptionNumber(subscriptionNumber);
                 customer.setAccountHolderName("Kasun Silva");
                 customer.setRegion(region);
                 customer.setConnectionType("Metered");
-                customer.setNic("199945217451V");
+                customer.setUser(user);
 
                 when(customerRepository.findById(subscriptionNumber))
-                                .thenReturn(Optional.of(customer));
+                        .thenReturn(Optional.of(customer));
 
-                PaymentCustomerInfoResponse response = paymentService.getPaymentCustomerInfo(subscriptionNumber);
+                PaymentCustomerInfoResponse response =
+                        paymentService.getPaymentCustomerInfo(subscriptionNumber);
 
                 assertNotNull(response);
-
                 assertEquals("SUB123", response.getSubscriptionNumber());
                 assertEquals("Kasun Silva", response.getAccountHolderName());
                 assertEquals("North", response.getRegion());
