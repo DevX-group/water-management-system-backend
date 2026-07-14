@@ -13,4 +13,5 @@ public class MessagingEnumsResponse {
     private final List<String> scheduleTypes;
     private final List<String> recipientTypes;
     private final List<String> placeholders;
+    private final List<String> triggerTypes;
 }
