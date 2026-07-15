@@ -64,10 +64,12 @@ public class DataSeeder implements CommandLineRunner {
         Region southRegion = new Region("R002", "south");
         Region eastRegion = new Region("R003", "east");
         Region westRegion = new Region("R004", "west");
+        Region centerRegion = new Region("R005", "center");
         regionRepository.save(northRegion);
         regionRepository.save(southRegion);
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
+        regionRepository.save(centerRegion);
         User u1 = User.builder().nic("921234567V").email("hansana47@gmail.com").phoneNumber("0711234567").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u1);
         Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", u1, "12 Lake Road, Colombo", "metered", northRegion);

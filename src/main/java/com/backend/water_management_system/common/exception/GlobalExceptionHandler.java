@@ -1,9 +1,11 @@
 package com.backend.water_management_system.common.exception;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -33,6 +35,24 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ApiError(ex.getMessage(), "VALIDATION_ERROR", 400));
     }
+
+        @ExceptionHandler({IllegalArgumentException.class, MethodArgumentNotValidException.class})
+        public ResponseEntity<ApiError> handleBadRequest(Exception ex) {
+        String message = ex instanceof MethodArgumentNotValidException validationException
+            ? validationException.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .filter(error -> error != null && !error.isBlank())
+                .collect(Collectors.joining(", "))
+            : ex.getMessage();
+
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ApiError(
+                message == null || message.isBlank() ? "Invalid request." : message,
+                "BAD_REQUEST",
+                400
+            ));
+        }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneral(Exception ex) {

@@ -45,7 +45,7 @@ jwt:
 
 app:
   activation-token-expiry-hours: 72
-  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  frontend-url: ${FRONTEND_URL:http://localhost:8080}
   super-admin:
     nic: ${SUPER_ADMIN_NIC}
     email: ${SUPER_ADMIN_EMAIL}

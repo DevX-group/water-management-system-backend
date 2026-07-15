@@ -35,7 +35,7 @@ public class ActivationMessageService {
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
-        String activationLink = baseUrl + "/signup?token=" + token;
+        String activationLink = baseUrl + "/activate?token=" + token;
 
         SimpleMailMessage mail = new SimpleMailMessage();
         if (fromEmail != null && !fromEmail.isBlank()) {
