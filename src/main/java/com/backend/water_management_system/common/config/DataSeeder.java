@@ -14,9 +14,11 @@ import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.enums.UserStatus;
 import com.backend.water_management_system.user.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.time.OffsetDateTime;
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -25,16 +27,27 @@ public class DataSeeder implements CommandLineRunner {
     private final RegionRepository regionRepository;
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
+    private final PasswordEncoder passwordEncoder;
     public DataSeeder(CustomerRepository customerRepository, UserRepository userRepository, RegionRepository regionRepository,
-            BillRepository billRepository, RateRepository rateRepository) {
+            BillRepository billRepository, RateRepository rateRepository, PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
         this.userRepository = userRepository;
         this.regionRepository = regionRepository;
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
+        this.passwordEncoder = passwordEncoder;
     }
     @Override
     public void run(String... args) throws Exception {
+        // Fix existing active users without a password
+        List<User> usersWithoutPassword = userRepository.findAll().stream()
+                .filter(u -> u.getPasswordHash() == null && u.getStatus() == UserStatus.ACTIVE)
+                .toList();
+        for (User u : usersWithoutPassword) {
+            u.setPasswordHash(passwordEncoder.encode("User@123"));
+            userRepository.save(u);
+        }
+
         if (rateRepository.count() == 0) {
             ConnectionRate meteredRate = new ConnectionRate();
             meteredRate.setConnectionType("metered");
@@ -70,27 +83,28 @@ public class DataSeeder implements CommandLineRunner {
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
         regionRepository.save(centerRegion);
-        User u1 = User.builder().nic("921234567V").email("hansana47@gmail.com").phoneNumber("0711234567").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        String defaultPassword = passwordEncoder.encode("User@123");
+        User u1 = User.builder().nic("921234567V").email("hansana47@gmail.com").phoneNumber("0711234567").role(Role.CUSTOMER).status(UserStatus.ACTIVE).passwordHash(defaultPassword).build();
         userRepository.save(u1);
         Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", u1, "12 Lake Road, Colombo", "metered", northRegion);
         c1.setOutstandingBalance(new BigDecimal("0.00"));
 
-        User u2 = User.builder().nic("881234568V").email("hanz4739@gmail.com").phoneNumber("0721234568").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u2 = User.builder().nic("881234568V").email("hanz4739@gmail.com").phoneNumber("0721234568").role(Role.CUSTOMER).status(UserStatus.ACTIVE).passwordHash(defaultPassword).build();
         userRepository.save(u2);
         Customer c2 = new Customer("SP-4589", "Hansana Malshan", u2, "45 Temple Street, Galle", "metered", southRegion);
         c2.setOutstandingBalance(new BigDecimal("500.00"));
 
-        User u3 = User.builder().nic("901234569V").email("kamani@example.com").phoneNumber("0771234569").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u3 = User.builder().nic("901234569V").email("kamani@example.com").phoneNumber("0771234569").role(Role.CUSTOMER).status(UserStatus.ACTIVE).passwordHash(defaultPassword).build();
         userRepository.save(u3);
         Customer c3 = new Customer("KS-7892", "Kamani Silva", u3, "78 Main Street, Kandy", "non_metered", northRegion);
         c3.setOutstandingBalance(new BigDecimal("1200.00"));
 
-        User u4 = User.builder().nic("851234570V").email("ruwan@example.com").phoneNumber("0751234570").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u4 = User.builder().nic("851234570V").email("ruwan@example.com").phoneNumber("0751234570").role(Role.CUSTOMER).status(UserStatus.ACTIVE).passwordHash(defaultPassword).build();
         userRepository.save(u4);
         Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", u4, "101 Beach Road, Trincomalee", "metered", eastRegion);
         c4.setOutstandingBalance(new BigDecimal("2750.00"));
 
-        User u5 = User.builder().nic("931234571V").email("priyantha@example.com").phoneNumber("0761234571").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u5 = User.builder().nic("931234571V").email("priyantha@example.com").phoneNumber("0761234571").role(Role.CUSTOMER).status(UserStatus.ACTIVE).passwordHash(defaultPassword).build();
         userRepository.save(u5);
         Customer c5 = new Customer("PD-5678", "Priyantha De Silva", u5, "22 Forest Avenue, Kurunegala", "non_metered", westRegion);
         c5.setOutstandingBalance(new BigDecimal("0.00"));
