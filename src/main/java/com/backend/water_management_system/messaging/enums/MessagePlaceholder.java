@@ -28,7 +28,10 @@ public enum MessagePlaceholder {
     PAYMENT_DATE("payment_date"),
     PAYMENT_TIME("payment_time"),
     PAYMENT_METHOD("payment_method"),
-    PAYMENT_ID("payment_id");
+    PAYMENT_ID("payment_id"),
+    BANK_SLIP_UPLOAD_DATE_TIME("bank_slip_upload_date_time"),
+    BANK_SLIP_REVIEW_DATE_TIME("bank_slip_review_date_time"),
+    BANK_SLIP_REJECTION_REASON("bank_slip_rejection_reason");
 
     private final String key;
 
