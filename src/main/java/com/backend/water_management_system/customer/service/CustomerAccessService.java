@@ -37,6 +37,10 @@ public class CustomerAccessService {
         }
 
         String ownedSubscription = getSubscriptionNumber(principal);
+        if ("me".equalsIgnoreCase(requestedSubscription)) {
+            return ownedSubscription;
+        }
+        
         if (!ownedSubscription.equals(requestedSubscription)) {
             throw new AccessDeniedException("Forbidden");
         }
