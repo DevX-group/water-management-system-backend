@@ -72,7 +72,7 @@ public class MessageDispatchHelper {
         return "";
     }
 
-    // dispatches a due scheduled message or a triggered message to a single
+    // dispatches a due scheduled message or a triggered message except bank slip rejections to a single
     // customer as a SMS
     public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill,
             Payment payment) {
@@ -94,7 +94,7 @@ public class MessageDispatchHelper {
         return smsOk;
     }
 
-    // dispatches a due message to a single customer as an email placeholders
+    // dispatches a due message except bank slip rejectionsto a single customer as an email
     public boolean dispatchEmail(Customer customer,
             String toEmail,
             String fromAddressForMail,

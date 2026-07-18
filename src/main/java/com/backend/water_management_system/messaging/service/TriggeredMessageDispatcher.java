@@ -34,6 +34,7 @@ public class TriggeredMessageDispatcher {
         dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
     }
 
+    //for confirmed payments
     public void dispatchTriggeredMessage(TriggerType triggerType, Payment payment) {
         if (payment == null || triggerType == null) {
             return;
@@ -48,6 +49,7 @@ public class TriggeredMessageDispatcher {
         dispatchTriggeredMessage(triggerType, payment, payment.getBankSlip());
     }
 
+    //for rejected bank slips
     public void dispatchTriggeredMessage(TriggerType triggerType, BankSlip bankSlip) {
         if (bankSlip == null || triggerType == null) {
             return;
