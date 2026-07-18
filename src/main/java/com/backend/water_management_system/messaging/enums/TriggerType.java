@@ -32,7 +32,14 @@ public enum TriggerType {
         String normalized = value.trim();
 
         for (TriggerType type : values()) {
-            if (type.label.equalsIgnoreCase(normalized)) {
+            if (type.label.equalsIgnoreCase(normalized) || type.name().equalsIgnoreCase(normalized)) {
+                return type;
+            }
+        }
+
+        String enumNameStyle = normalized.replace(' ', '_');
+        for (TriggerType type : values()) {
+            if (type.name().equalsIgnoreCase(enumNameStyle)) {
                 return type;
             }
         }

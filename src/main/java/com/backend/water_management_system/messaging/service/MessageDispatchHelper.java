@@ -2,6 +2,7 @@ package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.payments.entity.BankSlip;
 import com.backend.water_management_system.messaging.dto.SMSGatewayRequestDTO;
 import com.backend.water_management_system.messaging.dto.SMSGatewayResponseDTO;
 import com.backend.water_management_system.messaging.entity.Message;
@@ -71,10 +72,22 @@ public class MessageDispatchHelper {
         return "";
     }
 
-    // dispatches a due scheduled message or a triggered message to a single customer as a SMS
-    public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill, Payment payment) {
+    // dispatches a due scheduled message or a triggered message to a single
+    // customer as a SMS
+    public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill,
+            Payment payment) {
+        return dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment, null);
+    }
+
+    // dispatches a triggered message to a single customer as a SMS
+    public boolean dispatchSMS(Customer customer,
+            String toPhone,
+            String smsTemplateToUse,
+            Bill currentBill,
+            Payment payment,
+            BankSlip bankSlip) {
         String smsBody = messagePlaceholderService.replacePlaceholders(smsTemplateToUse, customer, currentBill,
-                payment);
+                payment, bankSlip);
 
         boolean smsOk = sendSms(toPhone, smsBody);
 
@@ -90,8 +103,24 @@ public class MessageDispatchHelper {
             Bill currentBill,
             Payment payment) {
 
-        String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill, payment);
-        String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill, payment);
+        return dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate, emailTemplateToUse, currentBill,
+                payment, null);
+    }
+
+    // dispatches a triggered message to a single customer as an email
+    public boolean dispatchEmail(Customer customer,
+            String toEmail,
+            String fromAddressForMail,
+            String subjectTemplate,
+            String emailTemplateToUse,
+            Bill currentBill,
+            Payment payment,
+            BankSlip bankSlip) {
+
+        String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill, payment,
+                bankSlip);
+        String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill, payment,
+                bankSlip);
 
         try {
             SimpleMailMessage mail = new SimpleMailMessage();

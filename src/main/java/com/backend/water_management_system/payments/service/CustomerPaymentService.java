@@ -35,6 +35,7 @@ import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
+import com.backend.water_management_system.messaging.enums.TriggerType;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,8 @@ public class CustomerPaymentService {
     private final TriggeredMessageDispatcher triggeredMessageDispatcher;
     private static final Logger log = LoggerFactory.getLogger(CustomerPaymentService.class);
 
-    public CustomerPaymentResponse initiateCustomerPayment(CustomerAddPaymentRequest request, String subscriptionNumber) {
+    public CustomerPaymentResponse initiateCustomerPayment(CustomerAddPaymentRequest request,
+            String subscriptionNumber) {
 
         if (request.getPaymentMethod() == null) {
             throw new InvalidPaymentException("Payment method is required");
@@ -252,7 +254,7 @@ public class CustomerPaymentService {
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
 
         try {
-            triggeredMessageDispatcher.dispatchPaymentConfirmed(savedPayment);
+            triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, savedPayment);
         } catch (Exception ex) {
             log.warn("Failed to dispatch payment confirmation for {}: {}", savedPayment.getPaymentId(),
                     ex.getMessage());
