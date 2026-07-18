@@ -7,6 +7,7 @@ import java.util.List;
 
 public enum TriggerType {
     PAYMENT_CONFIRMED("Payment Confirmed"),
+    BANK_SLIP_REJECTED("Bank Slip Rejected"),
     EMAIL_VERIFICATION("Email Verification"),
     PHONE_VERIFICATION("Phone Verification");
 
