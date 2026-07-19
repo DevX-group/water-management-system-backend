@@ -4,9 +4,11 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.backend.water_management_system.security.UserPrincipal;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,13 +30,19 @@ public class InquiryController {
 
     @PostMapping     // Create a new inquiry
     @PreAuthorize("hasRole('CUSTOMER')")
-    public Inquiry createInquiry(@RequestBody Inquiry inquiry) {
+    public Inquiry createInquiry(@RequestBody Inquiry inquiry, @AuthenticationPrincipal UserPrincipal principal) {
+        if (principal != null && principal.getUser().getRole() == com.backend.water_management_system.user.enums.Role.CUSTOMER) {
+            inquiry.setEmail(principal.getUser().getEmail());
+        }
         return inquiryService.createInquiry(inquiry);
     }
 
-    @GetMapping   // Get all inquiries (for admin view)
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
-    public List<Inquiry> getAllInquiries() {
+    @GetMapping   // Get all inquiries (for admin view) or for a specific customer
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER')")
+    public List<Inquiry> getAllInquiries(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal != null && principal.getUser().getRole() == com.backend.water_management_system.user.enums.Role.CUSTOMER) {
+            return inquiryService.getInquiriesByEmail(principal.getUser().getEmail());
+        }
         return inquiryService.getAllInquiries();
     }
 

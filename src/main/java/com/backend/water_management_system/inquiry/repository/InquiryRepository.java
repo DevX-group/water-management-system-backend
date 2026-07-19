@@ -5,7 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import com.backend.water_management_system.inquiry.entity.Inquiry;
 
+import java.util.List;
+
 @Repository
 public interface InquiryRepository extends JpaRepository<Inquiry, String> {
-    // JpaRepository provides save(), findAll(), and findById() automatically
+    List<Inquiry> findByEmailOrderByCreatedAtDesc(String email);
 }

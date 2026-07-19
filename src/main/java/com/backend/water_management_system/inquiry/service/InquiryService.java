@@ -60,6 +60,6 @@ public class InquiryService {
     }
 
     public List<Inquiry> getInquiriesByEmail(String email) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return inquiryRepository.findByEmailOrderByCreatedAtDesc(email);
     }
 }
