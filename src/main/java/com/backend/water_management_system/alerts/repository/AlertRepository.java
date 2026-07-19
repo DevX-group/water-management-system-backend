@@ -12,4 +12,6 @@ public interface AlertRepository extends JpaRepository<Alert, Long> //Primary Ke
 {
     List<Alert> findByDismissedFalseOrderByTimeDesc();
     List<Alert> findBySeverityAndDismissedFalse(String severity);
+    List<Alert> findBySubscriptionNumberAndDismissedFalseOrderByTimeDesc(String subscriptionNumber);
+    List<Alert> findBySubscriptionNumberAndSeverityAndDismissedFalse(String subscriptionNumber, String severity);
 }

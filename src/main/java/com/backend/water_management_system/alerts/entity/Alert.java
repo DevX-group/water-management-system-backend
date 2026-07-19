@@ -21,6 +21,7 @@ public class Alert {
     private String title;
     private String description;
     private String usage;
+    private String subscriptionNumber;
     
     @Builder.Default
     private LocalDateTime time = LocalDateTime.now();   //This is a special Lombok instruction. It ensures that if you use the .builder() to create an alert but forget to set a time, it will automatically use the current time.

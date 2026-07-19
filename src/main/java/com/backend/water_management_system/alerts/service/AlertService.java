@@ -29,6 +29,19 @@ public class AlertService {
                 .collect(Collectors.groupingBy(Alert::getSeverity, Collectors.counting()));
     }
 
+    public List<Alert> getActiveAlertsForCustomer(String subscriptionNumber, String severity) {
+        if (severity != null && !severity.equalsIgnoreCase("all")) {
+            return alertRepository.findBySubscriptionNumberAndSeverityAndDismissedFalse(subscriptionNumber, severity.toLowerCase());
+        }
+        return alertRepository.findBySubscriptionNumberAndDismissedFalseOrderByTimeDesc(subscriptionNumber);
+    }
+
+    public Map<String, Long> getSeverityCountsForCustomer(String subscriptionNumber) {
+        List<Alert> activeAlerts = alertRepository.findBySubscriptionNumberAndDismissedFalseOrderByTimeDesc(subscriptionNumber);
+        return activeAlerts.stream()
+                .collect(Collectors.groupingBy(Alert::getSeverity, Collectors.counting()));
+    }
+
     public void dismissAlert(Long id) {         // Find the alert by ID, set dismissed to true
         alertRepository.findById(id).ifPresent(alert -> {
             alert.setDismissed(true);
@@ -36,12 +49,13 @@ public class AlertService {
         });
     }
 
-    public void createAlert(String severity, String title, String description, String usage) {       // Create a new alert
+    public void createAlert(String severity, String title, String description, String usage, String subscriptionNumber) {       // Create a new alert
         Alert alert = Alert.builder()
                 .severity(severity)
                 .title(title)
                 .description(description)
                 .usage(usage)
+                .subscriptionNumber(subscriptionNumber)
                 .time(java.time.LocalDateTime.now())
                 .dismissed(false)
                 .build();

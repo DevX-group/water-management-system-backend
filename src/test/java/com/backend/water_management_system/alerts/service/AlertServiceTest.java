@@ -112,7 +112,7 @@ public class AlertServiceTest {
         when(alertRepository.save(any(Alert.class))).thenReturn(alert1);
 
         // Act
-        alertService.createAlert("high", "Title", "Desc", "1000");
+        alertService.createAlert("high", "Title", "Desc", "1000", "SUB-001");
 
         // Assert
         verify(alertRepository, times(1)).save(any(Alert.class));
