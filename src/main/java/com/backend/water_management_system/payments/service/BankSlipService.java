@@ -23,6 +23,7 @@ import com.backend.water_management_system.customer.repository.CustomerRepositor
 import com.backend.water_management_system.customer.service.CustomerAccessService;
 import com.backend.water_management_system.security.UserPrincipal;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
+import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
 import com.backend.water_management_system.payments.dto.BankSlipUploadRequest;
@@ -38,7 +39,6 @@ import com.backend.water_management_system.payments.exceptions.BankSlipNotFoundE
 import com.backend.water_management_system.payments.exceptions.BankSlipUploadException;
 import com.backend.water_management_system.payments.repository.BankSlipRepository;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
-
 
 @Service
 @RequiredArgsConstructor
@@ -247,6 +247,14 @@ public class BankSlipService {
                         slip.setRejectionReason(request.getRejectionReason());
                         slip.setReviewedAt(LocalDateTime.now());
                         bankSlipRepository.save(slip);
+
+                        try {
+                                triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.BANK_SLIP_REJECTED,
+                                                slip);
+                        } catch (Exception ex) {
+                                // Slip rejection is already persisted; messaging failures should not fail
+                                // review.
+                        }
                 } else {
                         throw new IllegalArgumentException("Invalid action. Must be APPROVE or REJECT.");
                 }
@@ -280,7 +288,7 @@ public class BankSlipService {
                 paymentRepository.save(payment);
 
                 try {
-                        triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
+                        triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
                 } catch (Exception ex) {
                         // Payment is recorded; messaging failures should not fail approval flow.
                 }
@@ -288,7 +296,8 @@ public class BankSlipService {
 
         // Retrieves all bank slips associated with the currently authenticated
         // customer's subscription number.
-        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size, String subscriptionNumber) {
+        public PaginationResponse<CustomerBankSlipResponse> getBankSlipsBySubscriptionNumber(int page, int size,
+                        String subscriptionNumber) {
 
                 Pageable pageable = PageRequest.of(page, size, Sort.by("uploadedAt").descending());
 

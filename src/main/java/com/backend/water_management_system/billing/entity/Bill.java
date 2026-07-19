@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.backend.water_management_system.customer.entity.Customer;
 
 @Entity
@@ -40,6 +41,7 @@ public class Bill {
 
     @OneToOne
     @JoinColumn(name="reading_id")
+    @JsonIgnoreProperties("customer") // Tells Jackson: "When serializing this reading, do not serialize its customer field"
     private MeterReading meterReading;
 
     // getters/setters

@@ -5,6 +5,7 @@ import com.backend.water_management_system.messaging.enums.MessageChannel;
 import com.backend.water_management_system.messaging.enums.MessagePlaceholder;
 import com.backend.water_management_system.messaging.enums.RecipientType;
 import com.backend.water_management_system.messaging.enums.ScheduleType;
+import com.backend.water_management_system.messaging.enums.TriggerType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ public class MessagingEnumsController {
                 MessageChannel.labels(),
                 ScheduleType.labels(),
                 RecipientType.labels(),
-                MessagePlaceholder.keys()));
+                MessagePlaceholder.keys(),
+                TriggerType.labels()));
     }
 }
