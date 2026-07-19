@@ -74,7 +74,7 @@ public class MeterReadingServiceTest {
         // Assert
         assertNotNull(result);
         verify(meterReadingRepository, times(1)).save(any(MeterReading.class));
-        verify(alertService, times(1)).createAlert(eq("info"), anyString(), anyString(), eq("50 Units"));
+        verify(alertService, times(1)).createAlert(eq("info"), anyString(), anyString(), eq("50 Units"), eq("SUB123"));
         verify(billingService, times(1)).generateBill(eq(mockCustomer), any(MeterReading.class));
     }
 
@@ -93,7 +93,7 @@ public class MeterReadingServiceTest {
         // Assert
         assertNotNull(result);
         verify(meterReadingRepository, times(1)).save(any(MeterReading.class));
-        verify(alertService, times(1)).createAlert(eq("high"), anyString(), anyString(), eq("150 Units"));
+        verify(alertService, times(1)).createAlert(eq("high"), anyString(), anyString(), eq("150 Units"), eq("SUB123"));
     }
 
     @Test
