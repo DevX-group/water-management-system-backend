@@ -62,6 +62,8 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/customer/payments/notify").permitAll()
                     // Public blog list
                     .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
+                    // Chatbot endpoint
+                    .requestMatchers(HttpMethod.POST, "/api/chatbot/**").permitAll()
                         // WebSocket endpoint
                         .requestMatchers("/ws/**").permitAll()
                         // Actuator health (if present)
