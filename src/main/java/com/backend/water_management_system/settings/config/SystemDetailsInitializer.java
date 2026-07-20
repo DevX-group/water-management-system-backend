@@ -19,15 +19,13 @@ public class SystemDetailsInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
-        if (!systemDetailsRepository.existsById(1L)) {
+        if (systemDetailsRepository.count() == 0) {
 
             SystemDetails details = new SystemDetails();
 
-            details.setId(1L);
             details.setCreatedAt(LocalDateTime.now());
             details.setUpdatedAt(LocalDateTime.now());
 
-            // optional default values
             details.setCompanyName("Water Management System");
             details.setDefaultCurrency("LKR");
 
