@@ -1,10 +1,19 @@
 package com.backend.water_management_system.common.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
 @Entity
 @Table(name="regions")
+@Getter
+@Setter
+@AllArgsConstructor
+@Builder
 public class Region {
     @Id
     private String regionCode; // e.g. "R001"
