@@ -1,5 +1,7 @@
 package com.backend.water_management_system.settings.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.backend.water_management_system.common.entity.Region;
@@ -34,11 +36,6 @@ public class RegionService {
         return AddRegionResponse.builder()
                 .regionCode(region.getRegionCode())
                 .regionName(region.getRegionName())
-                .baseRate(region.getBaseRate())
-                .unitRateTier1(region.getUnitRateTier1())
-                .unitRateTier2(region.getUnitRateTier2())
-                .unitRateTier3(region.getUnitRateTier3())
-                .taxRate(region.getTaxRate())
                 .build();
     }
 
@@ -53,17 +50,22 @@ public class RegionService {
 
         newRegion.setRegionCode(generateNextRegionCode());
         newRegion.setRegionName(request.getRegionName().trim());
-        newRegion.setBaseRate(request.getBaseRate());
-        newRegion.setUnitRateTier1(request.getUnitRateTier1());
-        newRegion.setUnitRateTier2(request.getUnitRateTier2());
-        newRegion.setUnitRateTier3(request.getUnitRateTier3());
-        newRegion.setTaxRate(request.getTaxRate());
+        newRegion.setActive(true);
 
         Region savedRegion = regionRepository.save(newRegion);
 
         return mapToResponse(savedRegion);
     }
+
+    public List<Region> getAllActiveRegions() {
+        return regionRepository.findByIsActiveTrue();
+    }
+
+    public void deleteRegion(String regionCode) {
+        Region region = regionRepository.findById(regionCode)
+                .orElseThrow(() -> new IllegalArgumentException("Region not found with code: " + regionCode));
+
+        region.setActive(false);
+        regionRepository.save(region);
+    }
 }
-
-                
-
