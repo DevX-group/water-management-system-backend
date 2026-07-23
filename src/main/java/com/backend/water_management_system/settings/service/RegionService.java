@@ -42,14 +42,16 @@ public class RegionService {
     @Transactional
     public AddRegionResponse addRegion(AddRegionRequest request) {
 
-        if (regionRepository.existsByRegionName(request.getRegionName())) {
+        String regionName = request.getRegionName().trim();
+        
+        if (regionRepository.existsByRegionNameIgnoreCaseAndIsActiveTrue(regionName)) {
             throw new IllegalArgumentException("Region name already exists.");
         }
 
         Region newRegion = new Region();
 
         newRegion.setRegionCode(generateNextRegionCode());
-        newRegion.setRegionName(request.getRegionName().trim());
+        newRegion.setRegionName(regionName);
         newRegion.setActive(true);
 
         Region savedRegion = regionRepository.save(newRegion);

@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.backend.water_management_system.common.entity.Region;
 
 public interface RegionRepository extends JpaRepository<Region, String> {
-    boolean existsByRegionName(String regionName);
+    boolean existsByRegionNameIgnoreCaseAndIsActiveTrue(String regionName);
 
     Optional<Region> findTopByOrderByRegionCodeDesc();
 
