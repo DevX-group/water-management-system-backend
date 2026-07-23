@@ -15,4 +15,8 @@ public class SystemDetailsRequest {
     private String officeContactNumber;
     private String officeEmail;
     private String defaultCurrency;
+    private String bankName;
+    private String branch;
+    private String accountNumber;
+    private String accountName;
 }

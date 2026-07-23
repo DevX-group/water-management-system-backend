@@ -26,8 +26,15 @@ public class SystemDetailsInitializer implements CommandLineRunner {
             details.setCreatedAt(LocalDateTime.now());
             details.setUpdatedAt(LocalDateTime.now());
 
+            // organization details
             details.setCompanyName("Water Management System");
             details.setDefaultCurrency("LKR");
+
+            // bank details
+            details.setBankName("Peoples Bank");
+            details.setBranch("Colombo Main");
+            details.setAccountNumber("001-2031-4567");
+            details.setAccountName("NWSB – Water Services");
 
             systemDetailsRepository.save(details);
         }

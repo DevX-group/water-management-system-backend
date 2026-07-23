@@ -1,6 +1,7 @@
 package com.backend.water_management_system.settings.service;
 
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
 
 import org.springframework.stereotype.Service;
 
@@ -30,7 +31,17 @@ public class SystemSettingsService {
                 .officeContactNumber(details.getOfficeContactNumber())
                 .officeEmail(details.getOfficeEmail())
                 .defaultCurrency(details.getDefaultCurrency())
+                .bankName(details.getBankName())
+                .branch(details.getBranch())
+                .accountNumber(details.getAccountNumber())
+                .accountName(details.getAccountName())
                 .build();
+    }
+
+    private void updateIfNotBlank(String value, Consumer<String> setter) {
+        if (value != null && !value.isBlank()) {
+            setter.accept(value.trim());
+        }
     }
 
     // Logic to update system details in the database
@@ -38,21 +49,17 @@ public class SystemSettingsService {
 
         SystemDetails details = findSystemDetails();
 
-        if (request.getCompanyName() != null && !request.getCompanyName().isBlank()) {
-            details.setCompanyName(request.getCompanyName().trim());
-        }
-        if (request.getOfficeAddress() != null && !request.getOfficeAddress().isBlank()) {
-            details.setOfficeAddress(request.getOfficeAddress().trim());
-        }
-        if (request.getOfficeContactNumber() != null && !request.getOfficeContactNumber().isBlank()) {
-            details.setOfficeContactNumber(request.getOfficeContactNumber().trim());
-        }
-        if (request.getOfficeEmail() != null && !request.getOfficeEmail().isBlank()) {
-            details.setOfficeEmail(request.getOfficeEmail().trim());
-        }
-        if (request.getDefaultCurrency() != null && !request.getDefaultCurrency().isBlank()) {
-            details.setDefaultCurrency(request.getDefaultCurrency().trim());
-        }
+        updateIfNotBlank(request.getCompanyName(), details::setCompanyName);
+        updateIfNotBlank(request.getOfficeAddress(), details::setOfficeAddress);
+        updateIfNotBlank(request.getOfficeContactNumber(), details::setOfficeContactNumber);
+        updateIfNotBlank(request.getOfficeEmail(), details::setOfficeEmail);
+        updateIfNotBlank(request.getDefaultCurrency(), details::setDefaultCurrency);
+
+        updateIfNotBlank(request.getBankName(), details::setBankName);
+        updateIfNotBlank(request.getBranch(), details::setBranch);
+        updateIfNotBlank(request.getAccountNumber(), details::setAccountNumber);
+        updateIfNotBlank(request.getAccountName(), details::setAccountName);
+
         details.setUpdatedAt(LocalDateTime.now());
 
         SystemDetails updatedDetails = systemDetailsRepository.save(details);
