@@ -3,6 +3,7 @@ package com.backend.water_management_system.payments.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
@@ -375,8 +376,13 @@ public class PaymentService {
         customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found: " + subscriptionNumber));
 
-        Bill latest = billRepository.findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber)
-                .orElseThrow(() -> new RuntimeException("No bills found for customer: " + subscriptionNumber));
+        Optional<Bill> latestOpt = billRepository.findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
+        
+        if (latestOpt.isEmpty()) {
+            return null; 
+        }
+        
+        Bill latest = latestOpt.get();
 
         BigDecimal total = latest.getTotalAmount() == null ? BigDecimal.ZERO : latest.getTotalAmount();
         BigDecimal balance = latest.getBalanceDue() == null ? BigDecimal.ZERO : latest.getBalanceDue();

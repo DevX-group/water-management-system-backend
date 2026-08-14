@@ -60,11 +60,11 @@ public class DataSeeder implements CommandLineRunner {
         if (customerRepository.count() > 0) {
             return;
         }
-        Region northRegion = new Region("R001", "north");
-        Region southRegion = new Region("R002", "south");
-        Region eastRegion = new Region("R003", "east");
-        Region westRegion = new Region("R004", "west");
-        Region centerRegion = new Region("R005", "center");
+        Region northRegion = new Region("R001", "north", true);
+        Region southRegion = new Region("R002", "south", true);
+        Region eastRegion = new Region("R003", "east", true);
+        Region westRegion = new Region("R004", "west", true);
+        Region centerRegion = new Region("R005", "center", true);
         regionRepository.save(northRegion);
         regionRepository.save(southRegion);
         regionRepository.save(eastRegion);
