@@ -24,6 +24,7 @@ import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.customer.exceptions.CustomerNotFoundException;
 import com.backend.water_management_system.payments.exceptions.InvalidPaymentException;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
+import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.payments.dto.AddPaymentRequest;
 import com.backend.water_management_system.payments.dto.AddPaymentResponse;
 import com.backend.water_management_system.payments.dto.CustomerPaymentSummaryResponse;
@@ -100,7 +101,7 @@ public class PaymentService {
 
         if (request.getPaymentMethod() == PaymentMethod.MANUAL) {
             try {
-                triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
+                triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
             } catch (Exception ex) {
                 log.warn("Failed to dispatch payment confirmation for {}: {}", payment.getPaymentId(), ex.getMessage());
             }

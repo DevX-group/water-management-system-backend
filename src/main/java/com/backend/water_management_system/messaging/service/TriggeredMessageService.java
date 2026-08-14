@@ -67,6 +67,9 @@ public class TriggeredMessageService {
         if (dto.getName() == null || dto.getName().isBlank()) {
             throw new MessagingValidationException("Message name is required.");
         }
+        if (dto.getTriggerType() == null) {
+            throw new MessagingValidationException("Trigger type is required.");
+        }
         if (dto.getChannels() == null || dto.getChannels().isEmpty()) {
             throw new MessagingValidationException("At least one channel must be selected.");
         }

@@ -7,6 +7,7 @@ import com.backend.water_management_system.messaging.entity.TriggeredMessage;
 import com.backend.water_management_system.messaging.enums.MessageChannel;
 import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.messaging.repository.TriggeredMessageRepository;
+import com.backend.water_management_system.payments.entity.BankSlip;
 import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
@@ -15,7 +16,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,15 +29,40 @@ public class TriggeredMessageDispatcher {
     private final BillRepository billRepository;
     private final MessageDispatchHelper dispatchHelper;
 
-    //@Async
+    // Compatibility wrapper for existing payment-confirmation callers.
     public void dispatchPaymentConfirmed(Payment payment) {
-        if (payment == null) {
+        dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
+    }
+
+    //for confirmed payments
+    public void dispatchTriggeredMessage(TriggerType triggerType, Payment payment) {
+        if (payment == null || triggerType == null) {
             return;
         }
 
         if (payment.getPaymentMethod() != PaymentMethod.MANUAL
                 && payment.getPaymentMethod() != PaymentMethod.BANK_TRANSFER
                 && payment.getPaymentMethod() != PaymentMethod.ONLINE) {
+            return;
+        }
+
+        dispatchTriggeredMessage(triggerType, payment, payment.getBankSlip());
+    }
+
+    //for rejected bank slips
+    public void dispatchTriggeredMessage(TriggerType triggerType, BankSlip bankSlip) {
+        if (bankSlip == null || triggerType == null) {
+            return;
+        }
+
+        dispatchTriggeredMessage(triggerType, null, bankSlip);
+    }
+
+    private void dispatchTriggeredMessage(TriggerType triggerType, Payment payment, BankSlip bankSlip) {
+        String subscriptionNumber = payment != null ? payment.getSubscriptionNumber()
+                : bankSlip != null ? bankSlip.getSubscriptionNumber() : null;
+
+        if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
             return;
         }
 
@@ -50,15 +75,15 @@ public class TriggeredMessageDispatcher {
         }
 
         List<TriggeredMessage> messages = triggeredMessageRepository
-                .findByTriggerTypeAndActiveTrue(TriggerType.PAYMENT_CONFIRMED);
+                .findByTriggerTypeAndActiveTrue(triggerType);
 
         if (messages.isEmpty()) {
             return;
         }
 
-        Customer customer = customerRepository.findById(payment.getSubscriptionNumber()).orElse(null);
+        Customer customer = customerRepository.findById(subscriptionNumber).orElse(null);
         if (customer == null) {
-            log.warn("Customer not found for payment confirmation: {}", payment.getSubscriptionNumber());
+            log.warn("Customer not found for triggered message {}: {}", triggerType, subscriptionNumber);
             return;
         }
 
@@ -78,7 +103,7 @@ public class TriggeredMessageDispatcher {
                 String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
                 if (!toPhone.isEmpty()) {
                     String smsTemplateToUse = dispatchHelper.resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
-                    dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment);
+                    dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment, bankSlip);
                 }
             }
 
@@ -87,7 +112,7 @@ public class TriggeredMessageDispatcher {
                 if (dispatchHelper.isValidEmail(toEmail)) {
                     String emailTemplateToUse = dispatchHelper.resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
                     dispatchHelper.dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate,
-                            emailTemplateToUse, currentBill, payment);
+                            emailTemplateToUse, currentBill, payment, bankSlip);
                 }
             }
         }

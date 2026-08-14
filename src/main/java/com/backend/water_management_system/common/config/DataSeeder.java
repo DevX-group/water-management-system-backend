@@ -70,14 +70,14 @@ public class DataSeeder implements CommandLineRunner {
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
         regionRepository.save(centerRegion);
-        User u1 = User.builder().nic("921234567V").email("hansana47@gmail.com").phoneNumber("0711234567").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u1 = User.builder().nic("921234567V").email("xyz@gmail.com").phoneNumber("0711234567").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u1);
-        Customer c1 = new Customer("SK-2341", "Hansana Thilakarathna", u1, "12 Lake Road, Colombo", "metered", northRegion);
+        Customer c1 = new Customer("SK-2341", "Amal Perera", u1, "12 Lake Road, Colombo", "metered", northRegion);
         c1.setOutstandingBalance(new BigDecimal("0.00"));
 
-        User u2 = User.builder().nic("881234568V").email("hanz4739@gmail.com").phoneNumber("0721234568").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u2 = User.builder().nic("881234568V").email("abc@gmail.com").phoneNumber("0721234568").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u2);
-        Customer c2 = new Customer("SP-4589", "Hansana Malshan", u2, "45 Temple Street, Galle", "metered", southRegion);
+        Customer c2 = new Customer("SP-4589", "Kasun Kalhara", u2, "45 Temple Street, Galle", "metered", southRegion);
         c2.setOutstandingBalance(new BigDecimal("500.00"));
 
         User u3 = User.builder().nic("901234569V").email("kamani@example.com").phoneNumber("0771234569").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
