@@ -105,4 +105,24 @@ public class MeterReadingService {
             return dto;
         }).collect(Collectors.toList());
     }
+
+    public MeterReadingTodayResponse getLatestReadingByMeterNumber(String meterNumber) {
+        Optional<MeterReading> reading = meterReadingRepository.findTopByMeterNumberOrderByReadingDateDesc(meterNumber);
+        if (reading.isPresent()) {
+            MeterReading r = reading.get();
+            MeterReadingTodayResponse dto = new MeterReadingTodayResponse();
+            dto.readingId = r.getReadingId();
+            dto.meterNumber = r.getMeterNumber();
+            dto.previousReading = r.getPreviousReading();
+            dto.currentReading = r.getCurrentReading();
+            dto.usageUnits = r.getUsageUnits();
+            dto.readingDate = r.getReadingDate();
+            if (r.getCustomer() != null) {
+                dto.customerName = r.getCustomer().getAccountHolderName();
+                dto.subscriptionNumber = r.getCustomer().getSubscriptionNumber();
+            }
+            return dto;
+        }
+        return null;
+    }
 }
