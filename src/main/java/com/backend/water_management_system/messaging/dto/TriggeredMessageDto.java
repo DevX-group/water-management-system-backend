@@ -1,0 +1,54 @@
+package com.backend.water_management_system.messaging.dto;
+
+import com.backend.water_management_system.messaging.enums.MessageChannel;
+import com.backend.water_management_system.messaging.enums.RecipientType;
+import com.backend.water_management_system.messaging.enums.TriggerType;
+import java.util.List;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@NoArgsConstructor
+@Getter
+@Setter
+public class TriggeredMessageDto {
+
+    private Long id;
+    private String name;
+    private List<MessageChannel> channels;
+    private RecipientType recipients;
+    private TemplatesDto templates;
+    private Boolean isDefault;
+    private TriggerType triggerType;
+    private Boolean active;
+
+    // --- Nested DTOs ---
+
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class TemplateSectionDto {
+        private String id;
+        private String name;
+        private String content;
+    }
+
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class MessageTemplateDto {
+        // Using Boolean (boxed) + getIsCustom() so Jackson maps to JSON key "isCustom"
+        private Boolean isCustom;
+        private String content;
+        private String subject;
+        private List<TemplateSectionDto> sections;
+    }
+
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class TemplatesDto {
+        private MessageTemplateDto sms;
+        private MessageTemplateDto email;
+    }
+}

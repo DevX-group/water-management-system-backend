@@ -1,0 +1,10 @@
+package com.backend.water_management_system.messaging.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.backend.water_management_system.messaging.entity.SentMessage;
+
+@Repository
+public interface SentMessageRepository extends JpaRepository<SentMessage, Long> {
+}
