@@ -63,6 +63,22 @@ public class CustomerController {
         return customerService.getCustomerById(subscriptionNumber);
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Customer> getCurrentCustomer(@AuthenticationPrincipal UserPrincipal principal) {
+        Customer customer = customerService.getCustomerByNic(principal.getUser().getNic());
+        return ResponseEntity.ok(customer);
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/me")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Customer> updateCurrentCustomerProfile(
+            @Valid @RequestBody com.backend.water_management_system.customer.dto.CustomerProfileUpdateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Customer updated = customerService.updateCustomerProfileByNic(principal.getUser().getNic(), request);
+        return ResponseEntity.ok(updated);
+    }
+
     @org.springframework.web.bind.annotation.PutMapping("/{subscriptionNumber}")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<Customer> updateCustomer(
