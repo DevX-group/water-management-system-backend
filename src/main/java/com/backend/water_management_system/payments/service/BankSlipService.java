@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,9 @@ import com.backend.water_management_system.customer.repository.CustomerRepositor
 import com.backend.water_management_system.customer.service.CustomerAccessService;
 import com.backend.water_management_system.security.UserPrincipal;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
+import com.backend.water_management_system.notification.dto.NotificationRequest;
+import com.backend.water_management_system.notification.enums.NotificationType;
+import com.backend.water_management_system.notification.service.NotificationService;
 import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
@@ -43,8 +48,10 @@ import com.backend.water_management_system.payments.repository.PaymentRepository
 @Service
 @RequiredArgsConstructor
 public class BankSlipService {
+        private static final Logger log = LoggerFactory.getLogger(BankSlipService.class);
         private final CloudinaryService cloudinaryService;
         private final CustomerPaymentService customerPaymentService;
+        private final NotificationService notificationService;
         private final BankSlipRepository bankSlipRepository;
         private final CustomerRepository customerRepository;
         private final CustomerAccessService customerAccessService;
@@ -255,6 +262,14 @@ public class BankSlipService {
                                 // Slip rejection is already persisted; messaging failures should not fail
                                 // review.
                         }
+
+                        notificationService.sendNotification(
+                                        NotificationRequest.builder()
+                                                        .subscriptionNumber(slip.getSubscriptionNumber())
+                                                        .notificationType(NotificationType.BANK_SLIP_REJECTED)
+                                                        .title("Bank Slip Rejected")
+                                                        .message("Your bank slip payment has been rejected. Please check the payment details and try again.")
+                                                        .build());
                 } else {
                         throw new IllegalArgumentException("Invalid action. Must be APPROVE or REJECT.");
                 }
@@ -291,6 +306,21 @@ public class BankSlipService {
                         triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
                 } catch (Exception ex) {
                         // Payment is recorded; messaging failures should not fail approval flow.
+                }
+
+                try {
+                        notificationService.sendNotification(
+                                        NotificationRequest.builder()
+                                                        .subscriptionNumber(subscriptionNumber)
+                                                        .notificationType(NotificationType.BANK_SLIP_APPROVED)
+                                                        .title("Bank Slip Approved")
+                                                        .message("Your bank slip payment has been approved successfully.")
+                                                        .build());
+                } catch (Exception ex) {
+                        log.warn(
+                                        "Failed to send notification for payment {}: {}",
+                                        payment.getPaymentId(),
+                                        ex.getMessage());
                 }
         }
 
