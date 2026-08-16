@@ -19,49 +19,68 @@ public class BillReportService {
 
     // ALL bills
     public List<BillReport> getAllBills() {
-        return repository.findAll();
+        try {
+            return repository.findAll();
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching all bills: " + e.getMessage());
+        }
     }
 
     // Bills by customer
     public List<BillReport> getBillsByCustomer(String customerId) {
-        return repository.findByCustomerId(customerId);
+        try {
+            return repository.findByCustomerId(customerId);
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching bills for customer: " + customerId);
+        }
     }
 
-    // ✅ ADD THIS → Overdue bills
+    // Overdue bills
     public List<BillReport> getOverdueBills() {
-        LocalDate today = LocalDate.now();
+        try {
+            LocalDate today = LocalDate.now();
 
-        return repository.findAll().stream()
-                .filter(bill ->
-                        "UNPAID".equals(bill.getStatus()) &&
-                                bill.getDueDate().isBefore(today)
-                )
-                .toList();
+            return repository.findAll().stream()
+                    .filter(bill ->
+                            "UNPAID".equals(bill.getStatus()) &&
+                                    bill.getDueDate().isBefore(today)
+                    )
+                    .toList();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching overdue bills: " + e.getMessage());
+        }
     }
 
     // Summary
     public BillsSummaryDTO getSummary(String customerId) {
+        try {
+            List<BillReport> bills = repository.findByCustomerId(customerId);
 
-        List<BillReport> bills = repository.findByCustomerId(customerId);
+            double total = bills.stream()
+                    .mapToDouble(BillReport::getAmount)
+                    .sum();
 
-        double total = bills.stream()
-                .mapToDouble(BillReport::getAmount)
-                .sum();
+            long unpaid = bills.stream()
+                    .filter(b -> "UNPAID".equals(b.getStatus()))
+                    .count();
 
-        long unpaid = bills.stream()
-                .filter(b -> "UNPAID".equals(b.getStatus()))
-                .count();
+            BillReport last = bills.stream()
+                    .reduce((a, b) ->
+                            a.getBillReportDate().isAfter(b.getBillReportDate()) ? a : b
+                    )
+                    .orElse(null);
 
-        BillReport last = bills.stream()
-                .reduce((a, b) -> a.getBillReportDate().isAfter(b.getBillReportDate()) ? a : b)
-                .orElse(null);
+            return new BillsSummaryDTO(
+                    customerId,
+                    bills.isEmpty() ? null : bills.get(0).getCustomerName(),
+                    total,
+                    last != null ? last.getBillReportDate() : null,
+                    unpaid
+            );
 
-        return new BillsSummaryDTO(
-                customerId,
-                bills.isEmpty() ? null : bills.get(0).getCustomerName(),
-                total,
-                last != null ? last.getBillReportDate() : null,
-                unpaid
-        );
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating bill summary: " + e.getMessage());
+        }
     }
 }

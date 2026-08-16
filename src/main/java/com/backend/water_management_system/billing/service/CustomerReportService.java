@@ -31,7 +31,7 @@ public class CustomerReportService {
 
     public List<MonthlyReportDTO> getMonthlyReport(int year) {
 
-        // ✔️ FIX: use correct repository variable
+
         List<Object[]> results = repository.getMonthlyReport(year);
 
         return results.stream()

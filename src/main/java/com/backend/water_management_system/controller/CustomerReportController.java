@@ -3,6 +3,8 @@ package com.backend.water_management_system.controller;
 import com.backend.water_management_system.dto.CustomerReportDTO;
 import com.backend.water_management_system.service.CustomerReportService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -18,10 +20,18 @@ public class CustomerReportController {
     }
 
     @GetMapping
-    public List<CustomerReportDTO> getCustomerReport(
+    public ResponseEntity<?> getCustomerReport(
             @RequestParam String customerId,
             @RequestParam int year
     ) {
-        return service.getCustomerReport(customerId, year);
+        try {
+            List<CustomerReportDTO> result =
+                    service.getCustomerReport(customerId, year);
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to generate customer report: " + e.getMessage());
+        }
     }
 }
