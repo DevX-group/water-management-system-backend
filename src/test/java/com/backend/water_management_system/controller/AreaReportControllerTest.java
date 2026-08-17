@@ -1,10 +1,14 @@
 package com.backend.water_management_system.controller;
 
-import com.backend.water_management_system.config.SecurityConfig;
+import com.backend.water_management_system.common.config.SecurityConfig;
 import com.backend.water_management_system.dto.AreaReportDTO;
+import com.backend.water_management_system.security.CustomUserDetailsService;
+import com.backend.water_management_system.security.JwtService;
 import com.backend.water_management_system.service.AreaReportService;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -21,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AreaReportController.class)
 @Import(SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AreaReportControllerTest {
 
     @Autowired
@@ -29,10 +34,16 @@ class AreaReportControllerTest {
     @MockitoBean
     private AreaReportService service;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
     @Test
     void getAreaReport_returnsJsonList() throws Exception {
-        // Arrange
         int year = 2026;
+
         AreaReportDTO dto = new AreaReportDTO();
         dto.setMonth("Jan");
         dto.setArea1Usage(100.0);
@@ -40,7 +51,6 @@ class AreaReportControllerTest {
 
         when(service.getAreaReport(year)).thenReturn(List.of(dto));
 
-        // Act & Assert
         mockMvc.perform(get("/api/reports/area")
                         .param("year", String.valueOf(year))
                         .contentType(MediaType.APPLICATION_JSON))

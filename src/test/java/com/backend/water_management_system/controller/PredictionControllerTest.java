@@ -1,11 +1,15 @@
 package com.backend.water_management_system.controller;
 
-import com.backend.water_management_system.config.SecurityConfig;
+import com.backend.water_management_system.common.config.SecurityConfig;
 import com.backend.water_management_system.dto.CustomerPredictionResponse;
 import com.backend.water_management_system.dto.MonthlyPredictionResponse;
+import com.backend.water_management_system.security.CustomUserDetailsService;
+import com.backend.water_management_system.security.JwtService;
 import com.backend.water_management_system.service.PredictionService;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -22,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(PredictionController.class)
 @Import(SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class PredictionControllerTest {
 
     @Autowired
@@ -30,15 +35,22 @@ class PredictionControllerTest {
     @MockitoBean
     private PredictionService predictionService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
     @Test
     void monthlyPrediction_returnsList() throws Exception {
-        // Arrange
         int year = 2026;
-        MonthlyPredictionResponse response = new MonthlyPredictionResponse("Jan", 100.0, null);
 
-        when(predictionService.getMonthlyPrediction(year)).thenReturn(List.of(response));
+        MonthlyPredictionResponse response =
+                new MonthlyPredictionResponse("Jan", 100.0, null);
 
-        // Act & Assert
+        when(predictionService.getMonthlyPrediction(year))
+                .thenReturn(List.of(response));
+
         mockMvc.perform(get("/api/predictions/monthly")
                         .param("year", String.valueOf(year))
                         .contentType(MediaType.APPLICATION_JSON))
@@ -47,19 +59,21 @@ class PredictionControllerTest {
                 .andExpect(jsonPath("$[0].month", is("Jan")))
                 .andExpect(jsonPath("$[0].usage", is(100.0)));
 
-        verify(predictionService, times(1)).getMonthlyPrediction(year);
+        verify(predictionService, times(1))
+                .getMonthlyPrediction(year);
     }
 
     @Test
     void customerPrediction_returnsList() throws Exception {
-        // Arrange
         String customerId = "C001";
         int year = 2026;
-        CustomerPredictionResponse response = new CustomerPredictionResponse("Jan", 10.0, null);
 
-        when(predictionService.getCustomerPrediction(customerId, year)).thenReturn(List.of(response));
+        CustomerPredictionResponse response =
+                new CustomerPredictionResponse("Jan", 10.0, null);
 
-        // Act & Assert
+        when(predictionService.getCustomerPrediction(customerId, year))
+                .thenReturn(List.of(response));
+
         mockMvc.perform(get("/api/predictions/customer")
                         .param("customerId", customerId)
                         .param("year", String.valueOf(year))
@@ -69,6 +83,7 @@ class PredictionControllerTest {
                 .andExpect(jsonPath("$[0].month", is("Jan")))
                 .andExpect(jsonPath("$[0].usage", is(10.0)));
 
-        verify(predictionService, times(1)).getCustomerPrediction(customerId, year);
+        verify(predictionService, times(1))
+                .getCustomerPrediction(customerId, year);
     }
 }
