@@ -14,16 +14,22 @@ import com.backend.water_management_system.common.entity.ConnectionRate;
 import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.backend.water_management_system.notification.dto.NotificationRequest;
+import com.backend.water_management_system.notification.enums.NotificationType;
+import com.backend.water_management_system.notification.service.NotificationService;
 
 @Service
 public class BillingService {
 
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
+    private final NotificationService notificationService;
 
-    public BillingService(BillRepository billRepository, RateRepository rateRepository) {
+    public BillingService(BillRepository billRepository, RateRepository rateRepository,
+            NotificationService notificationService) {
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
+        this.notificationService = notificationService;
     }
 
     public Bill generateBill(Customer customer, MeterReading reading) {
@@ -44,7 +50,7 @@ public class BillingService {
 
         BigDecimal subtotal = base.add(usageCharge);
         BigDecimal taxRate = BigDecimal.valueOf(safeDouble(rateEntity.getTaxRate()));
-        
+
         // Use setScale to avoid arithmetic exceptions with decimals
         BigDecimal tax = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal total = subtotal.add(tax).setScale(2, RoundingMode.HALF_UP);
@@ -71,7 +77,32 @@ public class BillingService {
         bill.setGeneratedAt(OffsetDateTime.now());
         bill.setMeterReading(reading);
         bill.setOutstandingAtIssue(outstandingAtIssue);
-        return billRepository.save(bill);
+        billRepository.save(bill);
+
+        String notificationMessage;
+
+        if (outstandingAtIssue != null && outstandingAtIssue.compareTo(BigDecimal.ZERO) > 0) {
+            notificationMessage = "Your new monthly water bill of Rs. "
+                    + bill.getTotalAmount()
+                    + " is now available. "
+                    + "You also have an outstanding balance of Rs. "
+                    + outstandingAtIssue
+                    + ".";
+        } else {
+            notificationMessage = "Your new monthly water bill of Rs. "
+                    + bill.getTotalAmount()
+                    + " is now available.";
+        }
+
+        notificationService.sendNotification(
+                NotificationRequest.builder()
+                        .subscriptionNumber(customer.getSubscriptionNumber())
+                        .notificationType(NotificationType.MONTHLY_BILL)
+                        .title("New Monthly Bill")
+                        .message(notificationMessage)
+                        .build());
+
+        return bill;
     }
 
     private BigDecimal calculateTierUsageCharge(int units, ConnectionRate rates) {

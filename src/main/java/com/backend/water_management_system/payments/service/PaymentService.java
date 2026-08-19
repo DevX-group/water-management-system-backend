@@ -24,6 +24,9 @@ import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.customer.exceptions.CustomerNotFoundException;
 import com.backend.water_management_system.payments.exceptions.InvalidPaymentException;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
+import com.backend.water_management_system.notification.dto.NotificationRequest;
+import com.backend.water_management_system.notification.enums.NotificationType;
+import com.backend.water_management_system.notification.service.NotificationService;
 import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.payments.dto.AddPaymentRequest;
 import com.backend.water_management_system.payments.dto.AddPaymentResponse;
@@ -55,6 +58,7 @@ public class PaymentService {
     private final BillRepository billRepository;
     private final PaymentAllocationRepository paymentAllocationRepository;
     private final TriggeredMessageDispatcher triggeredMessageDispatcher;
+    private final NotificationService notificationService;
 
     // Main entry point for adding a manual payment. Handles validation, bill
     // selection and processing
@@ -105,6 +109,21 @@ public class PaymentService {
             } catch (Exception ex) {
                 log.warn("Failed to dispatch payment confirmation for {}: {}", payment.getPaymentId(), ex.getMessage());
             }
+        }
+
+        try {
+            notificationService.sendNotification(
+                    NotificationRequest.builder()
+                            .subscriptionNumber(subscriptionNumber)
+                            .notificationType(NotificationType.MANUAL_PAYMENT)
+                            .title("Payment Successful")
+                            .message("Your manual payment of Rs. " + amount + " has been added successfully.")
+                            .build());
+        } catch (Exception ex) {
+            log.warn(
+                    "Failed to send notification for payment {}: {}",
+                    payment.getPaymentId(),
+                    ex.getMessage());
         }
 
         return buildResponse(payment, result, subscriptionNumber, request.getPaymentType(), request.getPaymentMethod());
@@ -376,12 +395,13 @@ public class PaymentService {
         customerRepository.findById(subscriptionNumber)
                 .orElseThrow(() -> new CustomerNotFoundException("Customer not found: " + subscriptionNumber));
 
-        Optional<Bill> latestOpt = billRepository.findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
-        
+        Optional<Bill> latestOpt = billRepository
+                .findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
+
         if (latestOpt.isEmpty()) {
-            return null; 
+            return null;
         }
-        
+
         Bill latest = latestOpt.get();
 
         BigDecimal total = latest.getTotalAmount() == null ? BigDecimal.ZERO : latest.getTotalAmount();
