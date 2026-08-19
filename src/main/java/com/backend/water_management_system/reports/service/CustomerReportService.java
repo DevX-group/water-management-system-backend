@@ -1,0 +1,44 @@
+package com.backend.water_management_system.reports.service;
+
+import com.backend.water_management_system.reports.dto.CustomerReportDTO;
+import com.backend.water_management_system.reports.dto.MonthlyReportDTO;
+import com.backend.water_management_system.reports.repository.UsageRecordRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CustomerReportService {
+
+    private final UsageRecordRepository repository;
+
+    public CustomerReportService(UsageRecordRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<CustomerReportDTO> getCustomerReport(String customerId, int year) {
+
+        List<Object[]> results = repository.getCustomerReport(customerId, year);
+
+        return results.stream()
+                .map(r -> new CustomerReportDTO(
+                        (String) r[0],
+                        ((Number) r[1]).doubleValue(),
+                        ((Number) r[2]).doubleValue()
+                ))
+                .toList();
+    }
+
+    public List<MonthlyReportDTO> getMonthlyReport(int year) {
+
+        List<Object[]> results = repository.getMonthlyReport(year);
+
+        return results.stream()
+                .map(r -> new MonthlyReportDTO(
+                        (String) r[0],
+                        ((Number) r[1]).doubleValue(),
+                        ((Number) r[2]).doubleValue()
+                ))
+                .toList();
+    }
+}
