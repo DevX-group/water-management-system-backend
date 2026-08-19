@@ -20,7 +20,7 @@ public class Region {
 
     private String regionName;
 
-    @Column(nullable = false)
-    private boolean isActive;
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean isActive = true;
 
 }
