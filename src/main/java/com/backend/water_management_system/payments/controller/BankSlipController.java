@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,11 @@ import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.customer.service.CustomerAccessService;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
+import com.backend.water_management_system.payments.dto.BankSlipExtractResponse;
 import com.backend.water_management_system.payments.dto.BankSlipUploadRequest;
 import com.backend.water_management_system.payments.dto.BankSlipUploadResponse;
 import com.backend.water_management_system.payments.dto.CustomerBankSlipResponse;
+import com.backend.water_management_system.payments.service.AIBankSlipVisionService;
 import com.backend.water_management_system.payments.service.BankSlipService;
 import com.backend.water_management_system.security.UserPrincipal;
 
@@ -38,6 +41,7 @@ public class BankSlipController {
 
     private final BankSlipService bankSlipService;
     private final CustomerAccessService customerAccessService;
+    private final AIBankSlipVisionService aiBankSlipVisionService;
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -98,5 +102,12 @@ public class BankSlipController {
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
     public ResponseEntity<AdminBankSlipResponse> getBankSlipById(@PathVariable Long slipId) {
         return ResponseEntity.ok(bankSlipService.getBankSlipById(slipId));
+    }
+
+    @PostMapping(value = "/extract", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<BankSlipExtractResponse> extractSlipData(
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(aiBankSlipVisionService.extractSlipData(file));
     }
 }

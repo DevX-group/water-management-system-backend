@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,5 +47,14 @@ public class MeterReadingController {
     @GetMapping("/today")  // Get all meter readings submitted today
     public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings() {
         return ResponseEntity.ok(meterReadingService.getTodaysReadings());
+    }
+
+    @GetMapping("/previous/{meterNumber}")
+    public ResponseEntity<MeterReadingTodayResponse> getPreviousReading(@PathVariable String meterNumber) {
+        MeterReadingTodayResponse latest = meterReadingService.getLatestReadingByMeterNumber(meterNumber);
+        if (latest != null) {
+            return ResponseEntity.ok(latest);
+        }
+        return ResponseEntity.notFound().build();
     }
 }
