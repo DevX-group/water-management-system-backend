@@ -23,3 +23,7 @@ spring:
 jwt:
   secret: test-secret-key-for-internal-chat-authentication-1234567890
   expiry-ms: 3600000
+
+app:
+  password-reset:
+    otp-hmac-secret: test-only-password-reset-secret
