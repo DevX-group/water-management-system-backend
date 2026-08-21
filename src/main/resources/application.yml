@@ -51,6 +51,10 @@ app:
     max-otp-attempts: 5
     resend-cooldown-seconds: 60
     authorization-expiry-minutes: 10
+    nic-requests-per-window: 3
+    ip-requests-per-window: 20
+    verification-requests-per-window: 30
+    rate-limit-window-minutes: 15
     otp-hmac-secret: ${PASSWORD_RESET_OTP_HMAC_SECRET}
   super-admin:
     nic: ${SUPER_ADMIN_NIC}

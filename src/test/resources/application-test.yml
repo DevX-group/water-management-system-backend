@@ -26,4 +26,8 @@ jwt:
 
 app:
   password-reset:
+    nic-requests-per-window: 3
+    ip-requests-per-window: 20
+    verification-requests-per-window: 30
+    rate-limit-window-minutes: 15
     otp-hmac-secret: test-only-password-reset-secret

@@ -26,6 +26,18 @@ public class PasswordResetProperties {
     @NotBlank
     private String otpHmacSecret;
 
+    @Min(1)
+    private int nicRequestsPerWindow = 3;
+
+    @Min(1)
+    private int ipRequestsPerWindow = 20;
+
+    @Min(1)
+    private int verificationRequestsPerWindow = 30;
+
+    @Min(1)
+    private int rateLimitWindowMinutes = 15;
+
     public int getOtpExpiryMinutes() {
         return otpExpiryMinutes;
     }
@@ -64,5 +76,37 @@ public class PasswordResetProperties {
 
     public void setOtpHmacSecret(String otpHmacSecret) {
         this.otpHmacSecret = otpHmacSecret;
+    }
+
+    public int getNicRequestsPerWindow() {
+        return nicRequestsPerWindow;
+    }
+
+    public void setNicRequestsPerWindow(int nicRequestsPerWindow) {
+        this.nicRequestsPerWindow = nicRequestsPerWindow;
+    }
+
+    public int getIpRequestsPerWindow() {
+        return ipRequestsPerWindow;
+    }
+
+    public void setIpRequestsPerWindow(int ipRequestsPerWindow) {
+        this.ipRequestsPerWindow = ipRequestsPerWindow;
+    }
+
+    public int getVerificationRequestsPerWindow() {
+        return verificationRequestsPerWindow;
+    }
+
+    public void setVerificationRequestsPerWindow(int verificationRequestsPerWindow) {
+        this.verificationRequestsPerWindow = verificationRequestsPerWindow;
+    }
+
+    public int getRateLimitWindowMinutes() {
+        return rateLimitWindowMinutes;
+    }
+
+    public void setRateLimitWindowMinutes(int rateLimitWindowMinutes) {
+        this.rateLimitWindowMinutes = rateLimitWindowMinutes;
     }
 }
