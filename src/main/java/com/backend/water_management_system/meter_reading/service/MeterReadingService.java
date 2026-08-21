@@ -57,6 +57,7 @@ public class MeterReadingService {
         reading.setCurrentReading(req.currentReading);
         reading.setUsageUnits(usage);
         reading.setReadingDate(req.readingDate);
+        reading.setImageUrl(req.imageUrl);
         reading.setNotes(req.notes);
         reading.setSubmittedBy(req.submittedBy);
         MeterReading savedReading = meterReadingRepository.save(reading);
@@ -91,6 +92,7 @@ public class MeterReadingService {
             dto.currentReading = r.getCurrentReading();
             dto.usageUnits = r.getUsageUnits();
             dto.readingDate = r.getReadingDate();
+            dto.imageUrl = r.getImageUrl();
             if (r.getCustomer() != null) {
                 dto.customerName = r.getCustomer().getAccountHolderName();
                 dto.subscriptionNumber = r.getCustomer().getSubscriptionNumber();
@@ -117,6 +119,7 @@ public class MeterReadingService {
             dto.currentReading = r.getCurrentReading();
             dto.usageUnits = r.getUsageUnits();
             dto.readingDate = r.getReadingDate();
+            dto.imageUrl = r.getImageUrl();
             if (r.getCustomer() != null) {
                 dto.customerName = r.getCustomer().getAccountHolderName();
                 dto.subscriptionNumber = r.getCustomer().getSubscriptionNumber();
