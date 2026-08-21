@@ -142,7 +142,15 @@ public class InternalChatService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Message> messages = messageRepository.findByConversationOrderByCreatedAtDesc(conversation, pageable);
-        return messages.stream().sorted(Comparator.comparing(Message::getCreatedAt)).map(MessageResponse::from)
+        User otherParticipant = findOtherParticipant(conversation, currentUser);
+        ConversationParticipant otherMembership = conversationParticipantRepository
+                .findByConversationAndUser(conversation, otherParticipant)
+                .orElse(null);
+        LocalDateTime otherLastReadAt = otherMembership == null ? null : otherMembership.getLastReadAt();
+
+        return messages.stream().sorted(Comparator.comparing(Message::getCreatedAt))
+                .map(message -> MessageResponse.from(message, isReadByOtherParticipant(message, currentUser,
+                        otherLastReadAt)))
                 .toList();
     }
 
@@ -174,7 +182,7 @@ public class InternalChatService {
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
 
-        return MessageResponse.from(saved);
+        return MessageResponse.from(saved, false);
     }
 
     @Transactional
@@ -191,6 +199,20 @@ public class InternalChatService {
 
         participant.setLastReadAt(LocalDateTime.now());
         conversationParticipantRepository.save(participant);
+    }
+
+    /**
+     * Returns the timestamp used to notify the sender about a newly read
+     * conversation.
+     */
+    @Transactional(readOnly = true)
+    public LocalDateTime getLastReadAt(UUID currentUserId, UUID conversationId) {
+        User currentUser = findUserById(currentUserId);
+        Conversation conversation = findConversationById(conversationId);
+        return conversationParticipantRepository.findByConversationAndUser(conversation, currentUser)
+                .map(ConversationParticipant::getLastReadAt)
+                .orElseThrow(
+                        () -> new InternalChatAccessDeniedException("You are not a participant in this conversation."));
     }
 
     @Transactional(readOnly = true)
@@ -276,6 +298,12 @@ public class InternalChatService {
         return conversationParticipantRepository.findOtherParticipant(conversation, currentUser)
                 .map(ConversationParticipant::getUser)
                 .orElse(null);
+    }
+
+    private boolean isReadByOtherParticipant(Message message, User currentUser, LocalDateTime otherLastReadAt) {
+        return message.getSender().getId().equals(currentUser.getId())
+                && otherLastReadAt != null
+                && !otherLastReadAt.isBefore(message.getCreatedAt());
     }
 
     /**

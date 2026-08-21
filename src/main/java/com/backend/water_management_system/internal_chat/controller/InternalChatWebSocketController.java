@@ -13,6 +13,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
+import java.util.UUID;
+
 @Controller
 @RequiredArgsConstructor
 /** Handles live internal-chat messages received over STOMP. */

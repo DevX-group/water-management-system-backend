@@ -3,6 +3,7 @@ package com.backend.water_management_system.internal_chat.controller;
 import com.backend.water_management_system.internal_chat.dto.ConversationResponse;
 import com.backend.water_management_system.internal_chat.dto.CreateConversationRequest;
 import com.backend.water_management_system.internal_chat.dto.InternalChatUserResponse;
+import com.backend.water_management_system.internal_chat.dto.InternalChatReadReceipt;
 import com.backend.water_management_system.internal_chat.dto.MessageResponse;
 import com.backend.water_management_system.internal_chat.dto.SendMessageRequest;
 import com.backend.water_management_system.internal_chat.service.InternalChatService;
@@ -76,6 +77,11 @@ public class InternalChatController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID conversationId) {
         internalChatService.markConversationAsRead(principal.getUser().getId(), conversationId);
+        var readerId = principal.getUser().getId();
+        var recipient = internalChatService.getOtherParticipant(readerId, conversationId);
+        var readAt = internalChatService.getLastReadAt(readerId, conversationId);
+        messagingTemplate.convertAndSendToUser(recipient.getNic(), "/queue/internal-chat-read",
+                new InternalChatReadReceipt(conversationId, readerId, readAt));
         return ResponseEntity.noContent().build();
     }
 

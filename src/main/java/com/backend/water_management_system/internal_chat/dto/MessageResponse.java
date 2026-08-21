@@ -12,7 +12,8 @@ public record MessageResponse(
         UUID senderId,
         String senderName,
         String content,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        boolean read) {
     /** Converts the persisted message entity into the public response contract. */
     public static MessageResponse from(Message message) {
         return new MessageResponse(
@@ -21,6 +22,22 @@ public record MessageResponse(
                 message.getSender().getId(),
                 message.getSender().getFullName(),
                 message.getContent(),
-                message.getCreatedAt());
+                message.getCreatedAt(),
+                false);
+    }
+
+    /**
+     * Builds a response with the recipient read state for messages sent by the
+     * current user.
+     */
+    public static MessageResponse from(Message message, boolean read) {
+        return new MessageResponse(
+                message.getId(),
+                message.getConversation().getId(),
+                message.getSender().getId(),
+                message.getSender().getFullName(),
+                message.getContent(),
+                message.getCreatedAt(),
+                read);
     }
 }

@@ -41,7 +41,6 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             @Param("lastReadAt") LocalDateTime lastReadAt,
             @Param("user") User user);
 
-    /** Returns the newest message used for conversation previews. */
-    @Query("select m from InternalChatMessage m join fetch m.sender s where m.conversation = :conversation order by m.createdAt desc")
-    Optional<Message> findTopByConversationOrderByCreatedAtDesc(@Param("conversation") Conversation conversation);
+    /** Returns exactly one newest message used for conversation previews. */
+    Optional<Message> findTopByConversationOrderByCreatedAtDesc(Conversation conversation);
 }
