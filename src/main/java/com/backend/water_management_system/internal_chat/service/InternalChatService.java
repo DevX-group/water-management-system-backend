@@ -222,6 +222,20 @@ public class InternalChatService {
                 .orElseThrow(() -> new InternalChatNotFoundException("User not found."));
     }
 
+    /** Returns the other authorized participant for a direct conversation. */
+    @Transactional(readOnly = true)
+    public User getOtherParticipant(UUID currentUserId, UUID conversationId) {
+        User currentUser = findUserById(currentUserId);
+        ensureEligibleInternalChatUser(currentUser);
+        Conversation conversation = findConversationById(conversationId);
+        ensureParticipant(conversation, currentUser);
+        User otherParticipant = findOtherParticipant(conversation, currentUser);
+        if (otherParticipant == null) {
+            throw new InternalChatAccessDeniedException("Conversation member not found.");
+        }
+        return otherParticipant;
+    }
+
     /** Defines the staff roles and account state allowed to use internal chat. */
     private boolean isEligibleInternalChatUser(User user) {
         return user != null && user.getStatus() == UserStatus.ACTIVE && user.getRole() != Role.CUSTOMER

@@ -35,8 +35,11 @@ public class InternalChatWebSocketController {
         // REST and WebSocket messages share the same service validation and
         // authorization path.
         SendMessageRequest contentRequest = new SendMessageRequest(request.content());
-        MessageResponse response = internalChatService.sendMessage(principal.getUser().getId(),
+        UUID senderId = principal.getUser().getId();
+        MessageResponse response = internalChatService.sendMessage(senderId,
                 request.conversationId(), contentRequest);
         messagingTemplate.convertAndSend("/topic/internal-chat/conversation/" + request.conversationId(), response);
+        var recipient = internalChatService.getOtherParticipant(senderId, request.conversationId());
+        messagingTemplate.convertAndSendToUser(recipient.getNic(), "/queue/internal-chat", response);
     }
 }

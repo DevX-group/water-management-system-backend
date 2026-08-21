@@ -11,6 +11,7 @@ import com.backend.water_management_system.user.enums.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class InternalChatController {
 
     private final InternalChatService internalChatService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @GetMapping("/users")
     @PreAuthorize("isAuthenticated()")
@@ -84,6 +86,15 @@ public class InternalChatController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID conversationId,
             @Valid @RequestBody SendMessageRequest request) {
-        return ResponseEntity.ok(internalChatService.sendMessage(principal.getUser().getId(), conversationId, request));
+        MessageResponse response = internalChatService.sendMessage(principal.getUser().getId(), conversationId,
+                request);
+        publishMessage(principal.getUser().getId(), conversationId, response);
+        return ResponseEntity.ok(response);
+    }
+
+    private void publishMessage(UUID senderId, UUID conversationId, MessageResponse response) {
+        messagingTemplate.convertAndSend("/topic/internal-chat/conversation/" + conversationId, response);
+        var recipient = internalChatService.getOtherParticipant(senderId, conversationId);
+        messagingTemplate.convertAndSendToUser(recipient.getNic(), "/queue/internal-chat", response);
     }
 }
