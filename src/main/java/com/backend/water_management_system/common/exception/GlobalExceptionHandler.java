@@ -9,12 +9,29 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.security.access.AccessDeniedException;
+
+import com.backend.water_management_system.customer.exceptions.CustomerNotFoundException;
 import com.backend.water_management_system.messaging.exceptions.MessagingNotFoundException;
 import com.backend.water_management_system.messaging.exceptions.MessagingValidationException;
 import com.backend.water_management_system.payments.exceptions.InvalidPaymentException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(new ApiError(ex.getMessage(), "FORBIDDEN", 403));
+    }
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<ApiError> handleCustomerNotFound(CustomerNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ApiError(ex.getMessage(), "CUSTOMER_NOT_FOUND", 404));
+    }
+
     @ExceptionHandler(InvalidPaymentException.class)
     public ResponseEntity<Map<String, String>> handleInvalidPayment(InvalidPaymentException ex) {
         return ResponseEntity
