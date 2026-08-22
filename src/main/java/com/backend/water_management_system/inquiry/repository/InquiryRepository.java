@@ -1,5 +1,7 @@
 package com.backend.water_management_system.inquiry.repository;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +16,6 @@ public interface InquiryRepository extends JpaRepository<Inquiry, String> {
 
     /** Count inquiries by email (customer-scoped). */
     long countByEmailAndStatus(String email, String status);
+
+    List<Inquiry> findByEmail(String email);
 }
