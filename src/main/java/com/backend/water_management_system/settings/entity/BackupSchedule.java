@@ -1,6 +1,8 @@
 package com.backend.water_management_system.settings.entity;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import com.backend.water_management_system.settings.enums.BackupFrequency;
 import com.backend.water_management_system.settings.enums.BackupStatus;
@@ -23,6 +25,16 @@ public class BackupSchedule {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BackupFrequency frequency; // DISABLE, DAILY, WEEKLY, MONTHLY
+
+    @Column(name = "schedule_time")
+    private LocalTime time;
+
+    @Enumerated(EnumType.STRING)
+    private DayOfWeek dayOfWeek;
+
+    private Integer dayOfMonth;
+
+    private String cronExpression;
 
     @Enumerated(EnumType.STRING)
     private BackupStatus lastBackupStatus; // RUNNING, SUCCESS, FAILED
