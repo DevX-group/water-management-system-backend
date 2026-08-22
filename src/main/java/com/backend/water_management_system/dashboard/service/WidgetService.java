@@ -188,8 +188,8 @@ public class WidgetService {
 
             // Ensure the widget's allowed roles include the dashboard's role
             if (!widget.getAllowedRoles().contains(dashboard.getAssignedRole())) {
-                throw new IllegalArgumentException("Widget " + widget.getWidgetKey()
-                        + " is not authorised for role " + dashboard.getAssignedRole());
+                System.out.println("Skipping unauthorized widget " + widget.getWidgetKey() + " for role " + dashboard.getAssignedRole());
+                continue;
             }
 
             DashboardWidget dw = DashboardWidget.builder()
