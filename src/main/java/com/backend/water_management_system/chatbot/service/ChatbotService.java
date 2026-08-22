@@ -1,8 +1,9 @@
 package com.backend.water_management_system.chatbot.service;
 
-import io.github.cdimascio.dotenv.Dotenv;
-import com.backend.water_management_system.billing.service.BillService;
-import com.backend.water_management_system.billing.dto.BillResponse;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -10,14 +11,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
+import com.backend.water_management_system.billing.dto.BillResponse;
+import com.backend.water_management_system.billing.service.BillService;
+
+import io.github.cdimascio.dotenv.Dotenv;
 
 @Service
 public class ChatbotService {
 
     private final String apiKey;
+    private final String geminiModel;
     private final RestTemplate restTemplate;
     private final BillService billService;
 
@@ -26,6 +29,7 @@ public class ChatbotService {
         this.billService = billService;
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         this.apiKey = dotenv.get("GEMINI_API_KEY", "");
+        this.geminiModel = dotenv.get("GEMINI_MODEL", "gemini-3.5-flash-lite");
     }
 
     public String getChatbotResponse(String userMessage, String subscriptionNumber) {
@@ -33,7 +37,7 @@ public class ChatbotService {
             return "Server Error: Gemini API Key is not configured. Please add it to the .env file.";
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey.trim();
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + apiKey.trim();
 
         StringBuilder systemPrompt = new StringBuilder();
         systemPrompt.append("You are a helpful, professional, and friendly Water Management Assistant. ");
