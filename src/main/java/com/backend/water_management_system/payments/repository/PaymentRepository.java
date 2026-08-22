@@ -42,4 +42,8 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
                 Pageable pageable);
 
         List<Payment> findByPaymentMethodInOrderByCreatedAtDesc(List<PaymentMethod> methods, Pageable pageable);
+
+        /** Sum of payment amounts completed in the current month (status COMPLETED). */
+        @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'COMPLETED' AND YEAR(p.createdAt) = :year AND MONTH(p.createdAt) = :month")
+        java.math.BigDecimal sumCompletedPaymentsByMonth(@org.springframework.data.repository.query.Param("year") int year, @org.springframework.data.repository.query.Param("month") int month);
 }

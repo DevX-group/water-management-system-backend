@@ -12,6 +12,7 @@ public class MeterReadingTodayResponse {
     public Integer currentReading;
     public Integer usageUnits;
     public LocalDate readingDate;
+    public String imageUrl;
     public Long billId;
     public BigDecimal totalAmount;
     public String billStatus;

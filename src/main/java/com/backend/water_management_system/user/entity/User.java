@@ -49,6 +49,10 @@ public class User {
     @Column
     private String passwordHash;
 
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    @Builder.Default
+    private long tokenVersion = 0L;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

@@ -14,16 +14,22 @@ import com.backend.water_management_system.common.entity.ConnectionRate;
 import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.backend.water_management_system.notification.dto.NotificationRequest;
+import com.backend.water_management_system.notification.enums.NotificationType;
+import com.backend.water_management_system.notification.service.NotificationService;
 
 @Service
 public class BillingService {
 
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
+    private final NotificationService notificationService;
 
-    public BillingService(BillRepository billRepository, RateRepository rateRepository) {
+    public BillingService(BillRepository billRepository, RateRepository rateRepository,
+            NotificationService notificationService) {
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
+        this.notificationService = notificationService;
     }
 
     public Bill generateBill(Customer customer, MeterReading reading) {
@@ -32,30 +38,19 @@ public class BillingService {
                 ? customer.getConnectionType()
                 : "metered";
 
-        // 2. Fetch rates from the connection_rates table
         ConnectionRate rateEntity = rateRepository.findById(type)
                 .orElseThrow(() -> new RuntimeException("Rates not found in DB for: " + type));
 
         int units = (reading.getUsageUnits() != null) ? reading.getUsageUnits() : 0;
-
-        // 3. Convert Double fields to BigDecimal safely
         BigDecimal base = BigDecimal.valueOf(safeDouble(rateEntity.getBaseRate()));
         BigDecimal usageCharge = calculateTierUsageCharge(units, rateEntity);
-
         BigDecimal subtotal = base.add(usageCharge);
         BigDecimal taxRate = BigDecimal.valueOf(safeDouble(rateEntity.getTaxRate()));
-        
-        // Use setScale to avoid arithmetic exceptions with decimals
         BigDecimal tax = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal total = subtotal.add(tax).setScale(2, RoundingMode.HALF_UP);
-
-        // Previous unpaid balance carried forward (not part of current month's bill)
         BigDecimal outstandingAtIssue = billRepository.getTotalPendingBalance(customer.getSubscriptionNumber());
-
-        // --- DEBUG LOG--
         System.out.println("CALCULATION: Type=" + type + " Units=" + units + " Base=" + base + " Total=" + total);
 
-        // 4. Save the Bill
         Bill bill = new Bill();
         bill.setCustomer(customer);
         bill.setUsageUnits(units);
@@ -71,6 +66,62 @@ public class BillingService {
         bill.setGeneratedAt(OffsetDateTime.now());
         bill.setMeterReading(reading);
         bill.setOutstandingAtIssue(outstandingAtIssue);
+        billRepository.save(bill);
+
+        String notificationMessage;
+
+        if (outstandingAtIssue != null && outstandingAtIssue.compareTo(BigDecimal.ZERO) > 0) {
+            notificationMessage = "Your new monthly water bill of Rs. "
+                    + bill.getTotalAmount()
+                    + " is now available. "
+                    + "You also have an outstanding balance of Rs. "
+                    + outstandingAtIssue
+                    + ".";
+        } else {
+            notificationMessage = "Your new monthly water bill of Rs. "
+                    + bill.getTotalAmount()
+                    + " is now available.";
+        }
+
+        notificationService.sendNotification(
+                NotificationRequest.builder()
+                        .subscriptionNumber(customer.getSubscriptionNumber())
+                        .notificationType(NotificationType.MONTHLY_BILL)
+                        .title("New Monthly Bill")
+                        .message(notificationMessage)
+                        .build());
+
+        return bill;
+    }
+
+    public Bill updateBill(Bill bill, MeterReading reading) {
+        Customer customer = bill.getCustomer();
+        final String type = (customer.getConnectionType() != null)
+                ? customer.getConnectionType()
+                : "metered";
+
+        ConnectionRate rateEntity = rateRepository.findById(type)
+                .orElseThrow(() -> new RuntimeException("Rates not found in DB for: " + type));
+
+        int units = (reading.getUsageUnits() != null) ? reading.getUsageUnits() : 0;
+
+        BigDecimal base = BigDecimal.valueOf(safeDouble(rateEntity.getBaseRate()));
+        BigDecimal usageCharge = calculateTierUsageCharge(units, rateEntity);
+
+        BigDecimal subtotal = base.add(usageCharge);
+        BigDecimal taxRate = BigDecimal.valueOf(safeDouble(rateEntity.getTaxRate()));
+
+        BigDecimal tax = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(tax).setScale(2, RoundingMode.HALF_UP);
+
+        bill.setUsageUnits(units);
+        bill.setBaseCharge(base);
+        bill.setUsageCharge(usageCharge);
+        bill.setTaxAmount(tax);
+        bill.setTotalAmount(total);
+        bill.setBalanceDue(total);
+        bill.setMeterReading(reading);
+        
         return billRepository.save(bill);
     }
 
@@ -94,8 +145,6 @@ public class BillingService {
                 .add(r2.multiply(BigDecimal.valueOf(tier2Units)))
                 .add(r3.multiply(BigDecimal.valueOf(tier3Units)));
     }
-
-    // Helper to prevent NullPointerException if DB columns are empty
     private Double safeDouble(Double val) {
         return (val == null) ? 0.0 : val;
     }

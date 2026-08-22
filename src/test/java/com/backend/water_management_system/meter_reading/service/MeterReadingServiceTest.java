@@ -113,7 +113,7 @@ public class MeterReadingServiceTest {
     }
 
     @Test
-    void testGetTodaysReadings() {
+    void testGetReadingsByDate() {
         // Arrange
         MeterReading reading = new MeterReading();
         reading.setReadingId(1L);
@@ -128,7 +128,7 @@ public class MeterReadingServiceTest {
         when(billRepository.findByMeterReading(reading)).thenReturn(Optional.of(mockBill));
 
         // Act
-        List<MeterReadingTodayResponse> responses = meterReadingService.getTodaysReadings();
+        List<MeterReadingTodayResponse> responses = meterReadingService.getReadingsByDate(LocalDate.now());
 
         // Assert
         assertEquals(1, responses.size());

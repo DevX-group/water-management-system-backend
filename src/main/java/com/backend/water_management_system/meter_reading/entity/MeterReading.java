@@ -25,6 +25,9 @@ public class MeterReading {
     private LocalDate readingDate;
 
     @Column(length = 500)
+    private String imageUrl;
+
+    @Column(length = 500)
     private String notes;
 
     // store who submitted (admin id) - optional for now
@@ -45,6 +48,8 @@ public class MeterReading {
     public void setUsageUnits(Integer usageUnits) { this.usageUnits = usageUnits; }
     public LocalDate getReadingDate() { return readingDate; }
     public void setReadingDate(LocalDate readingDate) { this.readingDate = readingDate; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
     public Long getSubmittedBy() { return submittedBy; }

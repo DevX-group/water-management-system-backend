@@ -27,11 +27,12 @@ public class JwtService {
 
     // ── Token generation ──────────────────────────────────────────────────────
 
-    public String generateToken(String nic, String role) {
+    public String generateToken(String nic, String role, long tokenVersion) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
                 .subject(nic)
                 .claim("role", role)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + expiryMs))
                 .signWith(signingKey)
@@ -44,6 +45,21 @@ public class JwtService {
         try {
             extractAllClaims(token);
             return !isTokenExpired(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public boolean isTokenValid(String token, long expectedTokenVersion) {
+        try {
+            Claims claims = extractAllClaims(token);
+            if (claims.getExpiration().before(new Date())) {
+                return false;
+            }
+            Number tokenVersion = claims.get("tokenVersion", Number.class);
+            return tokenVersion == null
+                    ? expectedTokenVersion == 0L
+                    : tokenVersion.longValue() == expectedTokenVersion;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

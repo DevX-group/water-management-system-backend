@@ -44,9 +44,26 @@ public class MeterReadingController {
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/today")  // Get all meter readings submitted today
-    public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings() {
-        return ResponseEntity.ok(meterReadingService.getTodaysReadings());
+    @org.springframework.web.bind.annotation.PutMapping("/{readingId}")
+    public ResponseEntity<MeterReadingCreateResponse> update(@PathVariable Long readingId, @RequestBody MeterReadingCreateRequest req) {
+        Bill bill = meterReadingService.updateReading(readingId, req);
+
+        MeterReadingCreateResponse res = new MeterReadingCreateResponse();
+        res.readingId = bill.getMeterReading().getReadingId();
+        res.usageUnits = bill.getUsageUnits();
+        res.billId = bill.getBillId();
+        res.totalAmount = bill.getTotalAmount();
+        res.status = bill.getStatus();
+
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/today")  // Get all meter readings submitted for a specific date (defaults to today)
+    public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) 
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) 
+            java.time.LocalDate date) {
+        return ResponseEntity.ok(meterReadingService.getReadingsByDate(date));
     }
 
     @GetMapping("/previous/{meterNumber}")
@@ -56,5 +73,16 @@ public class MeterReadingController {
             return ResponseEntity.ok(latest);
         }
         return ResponseEntity.notFound().build();
+    }
+    
+    @PostMapping(value = "/upload-image", consumes = "multipart/form-data")
+    public ResponseEntity<java.util.Map<String, String>> uploadImage(@org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                                                                     @org.springframework.beans.factory.annotation.Autowired com.backend.water_management_system.payments.service.CloudinaryService cloudinaryService) {
+        if (cloudinaryService.isConfigured()) {
+            com.backend.water_management_system.payments.dto.CloudinaryUploadResponse res = cloudinaryService.uploadFile(file);
+            return ResponseEntity.ok(java.util.Map.of("url", res.getUrl()));
+        } else {
+            return ResponseEntity.ok(java.util.Map.of("url", "https://via.placeholder.com/600x400?text=Meter+Reading+Image"));
+        }
     }
 }

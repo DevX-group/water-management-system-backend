@@ -1,0 +1,33 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:internalchat;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+  security:
+    user:
+      name: admin
+      password: admin
+
+jwt:
+  secret: test-secret-key-for-internal-chat-authentication-1234567890
+  expiry-ms: 3600000
+
+app:
+  password-reset:
+    nic-requests-per-window: 3
+    ip-requests-per-window: 20
+    verification-requests-per-window: 30
+    rate-limit-window-minutes: 15
+    otp-hmac-secret: test-only-password-reset-secret

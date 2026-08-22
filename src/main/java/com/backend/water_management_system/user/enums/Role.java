@@ -8,6 +8,10 @@ public enum Role {
     CUSTOMER,
     SUPER_ADMIN,
     SYSTEM_ADMIN,
-    PAYMENT_HANDLER,
+    /**
+     * CUSTOMER_HANDLER — was previously PAYMENT_HANDLER.
+     * Handles billing, payments, customer management, and inquiries.
+     */
+    CUSTOMER_HANDLER,
     METER_READER
 }

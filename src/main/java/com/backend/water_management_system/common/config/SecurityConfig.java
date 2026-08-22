@@ -54,12 +54,20 @@ public class SecurityConfig {
 
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // Auth endpoints are public
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Existing login/activation and the three password-reset endpoints are public
+                        .requestMatchers(
+                            "/api/auth/login",
+                            "/api/auth/activate",
+                            "/api/auth/password-reset/request",
+                            "/api/auth/password-reset/verify",
+                            "/api/auth/password-reset/complete"
+                        ).permitAll()
                     // Public payment config
                     .requestMatchers("/api/public/payments/**").permitAll()
                     // PayHere notification callback
                     .requestMatchers(HttpMethod.POST, "/api/customer/payments/notify").permitAll()
+                    // Cron job trigger for scheduled backups
+                    .requestMatchers(HttpMethod.POST, "/api/settings/backups/cron-trigger").permitAll()
                     // Public blog list
                     .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
                         // WebSocket endpoint
@@ -68,6 +76,12 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // Require authentication for all other endpoints
                         .anyRequest().authenticated()
+                )
+                
+                // Return 401 Unauthorized instead of 403 Forbidden for unauthenticated access
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> 
+                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage()))
                 )
 
                 // Register JWT filter before Spring's default auth filter

@@ -3,7 +3,7 @@ spring:
     active: dev
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
 
   mail:
@@ -46,7 +46,21 @@ jwt:
 app:
   activation-token-expiry-hours: 72
   frontend-url: ${FRONTEND_URL:http://localhost:8080}
+  password-reset:
+    otp-expiry-minutes: 5
+    max-otp-attempts: 5
+    resend-cooldown-seconds: 60
+    authorization-expiry-minutes: 10
+    nic-requests-per-window: 3
+    ip-requests-per-window: 20
+    verification-requests-per-window: 30
+    rate-limit-window-minutes: 15
+    otp-hmac-secret: ${PASSWORD_RESET_OTP_HMAC_SECRET}
   super-admin:
     nic: ${SUPER_ADMIN_NIC}
     email: ${SUPER_ADMIN_EMAIL}
     password: ${SUPER_ADMIN_PASSWORD}
+  cron-job-org:
+    api-key: ${CRON_JOB_ORG_API_KEY}
+    job-id: ${CRON_JOB_ORG_BACKUP_JOB_ID}
+

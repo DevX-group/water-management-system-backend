@@ -7,6 +7,7 @@ public class MeterReadingCreateRequest {
     public Integer currentReading;
     public Integer usageUnits;
     public LocalDate readingDate;
+    public String imageUrl;
     public String notes;
     public Long submittedBy; // admin id (optional)
 }

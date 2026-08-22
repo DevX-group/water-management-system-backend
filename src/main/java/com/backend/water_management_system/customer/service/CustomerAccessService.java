@@ -31,6 +31,10 @@ public class CustomerAccessService {
             throw new AccessDeniedException("Unauthenticated request");
         }
 
+        if ("me".equalsIgnoreCase(requestedSubscription)) {
+            return getSubscriptionNumber(principal);
+        }
+
         Role role = principal.getUser().getRole();
         if (role != Role.CUSTOMER) {
             return requestedSubscription;
