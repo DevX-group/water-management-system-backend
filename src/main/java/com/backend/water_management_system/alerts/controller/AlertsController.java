@@ -64,7 +64,7 @@ public class AlertsController {
     }
 
     @PatchMapping("/{id}/dismiss")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER')")
     public void dismiss(@PathVariable Long id) {
         alertService.dismissAlert(id);
     }
