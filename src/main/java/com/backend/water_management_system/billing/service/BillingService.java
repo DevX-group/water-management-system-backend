@@ -38,30 +38,19 @@ public class BillingService {
                 ? customer.getConnectionType()
                 : "metered";
 
-        // 2. Fetch rates from the connection_rates table
         ConnectionRate rateEntity = rateRepository.findById(type)
                 .orElseThrow(() -> new RuntimeException("Rates not found in DB for: " + type));
 
         int units = (reading.getUsageUnits() != null) ? reading.getUsageUnits() : 0;
-
-        // 3. Convert Double fields to BigDecimal safely
         BigDecimal base = BigDecimal.valueOf(safeDouble(rateEntity.getBaseRate()));
         BigDecimal usageCharge = calculateTierUsageCharge(units, rateEntity);
-
         BigDecimal subtotal = base.add(usageCharge);
         BigDecimal taxRate = BigDecimal.valueOf(safeDouble(rateEntity.getTaxRate()));
-
-        // Use setScale to avoid arithmetic exceptions with decimals
         BigDecimal tax = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal total = subtotal.add(tax).setScale(2, RoundingMode.HALF_UP);
-
-        // Previous unpaid balance carried forward (not part of current month's bill)
         BigDecimal outstandingAtIssue = billRepository.getTotalPendingBalance(customer.getSubscriptionNumber());
-
-        // --- DEBUG LOG--
         System.out.println("CALCULATION: Type=" + type + " Units=" + units + " Base=" + base + " Total=" + total);
 
-        // 4. Save the Bill
         Bill bill = new Bill();
         bill.setCustomer(customer);
         bill.setUsageUnits(units);
@@ -105,6 +94,37 @@ public class BillingService {
         return bill;
     }
 
+    public Bill updateBill(Bill bill, MeterReading reading) {
+        Customer customer = bill.getCustomer();
+        final String type = (customer.getConnectionType() != null)
+                ? customer.getConnectionType()
+                : "metered";
+
+        ConnectionRate rateEntity = rateRepository.findById(type)
+                .orElseThrow(() -> new RuntimeException("Rates not found in DB for: " + type));
+
+        int units = (reading.getUsageUnits() != null) ? reading.getUsageUnits() : 0;
+
+        BigDecimal base = BigDecimal.valueOf(safeDouble(rateEntity.getBaseRate()));
+        BigDecimal usageCharge = calculateTierUsageCharge(units, rateEntity);
+
+        BigDecimal subtotal = base.add(usageCharge);
+        BigDecimal taxRate = BigDecimal.valueOf(safeDouble(rateEntity.getTaxRate()));
+
+        BigDecimal tax = subtotal.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(tax).setScale(2, RoundingMode.HALF_UP);
+
+        bill.setUsageUnits(units);
+        bill.setBaseCharge(base);
+        bill.setUsageCharge(usageCharge);
+        bill.setTaxAmount(tax);
+        bill.setTotalAmount(total);
+        bill.setBalanceDue(total);
+        bill.setMeterReading(reading);
+        
+        return billRepository.save(bill);
+    }
+
     private BigDecimal calculateTierUsageCharge(int units, ConnectionRate rates) {
         if ("non_metered".equalsIgnoreCase(rates.getConnectionType())) {
             return BigDecimal.ZERO;
@@ -125,8 +145,6 @@ public class BillingService {
                 .add(r2.multiply(BigDecimal.valueOf(tier2Units)))
                 .add(r3.multiply(BigDecimal.valueOf(tier3Units)));
     }
-
-    // Helper to prevent NullPointerException if DB columns are empty
     private Double safeDouble(Double val) {
         return (val == null) ? 0.0 : val;
     }
