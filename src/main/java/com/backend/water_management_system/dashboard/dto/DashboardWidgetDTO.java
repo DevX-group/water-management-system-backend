@@ -18,6 +18,7 @@ import lombok.Setter;
 @Builder
 public class DashboardWidgetDTO {
     private Long id;
+    private Long widgetId;
     private String widgetKey;
     private String name;
     private String description;

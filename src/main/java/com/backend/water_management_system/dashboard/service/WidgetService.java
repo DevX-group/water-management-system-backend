@@ -97,11 +97,6 @@ public class WidgetService {
         WidgetDefinition widget = widgetRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Widget not found: " + id));
                 
-        // Once a widget is disabled, it cannot be reactivated
-        if (!widget.isActive() && request.isActive()) {
-            throw new IllegalArgumentException("Cannot reactivate a disabled widget");
-        }
-        
         buildFromRequest(request, widget);
         return toDTO(widgetRepo.save(widget));
     }
@@ -112,6 +107,9 @@ public class WidgetService {
                 .orElseThrow(() -> new IllegalArgumentException("Widget not found: " + id));
         widget.setActive(false);
         widgetRepo.save(widget);
+        
+        // Remove widget from all dashboards when deactivated
+        dashboardWidgetRepo.deleteByWidget_Id(id);
     }
 
     // ── Dashboard Layout (Super Admin only) ────────────────────────────────
@@ -229,6 +227,7 @@ public class WidgetService {
     private DashboardWidgetDTO toPlacementDTO(DashboardWidget dw) {
         return DashboardWidgetDTO.builder()
                 .id(dw.getId())
+                .widgetId(dw.getWidget().getId())
                 .widgetKey(dw.getWidget().getWidgetKey())
                 .name(dw.getWidget().getName())
                 .widgetType(dw.getWidget().getWidgetType().name())

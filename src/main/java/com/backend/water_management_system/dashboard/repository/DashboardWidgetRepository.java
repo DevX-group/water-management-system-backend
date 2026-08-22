@@ -17,4 +17,6 @@ public interface DashboardWidgetRepository extends JpaRepository<DashboardWidget
     boolean existsByDashboard_IdAndWidget_Id(Long dashboardId, Long widgetId);
 
     void deleteByDashboard_Id(Long dashboardId);
+
+    void deleteByWidget_Id(Long widgetId);
 }
