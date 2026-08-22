@@ -23,8 +23,21 @@ public class AlertService {
         return alertRepository.findByDismissedFalseOrderByTimeDesc();
     }
 
+    public List<Alert> getActiveAlertsForCustomer(String severity, String customerId) {
+        if (severity != null && !severity.equalsIgnoreCase("all")) {
+            return alertRepository.findForCustomerAndSeverity(customerId, severity.toLowerCase());
+        }
+        return alertRepository.findForCustomerOrderByTimeDesc(customerId);
+    }
+
     public Map<String, Long> getSeverityCounts() {        // Get all active alerts and group by severity to count 
         List<Alert> activeAlerts = alertRepository.findByDismissedFalseOrderByTimeDesc();
+        return activeAlerts.stream()
+                .collect(Collectors.groupingBy(Alert::getSeverity, Collectors.counting()));
+    }
+
+    public Map<String, Long> getSeverityCountsForCustomer(String customerId) {
+        List<Alert> activeAlerts = alertRepository.findForCustomerOrderByTimeDesc(customerId);
         return activeAlerts.stream()
                 .collect(Collectors.groupingBy(Alert::getSeverity, Collectors.counting()));
     }
@@ -36,12 +49,13 @@ public class AlertService {
         });
     }
 
-    public void createAlert(String severity, String title, String description, String usage) {       // Create a new alert
+    public void createAlert(String severity, String title, String description, String usage, String customerId) {       // Create a new alert
         Alert alert = Alert.builder()
                 .severity(severity)
                 .title(title)
                 .description(description)
                 .usage(usage)
+                .customerId(customerId)
                 .time(java.time.LocalDateTime.now())
                 .dismissed(false)
                 .build();

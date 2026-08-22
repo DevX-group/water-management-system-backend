@@ -32,9 +32,14 @@ public class InquiryController {
         return inquiryService.createInquiry(inquiry);
     }
 
-    @GetMapping   // Get all inquiries (for admin view)
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
-    public List<Inquiry> getAllInquiries() {
+    @GetMapping   // Get inquiries (admin gets all, customer gets their own)
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER')")
+    public List<Inquiry> getAllInquiries(org.springframework.security.core.Authentication authentication) {
+        String role = authentication.getAuthorities().iterator().next().getAuthority();
+        if ("ROLE_CUSTOMER".equals(role)) {
+            String nic = authentication.getName();
+            return inquiryService.getInquiriesForCustomer(nic);
+        }
         return inquiryService.getAllInquiries();
     }
 

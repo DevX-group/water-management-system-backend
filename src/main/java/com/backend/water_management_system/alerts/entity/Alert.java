@@ -18,6 +18,7 @@ public class Alert {
     private Long id;
 
     private String severity;
+    private String customerId; // Can be null for global alerts
     private String title;
     private String description;
     private String usage;

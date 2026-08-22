@@ -68,7 +68,8 @@ public class MeterReadingService {
                 "high",
                 "High Water Usage Detected",
                 "High usage detection",
-                usage + " Units"
+                usage + " Units",
+                customer.getSubscriptionNumber()
             );
         } else {
             // Normal reading alert
@@ -76,7 +77,8 @@ public class MeterReadingService {
                 "info",
                 "Meter Reading Submitted",
                 "A normal meter reading was submitted successfully.",
-                usage + " Units"
+                usage + " Units",
+                customer.getSubscriptionNumber()
             );
         }
 

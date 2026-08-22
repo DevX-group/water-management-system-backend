@@ -22,38 +22,50 @@ import com.backend.water_management_system.alerts.repository.AlertRepository;
 @RestController
 @RequestMapping("/api/alerts")
 @CrossOrigin(origins = "*") 
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
 public class AlertsController {
 
     @Autowired
     private AlertRepository alertRepository;
 
-    @PostMapping
-public Alert createAlert(@RequestBody Alert alert) {
-    return alertRepository.save(alert);
-}
+    @Autowired
+    private com.backend.water_management_system.customer.repository.CustomerRepository customerRepository;
 
-    @GetMapping
-    public List<Alert> getAlerts(@RequestParam(required = false) String severity) {
-        if (severity != null && !severity.equalsIgnoreCase("all")) {
-            return alertRepository.findBySeverityAndDismissedFalse    //alert is still active
-            (severity.toLowerCase());
-        }
-        return alertRepository.findByDismissedFalseOrderByTimeDesc();
+    @PostMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public Alert createAlert(@RequestBody Alert alert) {
+        return alertRepository.save(alert);
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER')")
+    public List<Alert> getAlerts(@RequestParam(required = false) String severity, org.springframework.security.core.Authentication authentication) {
+        String role = authentication.getAuthorities().iterator().next().getAuthority();
+        if ("ROLE_CUSTOMER".equals(role)) {
+            String nic = authentication.getName();
+            com.backend.water_management_system.customer.entity.Customer customer = customerRepository.findByUser_Nic(nic).orElseThrow(() -> new RuntimeException("Customer not found"));
+            return alertService.getActiveAlertsForCustomer(severity, customer.getSubscriptionNumber());
+        }
+        return alertService.getActiveAlerts(severity);
+    }
+
+    @Autowired
+    private com.backend.water_management_system.alerts.service.AlertService alertService;
+
     @GetMapping("/counts")
-    public Map<String, Long> getCounts() {      //severity name:count
-        List<Alert> active = alertRepository.findByDismissedFalseOrderByTimeDesc();
-        return active.stream()
-                .collect(Collectors.groupingBy(Alert::getSeverity, Collectors.counting()));
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER')")
+    public Map<String, Long> getCounts(org.springframework.security.core.Authentication authentication) {      //severity name:count
+        String role = authentication.getAuthorities().iterator().next().getAuthority();
+        if ("ROLE_CUSTOMER".equals(role)) {
+            String nic = authentication.getName();
+            com.backend.water_management_system.customer.entity.Customer customer = customerRepository.findByUser_Nic(nic).orElseThrow(() -> new RuntimeException("Customer not found"));
+            return alertService.getSeverityCountsForCustomer(customer.getSubscriptionNumber());
+        }
+        return alertService.getSeverityCounts();
     }
 
     @PatchMapping("/{id}/dismiss")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public void dismiss(@PathVariable Long id) {
-        alertRepository.findById(id).ifPresent(alert -> {
-            alert.setDismissed(true);
-            alertRepository.save(alert);
-        });
+        alertService.dismissAlert(id);
     }
 }

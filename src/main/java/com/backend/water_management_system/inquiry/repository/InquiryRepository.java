@@ -8,4 +8,5 @@ import com.backend.water_management_system.inquiry.entity.Inquiry;
 @Repository
 public interface InquiryRepository extends JpaRepository<Inquiry, String> {
     // JpaRepository provides save(), findAll(), and findById() automatically
+    java.util.List<Inquiry> findByEmail(String email);
 }
