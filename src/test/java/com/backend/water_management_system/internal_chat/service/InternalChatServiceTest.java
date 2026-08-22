@@ -59,7 +59,7 @@ class InternalChatServiceTest {
                 .email("target-" + testRunId + "@example.com")
                 .phoneNumber("222")
                 .passwordHash("pw")
-                .role(Role.PAYMENT_HANDLER)
+                .role(Role.CUSTOMER_HANDLER)
                 .status(UserStatus.ACTIVE)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())

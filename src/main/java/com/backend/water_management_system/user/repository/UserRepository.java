@@ -35,4 +35,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByRole(Role role);
 
     java.util.List<User> findAllByRole(Role role);
+
+    /** Count users by role — used by dashboard aggregation. */
+    long countByRole(Role role);
 }

@@ -1,4 +1,7 @@
 package com.backend.water_management_system.common.config;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +28,10 @@ public class DataSeeder implements CommandLineRunner {
     private final RegionRepository regionRepository;
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
     public DataSeeder(CustomerRepository customerRepository, UserRepository userRepository, RegionRepository regionRepository,
             BillRepository billRepository, RateRepository rateRepository) {
         this.customerRepository = customerRepository;
@@ -33,8 +40,178 @@ public class DataSeeder implements CommandLineRunner {
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
     }
+    /**
+     * Drops the stale PostgreSQL check constraint on the users.role column and
+     * recreates it with CUSTOMER_HANDLER (replacing the old PAYMENT_HANDLER value).
+     *
+     * <p>Why native SQL: Hibernate ddl-auto=update never drops/recreates CHECK constraints,
+     * so this is the only reliable way to update them without a full schema recreation.
+     *
+     * <p>The drop uses IF EXISTS and the add uses a DO block to skip if already present,
+     * making this fully idempotent.
+     */
+    @Transactional
+    private void fixRoleCheckConstraint() {
+        try {
+            // Drop the old constraint if it still exists (any name variant)
+            entityManager.createNativeQuery(
+                "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check"
+            ).executeUpdate();
+
+            // Recreate the constraint with the new CUSTOMER_HANDLER value.
+            // This is a no-op if a constraint with these exact values already exists.
+            entityManager.createNativeQuery("""
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'users_role_check_v2'
+                      AND conrelid = 'users'::regclass
+                  ) THEN
+                    ALTER TABLE users ADD CONSTRAINT users_role_check_v2
+                      CHECK (role IN (
+                        'SUPER_ADMIN','SYSTEM_ADMIN','CUSTOMER_HANDLER',
+                        'METER_READER','CUSTOMER','PAYMENT_HANDLER'
+                      ));
+                  END IF;
+                END$$
+                """).executeUpdate();
+
+            System.out.println("[DataSeeder] users_role_check constraint updated to include CUSTOMER_HANDLER.");
+        } catch (Exception e) {
+            System.out.println("[DataSeeder] Warning: could not update role check constraint: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Idempotent migration: rename any legacy PAYMENT_HANDLER rows to CUSTOMER_HANDLER.
+     * Safe to run on every startup — only updates rows that still carry the old value.
+     */
+    @Transactional
+    private void migratePaymentHandlerRole() {
+        int updated = entityManager
+                .createQuery("UPDATE User u SET u.role = com.backend.water_management_system.user.enums.Role.CUSTOMER_HANDLER "
+                        + "WHERE u.role = 'PAYMENT_HANDLER'")
+                .executeUpdate();
+        if (updated > 0) {
+            System.out.println("[DataSeeder] Migrated " + updated + " user(s) from PAYMENT_HANDLER → CUSTOMER_HANDLER");
+        }
+    }
+
+    @Transactional
+    private void seedWidgetAllowedRoles() {
+        // We use native queries to ensure idempotent syncing of the widget_allowed_roles table.
+        // The frontend and backend layout assignments depend on this table being exactly as specified.
+        try {
+            entityManager.createNativeQuery("DELETE FROM widget_allowed_roles").executeUpdate();
+
+            String[][] mappings = {
+                {"customer-current-bill", "CUSTOMER"},
+                {"customer-outstanding", "CUSTOMER"},
+                {"customer-pay-now", "CUSTOMER"},
+                {"customer-usage-trend", "CUSTOMER"},
+                {"customer-recent-payments", "CUSTOMER"},
+                {"customer-notifications", "CUSTOMER"},
+                {"customer-bank-slip-status", "CUSTOMER"},
+                {"customer-inquiries", "CUSTOMER"},
+
+                {"meter-quick-entry", "METER_READER"},
+                {"meter-quick-entry", "CUSTOMER_HANDLER"},
+                {"meter-quick-entry", "SYSTEM_ADMIN"},
+                {"meter-quick-entry", "SUPER_ADMIN"},
+
+                {"meter-latest-reading", "METER_READER"},
+                {"meter-latest-reading", "CUSTOMER_HANDLER"},
+                {"meter-latest-reading", "SYSTEM_ADMIN"},
+                {"meter-latest-reading", "SUPER_ADMIN"},
+
+                {"meter-reading-history", "METER_READER"},
+                {"meter-reading-history", "CUSTOMER_HANDLER"},
+                {"meter-reading-history", "SYSTEM_ADMIN"},
+                {"meter-reading-history", "SUPER_ADMIN"},
+
+                {"internal-chat-link", "METER_READER"},
+                {"internal-chat-link", "CUSTOMER_HANDLER"},
+                {"internal-chat-link", "SYSTEM_ADMIN"},
+                {"internal-chat-link", "SUPER_ADMIN"},
+
+                {"handler-pending-slips", "CUSTOMER_HANDLER"},
+                {"handler-pending-slips", "SYSTEM_ADMIN"},
+                {"handler-pending-slips", "SUPER_ADMIN"},
+
+                {"handler-recent-payments", "CUSTOMER_HANDLER"},
+                {"handler-recent-payments", "SYSTEM_ADMIN"},
+                {"handler-recent-payments", "SUPER_ADMIN"},
+
+                {"handler-open-inquiries", "CUSTOMER_HANDLER"},
+                {"handler-open-inquiries", "SYSTEM_ADMIN"},
+                {"handler-open-inquiries", "SUPER_ADMIN"},
+                
+                {"handler-customer-search", "CUSTOMER_HANDLER"},
+                {"handler-customer-search", "SYSTEM_ADMIN"},
+                {"handler-customer-search", "SUPER_ADMIN"},
+
+                {"admin-system-summary", "SYSTEM_ADMIN"},
+                {"admin-system-summary", "SUPER_ADMIN"},
+
+                {"admin-usage-chart", "SYSTEM_ADMIN"},
+                {"admin-usage-chart", "SUPER_ADMIN"},
+
+                {"admin-revenue-chart", "SYSTEM_ADMIN"},
+                {"admin-revenue-chart", "SUPER_ADMIN"},
+
+                {"admin-alerts", "SYSTEM_ADMIN"},
+                {"admin-alerts", "SUPER_ADMIN"},
+
+                {"admin-messaging-link", "SYSTEM_ADMIN"},
+                {"admin-messaging-link", "SUPER_ADMIN"},
+
+                {"admin-blogs-link", "SYSTEM_ADMIN"},
+                {"admin-blogs-link", "SUPER_ADMIN"},
+
+                {"admin-predictions-link", "SYSTEM_ADMIN"},
+                {"admin-predictions-link", "SUPER_ADMIN"},
+
+                {"superadmin-widget-management-link", "SUPER_ADMIN"},
+                {"superadmin-admin-count", "SUPER_ADMIN"},
+                {"superadmin-user-management-link", "SUPER_ADMIN"},
+                {"superadmin-region-summary", "SUPER_ADMIN"},
+                
+                // Keep quick-link available for all internal users
+                {"quick-link", "SUPER_ADMIN"},
+                {"quick-link", "SYSTEM_ADMIN"},
+                {"quick-link", "CUSTOMER_HANDLER"},
+                {"quick-link", "METER_READER"},
+                {"quick-link", "CUSTOMER"}
+            };
+
+            int inserted = 0;
+            for (String[] mapping : mappings) {
+                inserted += entityManager.createNativeQuery(
+                    "INSERT INTO widget_allowed_roles (widget_id, role) " +
+                    "SELECT id, :role FROM widget_definitions WHERE component_key = :key " +
+                    "ON CONFLICT DO NOTHING"
+                )
+                .setParameter("key", mapping[0])
+                .setParameter("role", mapping[1])
+                .executeUpdate();
+            }
+            System.out.println("[DataSeeder] Seeded widget_allowed_roles with " + inserted + " records.");
+        } catch (Exception e) {
+            System.out.println("[DataSeeder] Failed to seed widget_allowed_roles: " + e.getMessage());
+        }
+    }
+
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
+        // Step 1: update the DB check constraint to allow CUSTOMER_HANDLER
+        fixRoleCheckConstraint();
+        // Step 2: migrate legacy PAYMENT_HANDLER role values to CUSTOMER_HANDLER
+        migratePaymentHandlerRole();
+        // Step 3: Enforce strict widget allowed roles
+        seedWidgetAllowedRoles();
+
         if (rateRepository.count() == 0) {
             ConnectionRate meteredRate = new ConnectionRate();
             meteredRate.setConnectionType("metered");
