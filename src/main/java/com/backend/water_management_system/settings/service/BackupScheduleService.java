@@ -27,7 +27,7 @@ public class BackupScheduleService {
     private final BackupService backupService;
     private final CronJobOrgService cronJobOrgService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public BackupScheduleResponse getScheduleSettings() {
         BackupSchedule schedule = getOrCreateSchedule();
         return mapToResponse(schedule);
