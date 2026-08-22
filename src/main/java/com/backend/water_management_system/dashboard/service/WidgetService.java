@@ -114,6 +114,48 @@ public class WidgetService {
 
     // ── Dashboard Layout (Super Admin only) ────────────────────────────────
 
+    @Transactional
+    public void addWidgetToDashboardRole(Role role, Long widgetId) {
+        DashboardDefinition dashboard = dashboardRepo.findByAssignedRoleAndActiveTrue(role)
+                .orElseThrow(() -> new IllegalArgumentException("Dashboard not found for role: " + role));
+        WidgetDefinition widget = widgetRepo.findById(widgetId)
+                .orElseThrow(() -> new IllegalArgumentException("Widget not found: " + widgetId));
+
+        // Let's verify allowed roles
+        if (!widget.getAllowedRoles().contains(role)) {
+            throw new IllegalArgumentException("Widget " + widget.getWidgetKey() + " is not allowed for role " + role);
+        }
+
+        if (dashboardWidgetRepo.existsByDashboard_IdAndWidget_Id(dashboard.getId(), widgetId)) {
+            return; // Already exists
+        }
+
+        int maxPos = dashboardWidgetRepo.findByDashboard_IdOrderByPositionAsc(dashboard.getId())
+                .stream().mapToInt(DashboardWidget::getPosition).max().orElse(-1);
+
+        DashboardWidget dw = DashboardWidget.builder()
+                .dashboard(dashboard)
+                .widget(widget)
+                .position(maxPos + 1)
+                .colSpan(widget.getDefaultColSpan())
+                .rowSpan(widget.getDefaultRowSpan())
+                .visible(true)
+                .build();
+        dashboardWidgetRepo.save(dw);
+    }
+
+    @Transactional
+    public void removeWidgetFromDashboardRole(Role role, Long widgetId) {
+        DashboardDefinition dashboard = dashboardRepo.findByAssignedRoleAndActiveTrue(role)
+                .orElseThrow(() -> new IllegalArgumentException("Dashboard not found for role: " + role));
+        
+        dashboardWidgetRepo.findByDashboard_IdOrderByPositionAsc(dashboard.getId())
+                .stream()
+                .filter(dw -> dw.getWidget().getId().equals(widgetId))
+                .findFirst()
+                .ifPresent(dashboardWidgetRepo::delete);
+    }
+
     /**
      * Replaces the widget layout of a dashboard.
      * Validates each widget placement before persisting.
@@ -127,6 +169,9 @@ public class WidgetService {
 
         int position = 0;
         for (Map<String, Object> p : placements) {
+            if (!p.containsKey("widgetId") || p.get("widgetId") == null) {
+                throw new IllegalArgumentException("widgetId is required in layout placement");
+            }
             Long widgetId = ((Number) p.get("widgetId")).longValue();
             int colSpan = p.containsKey("colSpan") ? ((Number) p.get("colSpan")).intValue() : 1;
             int rowSpan = p.containsKey("rowSpan") ? ((Number) p.get("rowSpan")).intValue() : 1;

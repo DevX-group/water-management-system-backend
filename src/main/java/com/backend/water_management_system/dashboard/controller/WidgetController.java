@@ -66,6 +66,30 @@ public class WidgetController {
         }
     }
 
+    @PostMapping("/api/dashboards/role/{role}/widgets/{widgetId}")
+    public ResponseEntity<Void> addWidgetToRole(
+            @PathVariable com.backend.water_management_system.user.enums.Role role,
+            @PathVariable Long widgetId) {
+        try {
+            widgetService.addWidgetToDashboardRole(role, widgetId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/api/dashboards/role/{role}/widgets/{widgetId}")
+    public ResponseEntity<Void> removeWidgetFromRole(
+            @PathVariable com.backend.water_management_system.user.enums.Role role,
+            @PathVariable Long widgetId) {
+        try {
+            widgetService.removeWidgetFromDashboardRole(role, widgetId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PutMapping("/api/dashboards/{dashboardId}/widgets")
     public ResponseEntity<List<DashboardWidgetDTO>> updateDashboardLayout(
             @PathVariable Long dashboardId,
