@@ -96,6 +96,12 @@ public class WidgetService {
         validateRequest(request);
         WidgetDefinition widget = widgetRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Widget not found: " + id));
+                
+        // Once a widget is disabled, it cannot be reactivated
+        if (!widget.isActive() && request.isActive()) {
+            throw new IllegalArgumentException("Cannot reactivate a disabled widget");
+        }
+        
         buildFromRequest(request, widget);
         return toDTO(widgetRepo.save(widget));
     }

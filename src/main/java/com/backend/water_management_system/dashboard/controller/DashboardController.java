@@ -59,4 +59,15 @@ public class DashboardController {
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(dashboardService.getCustomerSummary(principal));
     }
+
+    /**
+     * Returns the active dashboard configuration for a specific role.
+     * Restricted to SUPER_ADMIN for configuration purposes.
+     */
+    @GetMapping("/role/{role}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<DashboardConfigDTO> getDashboardByRole(
+            @org.springframework.web.bind.annotation.PathVariable com.backend.water_management_system.user.enums.Role role) {
+        return ResponseEntity.ok(dashboardService.getDashboardByRole(role));
+    }
 }

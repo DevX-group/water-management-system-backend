@@ -80,6 +80,32 @@ public class DashboardService {
                 .build();
     }
 
+    /**
+     * Returns the active dashboard configuration for a specific role.
+     * Intended for Super Admin configuration.
+     */
+    public DashboardConfigDTO getDashboardByRole(Role role) {
+        DashboardDefinition dashboard = dashboardRepo.findByAssignedRoleAndActiveTrue(role)
+                .orElseThrow(() -> new RuntimeException(
+                        "No active dashboard configured for role: " + role));
+
+        List<DashboardWidget> placements =
+                dashboardWidgetRepo.findByDashboard_IdAndVisibleTrueOrderByPositionAsc(dashboard.getId());
+
+        List<DashboardWidgetDTO> widgetDTOs = placements.stream()
+                .map(this::toWidgetDTO)
+                .collect(Collectors.toList());
+
+        return DashboardConfigDTO.builder()
+                .dashboardId(dashboard.getId())
+                .dashboardKey(dashboard.getDashboardKey())
+                .name(dashboard.getName())
+                .assignedRole(role)
+                .version(dashboard.getVersion())
+                .widgets(widgetDTOs)
+                .build();
+    }
+
     private DashboardWidgetDTO toWidgetDTO(DashboardWidget dw) {
         return DashboardWidgetDTO.builder()
                 .id(dw.getId())
