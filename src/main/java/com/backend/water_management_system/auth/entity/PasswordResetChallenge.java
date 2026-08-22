@@ -28,7 +28,6 @@ import java.util.UUID;
 public class PasswordResetChallenge {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
@@ -72,6 +71,9 @@ public class PasswordResetChallenge {
 
     @PrePersist
     protected void onCreate() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID();
+        }
         this.createdAt = Instant.now();
     }
 }

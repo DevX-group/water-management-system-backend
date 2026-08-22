@@ -8,6 +8,7 @@ import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.enums.UserStatus;
 import com.backend.water_management_system.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -31,6 +32,9 @@ class PasswordResetPersistenceTest {
 
     @Autowired
     private PasswordResetAuthorizationRepository passwordResetAuthorizationRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void challengeCanBeSavedAndFoundByActiveLookup() {
@@ -79,12 +83,38 @@ class PasswordResetPersistenceTest {
                 .expiresAt(Instant.now().plusSeconds(600))
                 .build();
 
+        PasswordResetAuthorization olderAuthorization = PasswordResetAuthorization.builder()
+                .user(user)
+                .authorizationDigest("digest-value-older")
+                .expiresAt(Instant.now().plusSeconds(300))
+                .build();
+
         passwordResetAuthorizationRepository.save(authorization);
+        passwordResetAuthorizationRepository.save(olderAuthorization);
 
         Optional<PasswordResetAuthorization> result = passwordResetAuthorizationRepository
                 .findByAuthorizationDigest("digest-value-123");
 
         assertThat(result).isPresent();
         assertThat(result.get().getUser().getId()).isEqualTo(user.getId());
+        assertThat(passwordResetAuthorizationRepository
+                .findUserIdByAuthorizationDigest("digest-value-123"))
+                .contains(user.getId());
+
+        Instant invalidatedAt = Instant.now();
+        assertThat(passwordResetAuthorizationRepository
+                .invalidateUnusedByUser(user, invalidatedAt))
+                .isEqualTo(2);
+
+        entityManager.clear();
+
+        PasswordResetAuthorization invalidated = passwordResetAuthorizationRepository
+                .findByAuthorizationDigest("digest-value-123")
+                .orElseThrow();
+        PasswordResetAuthorization invalidatedOlder = passwordResetAuthorizationRepository
+                .findByAuthorizationDigest("digest-value-older")
+                .orElseThrow();
+        assertThat(invalidated.getUsedAt()).isNotNull();
+        assertThat(invalidatedOlder.getUsedAt()).isNotNull();
     }
 }

@@ -65,7 +65,7 @@ class PasswordResetConcurrencyTest {
         service = new PasswordResetService(userRepository, challengeRepository, authorizationRepository,
                 properties, cryptography, rateLimiter, List.of(deliveryService), passwordEncoder, Runnable::run);
         lenient().when(rateLimiter.tryAcquire(anyString(), anyInt(), any())).thenReturn(true);
-        lenient().when(userRepository.findByNic(user.getNic())).thenReturn(Optional.of(user));
+        lenient().when(userRepository.findLockedByNic(user.getNic())).thenReturn(Optional.of(user));
         lenient().when(userRepository.findLockedById(user.getId())).thenReturn(Optional.of(user));
         lenient().when(passwordEncoder.encode(anyString())).thenReturn("bcrypt-hash");
     }
@@ -95,6 +95,8 @@ class PasswordResetConcurrencyTest {
                 .user(user).authorizationDigest(cryptography.authorizationDigest(rawAuthorization))
                 .expiresAt(Instant.now().plusSeconds(600)).build();
         AtomicBoolean consumed = new AtomicBoolean();
+        when(authorizationRepository.findUserIdByAuthorizationDigest(authorization.getAuthorizationDigest()))
+                .thenReturn(Optional.of(user.getId()));
         when(authorizationRepository.findByAuthorizationDigest(authorization.getAuthorizationDigest()))
                 .thenAnswer(invocation -> consumed.compareAndSet(false, true)
                         ? Optional.of(authorization) : Optional.empty());

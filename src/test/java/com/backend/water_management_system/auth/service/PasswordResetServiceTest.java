@@ -145,7 +145,7 @@ class PasswordResetServiceTest {
 
     @Test
     void invalidOtpIncrementsAttemptsAndReturnsGenericError() {
-        when(userRepository.findByNic(activeUser.getNic())).thenReturn(Optional.of(activeUser));
+        when(userRepository.findLockedByNic(activeUser.getNic())).thenReturn(Optional.of(activeUser));
         PasswordResetChallenge challenge = PasswordResetChallenge.builder()
                 .id(UUID.randomUUID())
                 .user(activeUser)
@@ -167,7 +167,7 @@ class PasswordResetServiceTest {
 
     @Test
     void exhaustedChallengeDoesNotPerformAdditionalOtpCheck() {
-        when(userRepository.findByNic(activeUser.getNic())).thenReturn(Optional.of(activeUser));
+        when(userRepository.findLockedByNic(activeUser.getNic())).thenReturn(Optional.of(activeUser));
         PasswordResetChallenge challenge = PasswordResetChallenge.builder()
                 .id(UUID.randomUUID())
                 .user(activeUser)
@@ -187,7 +187,7 @@ class PasswordResetServiceTest {
 
     @Test
     void validOtpIsConsumedAndReturnsOpaqueAuthorizationOnce() {
-        when(userRepository.findByNic(activeUser.getNic())).thenReturn(Optional.of(activeUser));
+        when(userRepository.findLockedByNic(activeUser.getNic())).thenReturn(Optional.of(activeUser));
         PasswordResetChallenge challenge = PasswordResetChallenge.builder()
                 .id(UUID.randomUUID()).user(activeUser).purpose(PasswordResetPurpose.PASSWORD_RESET)
                 .failedAttempts(0).expiresAt(Instant.now().plusSeconds(300)).build();
@@ -201,7 +201,23 @@ class PasswordResetServiceTest {
 
         assertThat(response.get("resetAuthorization")).isNotBlank().hasSizeGreaterThanOrEqualTo(43);
         assertThat(challenge.getUsedAt()).isNotNull();
+        verify(authorizationRepository).invalidateUnusedByUser(eq(activeUser), any(Instant.class));
         verify(authorizationRepository).save(any(PasswordResetAuthorization.class));
+    }
+
+    @Test
+    void otpVerificationRejectsAccountThatIsNoLongerEligible() {
+        activeUser.setStatus(UserStatus.SUSPENDED);
+        when(userRepository.findLockedByNic(activeUser.getNic())).thenReturn(Optional.of(activeUser));
+
+        assertThatThrownBy(() -> service.verify(
+                new PasswordResetVerifyRequest(activeUser.getNic(), "123456"),
+                "127.0.0.1"))
+                .isInstanceOf(PasswordResetException.class)
+                .hasMessage(PasswordResetService.INVALID_CODE_MESSAGE);
+
+        verifyNoInteractions(challengeRepository);
+        verify(authorizationRepository, never()).save(any());
     }
 
     @Test
@@ -216,6 +232,9 @@ class PasswordResetServiceTest {
                 .authorizationDigest(cryptography.authorizationDigest("expired"))
                 .expiresAt(Instant.now().minusSeconds(1))
                 .build();
+        when(authorizationRepository.findUserIdByAuthorizationDigest(expired.getAuthorizationDigest()))
+                .thenReturn(Optional.of(activeUser.getId()));
+        when(userRepository.findLockedById(activeUser.getId())).thenReturn(Optional.of(activeUser));
         when(authorizationRepository.findByAuthorizationDigest(expired.getAuthorizationDigest()))
                 .thenReturn(Optional.of(expired));
 
@@ -223,7 +242,7 @@ class PasswordResetServiceTest {
                 "expired", "new-password", "new-password")))
                 .isInstanceOf(PasswordResetException.class)
                 .hasMessage("Reset authorization is invalid or has expired.");
-        verify(userRepository, never()).findLockedById(any());
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
@@ -245,6 +264,8 @@ class PasswordResetServiceTest {
                 .authorizationDigest(cryptography.authorizationDigest("authorization"))
                 .expiresAt(Instant.now().plusSeconds(600))
                 .build();
+        when(authorizationRepository.findUserIdByAuthorizationDigest(authorization.getAuthorizationDigest()))
+                .thenReturn(Optional.of(activeUser.getId()));
         when(authorizationRepository.findByAuthorizationDigest(authorization.getAuthorizationDigest()))
                 .thenReturn(Optional.of(authorization));
         when(userRepository.findLockedById(activeUser.getId())).thenReturn(Optional.of(activeUser));
@@ -256,9 +277,29 @@ class PasswordResetServiceTest {
         assertThat(response).containsEntry("message", "Password reset successfully. You can now log in.");
         assertThat(activeUser.getPasswordHash()).isEqualTo("bcrypt-hash");
         assertThat(activeUser.getTokenVersion()).isEqualTo(1L);
-        assertThat(authorization.getUsedAt()).isNotNull();
         verify(userRepository).save(activeUser);
-        verify(authorizationRepository).save(authorization);
+        verify(authorizationRepository).invalidateUnusedByUser(eq(activeUser), any(Instant.class));
+        verify(authorizationRepository, never()).save(authorization);
+    }
+
+    @Test
+    void resetCompletionRejectsAccountThatBecameIneligible() {
+        String rawAuthorization = "authorization";
+        String digest = cryptography.authorizationDigest(rawAuthorization);
+        activeUser.setStatus(UserStatus.INACTIVE);
+        when(authorizationRepository.findUserIdByAuthorizationDigest(digest))
+                .thenReturn(Optional.of(activeUser.getId()));
+        when(userRepository.findLockedById(activeUser.getId())).thenReturn(Optional.of(activeUser));
+
+        assertThatThrownBy(() -> service.complete(new PasswordResetCompleteRequest(
+                rawAuthorization,
+                "new-password",
+                "new-password")))
+                .isInstanceOf(PasswordResetException.class)
+                .hasMessage(PasswordResetService.INVALID_AUTHORIZATION_MESSAGE);
+
+        verify(authorizationRepository, never()).findByAuthorizationDigest(anyString());
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test

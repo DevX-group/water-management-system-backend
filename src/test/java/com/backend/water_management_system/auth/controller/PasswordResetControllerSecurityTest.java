@@ -77,10 +77,11 @@ class PasswordResetControllerSecurityTest {
     }
 
     @Test
-    void unrelatedAuthRouteIsNotPublic() throws Exception {
+    void unrelatedAuthRouteRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/api/auth/not-public")
                         .contentType(APPLICATION_JSON)
                         .content("{}"))
-                        .andExpect(status().isForbidden());
+                        .andExpect(status().isUnauthorized());
     }
+
 }

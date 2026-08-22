@@ -45,6 +45,9 @@ public class PasswordResetService {
     public static final String INVALID_CODE_MESSAGE =
             "This verification code is invalid or has expired.";
 
+    public static final String INVALID_AUTHORIZATION_MESSAGE =
+            "Reset authorization is invalid or has expired.";
+
     private final UserRepository userRepository;
     private final PasswordResetChallengeRepository challengeRepository;
     private final PasswordResetAuthorizationRepository authorizationRepository;
@@ -94,9 +97,7 @@ public class PasswordResetService {
             return Map.of("message", REQUEST_MESSAGE);
         }
 
-        if (user.getStatus() != UserStatus.ACTIVE
-                || user.getEmail() == null
-                || user.getEmail().isBlank()) {
+        if (!isRecoveryEligible(user)) {
             performDummyWork(normalizedNic);
             return Map.of("message", REQUEST_MESSAGE);
         }
@@ -201,7 +202,7 @@ public class PasswordResetService {
         }
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = PasswordResetException.class)
     public Map<String, String> verify(
             PasswordResetVerifyRequest request,
             String clientIp
@@ -209,12 +210,16 @@ public class PasswordResetService {
         enforceVerificationLimit(clientIp);
 
         User user = userRepository
-                .findByNic(normalizeNic(request.nic()))
+                .findLockedByNic(normalizeNic(request.nic()))
                 .orElseThrow(
                         () -> new PasswordResetException(
                                 INVALID_CODE_MESSAGE
                         )
                 );
+
+        if (!isRecoveryEligible(user)) {
+            throw new PasswordResetException(INVALID_CODE_MESSAGE);
+        }
 
         Instant now = Instant.now();
 
@@ -263,6 +268,9 @@ public class PasswordResetService {
         challenge.setUsedAt(now);
         challengeRepository.save(challenge);
 
+        // Only the most recently verified OTP may authorize a reset.
+        authorizationRepository.invalidateUnusedByUser(user, now);
+
         byte[] authorizationBytes = new byte[32];
         secureRandom.nextBytes(authorizationBytes);
 
@@ -304,25 +312,50 @@ public class PasswordResetService {
             );
         }
 
+        String authorizationDigest = cryptography.authorizationDigest(
+                request.resetAuthorization()
+        );
+
+        UUID userId = authorizationRepository
+                .findUserIdByAuthorizationDigest(authorizationDigest)
+                .orElseThrow(
+                        () -> new PasswordResetException(
+                                INVALID_AUTHORIZATION_MESSAGE
+                        )
+                );
+
+        // Lock the user before the authorization so all reset operations for
+        // one account use the same lock order and serialize safely.
+        User user = userRepository
+                .findLockedById(userId)
+                .orElseThrow(
+                        () -> new PasswordResetException(
+                                INVALID_AUTHORIZATION_MESSAGE
+                        )
+                );
+
+        if (!isRecoveryEligible(user)) {
+            throw new PasswordResetException(
+                    INVALID_AUTHORIZATION_MESSAGE
+            );
+        }
+
         PasswordResetAuthorization authorization =
                 authorizationRepository
-                        .findByAuthorizationDigest(
-                                cryptography.authorizationDigest(
-                                        request.resetAuthorization()
-                                )
-                        )
+                        .findByAuthorizationDigest(authorizationDigest)
                         .orElseThrow(
                                 () -> new PasswordResetException(
-                                        "Reset authorization is invalid or has expired."
+                                        INVALID_AUTHORIZATION_MESSAGE
                                 )
                         );
 
         Instant now = Instant.now();
 
         if (authorization.getUsedAt() != null
-                || !authorization.getExpiresAt().isAfter(now)) {
+                || !authorization.getExpiresAt().isAfter(now)
+                || !authorization.getUser().getId().equals(user.getId())) {
             throw new PasswordResetException(
-                    "Reset authorization is invalid or has expired."
+                    INVALID_AUTHORIZATION_MESSAGE
             );
         }
 
@@ -332,14 +365,6 @@ public class PasswordResetService {
             );
         }
 
-        User user = userRepository
-                .findLockedById(authorization.getUser().getId())
-                .orElseThrow(
-                        () -> new PasswordResetException(
-                                "Reset authorization is invalid or has expired."
-                        )
-                );
-
         user.setPasswordHash(
                 passwordEncoder.encode(request.newPassword())
         );
@@ -348,10 +373,11 @@ public class PasswordResetService {
                 Math.addExact(user.getTokenVersion(), 1L)
         );
 
-        authorization.setUsedAt(now);
-
         userRepository.save(user);
-        authorizationRepository.save(authorization);
+
+        // Consume this authorization and any older unused authorization for
+        // the account so no reset credential survives a password change.
+        authorizationRepository.invalidateUnusedByUser(user, now);
 
         return Map.of(
                 "message",
@@ -406,6 +432,12 @@ public class PasswordResetService {
                 PasswordResetPurpose.PASSWORD_RESET.name(),
                 normalizedNic
         );
+    }
+
+    private boolean isRecoveryEligible(User user) {
+        return user.getStatus() == UserStatus.ACTIVE
+                && user.getEmail() != null
+                && !user.getEmail().isBlank();
     }
 
     private String sixDigitOtp() {
