@@ -33,6 +33,7 @@ class BackupServiceTest {
         ReflectionTestUtils.setField(backupService, "dbUsername", "postgres");
         ReflectionTestUtils.setField(backupService, "dbPassword", "password");
         ReflectionTestUtils.setField(backupService, "pgDumpExecutable", "pg_dump");
+        ReflectionTestUtils.setField(backupService, "pgRestoreExecutable", "pg_restore");
         ReflectionTestUtils.setField(backupService, "psqlExecutable", "psql");
 
         backupService.init();
@@ -47,12 +48,13 @@ class BackupServiceTest {
 
     @Test
     void testListBackups_WithFiles() throws IOException {
-        File dummyFile = tempBackupDir.resolve("backup_20260819_120000.sql").toFile();
-        assertTrue(dummyFile.createNewFile());
+        File dummySql = tempBackupDir.resolve("backup_20260819_120000.sql").toFile();
+        File dummyDump = tempBackupDir.resolve("backup_20260819_130000.dump").toFile();
+        assertTrue(dummySql.createNewFile());
+        assertTrue(dummyDump.createNewFile());
 
         List<BackupFileInfo> backups = backupService.listBackups();
-        assertEquals(1, backups.size());
-        assertEquals("backup_20260819_120000.sql", backups.get(0).getFileName());
+        assertEquals(2, backups.size());
     }
 
     @Test

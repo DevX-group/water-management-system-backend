@@ -17,6 +17,7 @@ app:
   backup:
     directory: ${BACKUP_DIRECTORY:./backups}
     pg-dump-path: ${PG_DUMP_PATH:pg_dump}
+    pg-restore-path: ${PG_RESTORE_PATH:pg_restore}
     psql-path: ${PSQL_PATH:psql}
     cron:
       secret-key: ${BACKUP_CRON_SECRET}
