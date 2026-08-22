@@ -42,10 +42,10 @@ class AreaReportServiceTest {
         // Row 4: Month "Feb", MonthNum 2, Area "area1", Usage 120.0, Amount 600.0
         mockRows.add(new Object[]{"Feb", 2, "area1", 120.0, 600.0});
 
-        when(repository.getAreaReport(year)).thenReturn(mockRows);
+        when(repository.getAreaReport(year, "all")).thenReturn(mockRows);
 
         // Act
-        List<AreaReportDTO> report = service.getAreaReport(year);
+        List<AreaReportDTO> report = service.getAreaReport(year, null);
 
         // Assert
         assertNotNull(report);
@@ -73,21 +73,21 @@ class AreaReportServiceTest {
         assertEquals(0.0, febReport.getArea2Usage()); // Default values
         assertEquals(0.0, febReport.getArea2Revenue());
 
-        verify(repository, times(1)).getAreaReport(year);
+        verify(repository, times(1)).getAreaReport(year, "all");
     }
 
     @Test
     void getAreaReport_emptyData_returnsEmptyList() {
         // Arrange
         int year = 2026;
-        when(repository.getAreaReport(year)).thenReturn(Collections.emptyList());
+        when(repository.getAreaReport(year, "all")).thenReturn(Collections.emptyList());
 
         // Act
-        List<AreaReportDTO> report = service.getAreaReport(year);
+        List<AreaReportDTO> report = service.getAreaReport(year, null);
 
         // Assert
         assertNotNull(report);
         assertTrue(report.isEmpty());
-        verify(repository, times(1)).getAreaReport(year);
+        verify(repository, times(1)).getAreaReport(year, "all");
     }
 }

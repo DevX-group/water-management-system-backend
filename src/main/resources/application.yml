@@ -60,3 +60,7 @@ app:
     nic: ${SUPER_ADMIN_NIC}
     email: ${SUPER_ADMIN_EMAIL}
     password: ${SUPER_ADMIN_PASSWORD}
+  cron-job-org:
+    api-key: ${CRON_JOB_ORG_API_KEY}
+    job-id: ${CRON_JOB_ORG_BACKUP_JOB_ID}
+

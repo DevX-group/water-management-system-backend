@@ -43,7 +43,7 @@ class BillReportControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @Test
-    void getAllBills_returnsList() throws Exception {
+    void getBills_returnsList() throws Exception {
         BillReport bill = new BillReport(
                 "1",
                 "C001",
@@ -54,7 +54,7 @@ class BillReportControllerTest {
                 "UNPAID"
         );
 
-        when(billService.getAllBills()).thenReturn(List.of(bill));
+        when(billService.getBills(null)).thenReturn(List.of(bill));
 
         mockMvc.perform(get("/api/bills_report")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -64,7 +64,7 @@ class BillReportControllerTest {
                 .andExpect(jsonPath("$[0].customerId", is("C001")))
                 .andExpect(jsonPath("$[0].amount", is(500.0)));
 
-        verify(billService, times(1)).getAllBills();
+        verify(billService, times(1)).getBills(null);
     }
 
     @Test
@@ -131,7 +131,7 @@ class BillReportControllerTest {
                 "UNPAID"
         );
 
-        when(billService.getOverdueBills()).thenReturn(List.of(bill));
+        when(billService.getOverdueBills(null)).thenReturn(List.of(bill));
 
         mockMvc.perform(get("/api/bills_report/overdue")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -139,6 +139,6 @@ class BillReportControllerTest {
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].status", is("UNPAID")));
 
-        verify(billService, times(1)).getOverdueBills();
+        verify(billService, times(1)).getOverdueBills(null);
     }
 }

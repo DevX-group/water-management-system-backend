@@ -55,6 +55,9 @@ public class BackupService {
     @Value("${app.backup.pg-dump-path:pg_dump}")
     private String pgDumpExecutable;
 
+    @Value("${app.backup.pg-restore-path:pg_restore}")
+    private String pgRestoreExecutable;
+
     @Value("${app.backup.psql-path:psql}")
     private String psqlExecutable;
 
@@ -80,7 +83,7 @@ public class BackupService {
     public BackupResponse createBackup() {
         DbConnDetails connDetails = parseJdbcUrl(datasourceUrl);
         String timestamp = LocalDateTime.now().format(FILE_DATE_FORMATTER);
-        String fileName = "backup_" + timestamp + ".sql";
+        String fileName = "backup_" + timestamp + ".dump";
 
         Path backupDirPath = Paths.get(backupDirectoryPath);
         File backupFile = backupDirPath.resolve(fileName).toFile();
@@ -92,8 +95,9 @@ public class BackupService {
                     "-p", String.valueOf(connDetails.port),
                     "-U", dbUsername,
                     "-d", connDetails.databaseName,
-                    "-F", "p"
-            );
+                    "-F", "c",
+                    "--no-owner",
+                    "--no-acl");
 
             if (dbPassword != null && !dbPassword.isBlank()) {
                 pb.environment().put("PGPASSWORD", dbPassword);
@@ -148,7 +152,9 @@ public class BackupService {
             }
             return BackupResponse.builder()
                     .success(false)
-                    .message("Failed to execute pg_dump process. Please ensure PostgreSQL client tools are installed and added to PATH: " + e.getMessage())
+                    .message(
+                            "Failed to execute pg_dump process. Please ensure PostgreSQL client tools are installed and added to PATH: "
+                                    + e.getMessage())
                     .build();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -290,14 +296,28 @@ public class BackupService {
 
             DbConnDetails connDetails = parseJdbcUrl(datasourceUrl);
 
-            ProcessBuilder pb = new ProcessBuilder(
-                    psqlExecutable,
-                    "-h", connDetails.host,
-                    "-p", String.valueOf(connDetails.port),
-                    "-U", dbUsername,
-                    "-d", connDetails.databaseName,
-                    "-f", tempRestoreFile.getAbsolutePath()
-            );
+            ProcessBuilder pb;
+            if (fileName.endsWith(".sql")) {
+                pb = new ProcessBuilder(
+                        psqlExecutable,
+                        "-h", connDetails.host,
+                        "-p", String.valueOf(connDetails.port),
+                        "-U", dbUsername,
+                        "-d", connDetails.databaseName,
+                        "-f", tempRestoreFile.getAbsolutePath());
+            } else {
+                pb = new ProcessBuilder(
+                        pgRestoreExecutable,
+                        "-h", connDetails.host,
+                        "-p", String.valueOf(connDetails.port),
+                        "-U", dbUsername,
+                        "-d", connDetails.databaseName,
+                        "--clean",
+                        "--if-exists",
+                        "--no-owner",
+                        "--no-acl",
+                        tempRestoreFile.getAbsolutePath());
+            }
 
             if (dbPassword != null && !dbPassword.isBlank()) {
                 pb.environment().put("PGPASSWORD", dbPassword);
@@ -308,7 +328,7 @@ public class BackupService {
             int exitCode = process.waitFor();
 
             if (exitCode != 0) {
-                log.error("psql restore process failed with exit code {}: {}", exitCode, errorMsg);
+                log.error("Restore process failed with exit code {}: {}", exitCode, errorMsg);
                 return BackupResponse.builder()
                         .success(false)
                         .message("Restore failed: " + (errorMsg.isBlank() ? "Exit code " + exitCode : errorMsg))
@@ -318,14 +338,14 @@ public class BackupService {
             log.info("Database successfully restored from file: {}", fileName);
             return BackupResponse.builder()
                     .success(true)
-                    .message("Database restored successfully from " + fileName)
+                    .message("Database restored successfully")
                     .build();
 
         } catch (IOException e) {
             log.error("IO Exception during restore execution", e);
             return BackupResponse.builder()
                     .success(false)
-                    .message("Failed to execute psql restore command: " + e.getMessage())
+                    .message("Failed to execute restore command: " + e.getMessage())
                     .build();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -360,9 +380,9 @@ public class BackupService {
             createdAt = LocalDateTime.ofInstant(attrs.creationTime().toInstant(), ZoneId.systemDefault());
         } catch (IOException e) {
             createdAt = LocalDateTime.ofInstant(
-                    file.lastModified() > 0 ? java.time.Instant.ofEpochMilli(file.lastModified()) : java.time.Instant.now(),
-                    ZoneId.systemDefault()
-            );
+                    file.lastModified() > 0 ? java.time.Instant.ofEpochMilli(file.lastModified())
+                            : java.time.Instant.now(),
+                    ZoneId.systemDefault());
         }
 
         return BackupFileInfo.builder()
@@ -375,7 +395,8 @@ public class BackupService {
     }
 
     private String formatFileSize(long bytes) {
-        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024)
+            return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         char pre = "KMGTPE".charAt(exp - 1);
         return String.format("%.2f %cB", bytes / Math.pow(1024, exp), pre);
