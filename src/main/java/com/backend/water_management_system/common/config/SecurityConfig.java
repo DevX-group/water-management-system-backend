@@ -60,6 +60,8 @@ public class SecurityConfig {
                     .requestMatchers("/api/public/payments/**").permitAll()
                     // PayHere notification callback
                     .requestMatchers(HttpMethod.POST, "/api/customer/payments/notify").permitAll()
+                    // Cron job trigger for scheduled backups
+                    .requestMatchers(HttpMethod.POST, "/api/settings/backups/cron-trigger").permitAll()
                     // Public blog list
                     .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
                         // WebSocket endpoint
