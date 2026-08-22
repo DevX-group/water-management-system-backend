@@ -57,4 +57,19 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
                         AND b.status = 'PENDING'
                         """)
         BigDecimal getTotalPendingBalance(String subscriptionNumber);
+
+        /** Count of all bills with a given status string. */
+        long countByStatus(String status);
+
+        /** Count of all bills with outstanding balance (balanceDue > 0). */
+        @Query("SELECT COUNT(b) FROM Bill b WHERE b.balanceDue > 0")
+        long countOutstandingBills();
+
+        /** Total outstanding amount across all bills with balance due > 0. */
+        @Query("SELECT COALESCE(SUM(b.balanceDue), 0) FROM Bill b WHERE b.balanceDue > 0")
+        java.math.BigDecimal sumOutstandingAmount();
+
+        /** Customer-scoped count of pending (unpaid) bills. */
+        @Query("SELECT COUNT(b) FROM Bill b WHERE b.customer.subscriptionNumber = :subscriptionNumber AND b.status = 'PENDING'")
+        long countPendingBillsBySubscription(@org.springframework.data.repository.query.Param("subscriptionNumber") String subscriptionNumber);
 }

@@ -54,14 +54,14 @@ public class BankSlipController {
     }
 
     @GetMapping("/pending/all")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<List<AdminBankSlipResponse>> getAllPendingSlips() {
         return ResponseEntity.ok(
                 bankSlipService.getAllPendingSlips());
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<Page<AdminBankSlipResponse>> getPendingSlips(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -71,7 +71,7 @@ public class BankSlipController {
     }
 
     @DeleteMapping("/delete/{slipId}")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<String> deleteSlip(
             @PathVariable Long slipId,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -80,7 +80,7 @@ public class BankSlipController {
     }
 
     @PostMapping("/review")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<String> processBankSlipReview(@RequestBody BankSlipActionRequest request) {
         bankSlipService.processBankSlipReview(request);
         return ResponseEntity.ok("Bank slip review processed successfully.");
@@ -99,7 +99,7 @@ public class BankSlipController {
     }
 
     @GetMapping("/{slipId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<AdminBankSlipResponse> getBankSlipById(@PathVariable Long slipId) {
         return ResponseEntity.ok(bankSlipService.getBankSlipById(slipId));
     }
