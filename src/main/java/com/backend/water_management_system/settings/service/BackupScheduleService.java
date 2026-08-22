@@ -1,6 +1,8 @@
 package com.backend.water_management_system.settings.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class BackupScheduleService {
 
     private final BackupScheduleRepository scheduleRepository;
     private final BackupService backupService;
+    private final CronJobOrgService cronJobOrgService;
 
     @Transactional(readOnly = true)
     public BackupScheduleResponse getScheduleSettings() {
@@ -32,43 +35,80 @@ public class BackupScheduleService {
 
     @Transactional
     public BackupScheduleResponse updateScheduleSettings(BackupScheduleRequest request, String updatedBy) {
+        BackupFrequency frequency = request.getFrequency();
+        LocalTime time = request.getTime();
+        DayOfWeek dayOfWeek = request.getDayOfWeek();
+        Integer dayOfMonth = request.getDayOfMonth();
+
+        // 1. Validation logic based on frequency
+        if (frequency == BackupFrequency.DISABLE) {
+            time = null;
+            dayOfWeek = null;
+            dayOfMonth = null;
+        } else if (frequency == BackupFrequency.DAILY) {
+            if (time == null) {
+                throw new IllegalArgumentException("Time is required for daily backup schedule.");
+            }
+            dayOfWeek = null;
+            dayOfMonth = null;
+        } else if (frequency == BackupFrequency.WEEKLY) {
+            if (time == null) {
+                throw new IllegalArgumentException("Time is required for weekly backup schedule.");
+            }
+            if (dayOfWeek == null) {
+                throw new IllegalArgumentException("Day of week is required for weekly backup schedule.");
+            }
+            dayOfMonth = null;
+        } else if (frequency == BackupFrequency.MONTHLY) {
+            if (time == null) {
+                throw new IllegalArgumentException("Time is required for monthly backup schedule.");
+            }
+            if (dayOfMonth == null || dayOfMonth < 1 || dayOfMonth > 31) {
+                throw new IllegalArgumentException(
+                        "Valid day of month (1-31) is required for monthly backup schedule.");
+            }
+            dayOfWeek = null;
+        }
+
+        // 2. Generate cron expression
+        String cronExpression = generateCronExpression(frequency, time, dayOfWeek, dayOfMonth);
+
+        // 3. Update external cron job on cron-job.org
+        cronJobOrgService.updateCronJobSchedule(frequency, time, dayOfWeek, dayOfMonth);
+
+        // 4. Save entity to database
         BackupSchedule schedule = getOrCreateSchedule();
-        schedule.setFrequency(request.getFrequency());
+        schedule.setFrequency(frequency);
+        schedule.setTime(time);
+        schedule.setDayOfWeek(dayOfWeek);
+        schedule.setDayOfMonth(dayOfMonth);
+        schedule.setCronExpression(cronExpression);
         schedule.setCreatedBy(updatedBy);
+
         BackupSchedule saved = scheduleRepository.save(schedule);
-        log.info("Backup schedule updated to {} by {}", saved.getFrequency(), updatedBy);
+        log.info("Backup schedule updated to frequency: {}, cron: {} by {}", frequency, cronExpression, updatedBy);
         return mapToResponse(saved);
     }
 
     @Transactional
-    public BackupResponse processCronBackupTrigger(BackupFrequency incomingFrequency) {
+    public BackupResponse processCronBackupTrigger() {
         BackupSchedule schedule = getOrCreateSchedule();
 
-        // 1. Check if schedule is disabled in DB
+        // Check if schedule is disabled in DB
         if (schedule.getFrequency() == BackupFrequency.DISABLE) {
-            log.info("Cron trigger '{}' skipped: Backup schedule is DISABLE.", incomingFrequency);
+            log.info("Cron trigger skipped: Backup schedule is DISABLE.");
             return BackupResponse.builder()
                     .success(false)
                     .message("Backup schedule is currently DISABLE.")
                     .build();
         }
 
-        // 2. Check if incoming frequency matches active DB setting
-        if (schedule.getFrequency() != incomingFrequency) {
-            log.info("Cron trigger '{}' skipped: Active setting in DB is '{}'.", incomingFrequency,
-                    schedule.getFrequency());
-            return BackupResponse.builder()
-                    .success(false)
-                    .message("Skipped: Active database setting is " + schedule.getFrequency())
-                    .build();
-        }
-
-        // 3. Mark status as RUNNING
+        // Mark status as RUNNING
         schedule.setLastBackupStatus(BackupStatus.RUNNING);
         scheduleRepository.save(schedule);
 
         try {
-            // 4. Run `pg_dump`
+            // Run backup
             BackupResponse response = backupService.createBackup();
 
             if (response.isSuccess()) {
@@ -93,6 +133,28 @@ public class BackupScheduleService {
         }
     }
 
+    private String generateCronExpression(BackupFrequency frequency, LocalTime time, DayOfWeek dayOfWeek,
+            Integer dayOfMonth) {
+        if (frequency == BackupFrequency.DISABLE || time == null) {
+            return null;
+        }
+        int min = time.getMinute();
+        int hour = time.getHour();
+
+        switch (frequency) {
+            case DAILY:
+                return String.format("%d %d * * *", min, hour);
+            case WEEKLY:
+                // Cron weekday: 0=Sun, 1=Mon, ..., 6=Sat
+                int cronWday = (dayOfWeek == DayOfWeek.SUNDAY) ? 0 : dayOfWeek.getValue();
+                return String.format("%d %d * * %d", min, hour, cronWday);
+            case MONTHLY:
+                return String.format("%d %d %d * *", min, hour, dayOfMonth);
+            default:
+                return null;
+        }
+    }
+
     private BackupSchedule getOrCreateSchedule() {
         return scheduleRepository.findFirstByOrderByIdAsc().orElseGet(() -> {
             BackupSchedule defaultSchedule = BackupSchedule.builder()
@@ -107,6 +169,10 @@ public class BackupScheduleService {
         return BackupScheduleResponse.builder()
                 .id(schedule.getId())
                 .frequency(schedule.getFrequency())
+                .time(schedule.getTime())
+                .dayOfWeek(schedule.getDayOfWeek())
+                .dayOfMonth(schedule.getDayOfMonth())
+                .cronExpression(schedule.getCronExpression())
                 .lastBackupStatus(schedule.getLastBackupStatus())
                 .lastSuccessfulBackupDate(schedule.getLastSuccessfulBackupDate())
                 .createdBy(schedule.getCreatedBy())

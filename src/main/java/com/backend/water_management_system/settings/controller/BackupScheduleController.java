@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import com.backend.water_management_system.settings.dto.BackupResponse;
 import com.backend.water_management_system.settings.dto.BackupScheduleRequest;
 import com.backend.water_management_system.settings.dto.BackupScheduleResponse;
-import com.backend.water_management_system.settings.enums.BackupFrequency;
 import com.backend.water_management_system.settings.service.BackupScheduleService;
 
 import jakarta.validation.Valid;
@@ -24,7 +23,7 @@ public class BackupScheduleController {
 
     private final BackupScheduleService backupScheduleService;
 
-    @Value("${backup.cron.secret-key:SuperSecretCronKey123}")
+    @Value("${app.backup.cron.secret-key:${BACKUP_CRON_SECRET}}")
     private String cronSecretKey;
 
     // Admin Dashboard Endpoints
@@ -43,9 +42,8 @@ public class BackupScheduleController {
     }
 
     // External Cron Trigger Endpoint
-    @PostMapping("/cron-trigger/{frequency}")
+    @PostMapping("/cron-trigger")
     public ResponseEntity<BackupResponse> handleCronTrigger(
-            @PathVariable("frequency") BackupFrequency frequency,
             @RequestHeader(value = "X-CRON-SECRET", required = false) String requestSecret) {
 
         // Secret validation
@@ -54,7 +52,7 @@ public class BackupScheduleController {
                     .body(BackupResponse.builder().success(false).message("Unauthorized cron secret").build());
         }
 
-        BackupResponse response = backupScheduleService.processCronBackupTrigger(frequency);
+        BackupResponse response = backupScheduleService.processCronBackupTrigger();
         return ResponseEntity.ok(response);
     }
 }
