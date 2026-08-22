@@ -44,9 +44,12 @@ public class MeterReadingController {
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/today")  // Get all meter readings submitted today
-    public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings() {
-        return ResponseEntity.ok(meterReadingService.getTodaysReadings());
+    @GetMapping("/today")  // Get all meter readings submitted for a specific date (defaults to today)
+    public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) 
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) 
+            java.time.LocalDate date) {
+        return ResponseEntity.ok(meterReadingService.getReadingsByDate(date));
     }
 
     @GetMapping("/previous/{meterNumber}")

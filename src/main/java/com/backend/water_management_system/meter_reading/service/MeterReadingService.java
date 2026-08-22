@@ -84,8 +84,9 @@ public class MeterReadingService {
 
         return billingService.generateBill(customer, savedReading);
     }
-    public List<MeterReadingTodayResponse> getTodaysReadings() {
-        List<MeterReading> readings = meterReadingRepository.findByReadingDate(LocalDate.now());
+    public List<MeterReadingTodayResponse> getReadingsByDate(LocalDate date) {
+        LocalDate targetDate = date != null ? date : LocalDate.now();
+        List<MeterReading> readings = meterReadingRepository.findByReadingDate(targetDate);
         return readings.stream().map(r -> {
             MeterReadingTodayResponse dto = new MeterReadingTodayResponse();
             dto.readingId = r.getReadingId();
