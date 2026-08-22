@@ -166,6 +166,7 @@ public class WidgetService {
                 .orElseThrow(() -> new IllegalArgumentException("Dashboard not found: " + dashboardId));
 
         dashboardWidgetRepo.deleteByDashboard_Id(dashboardId);
+        dashboardWidgetRepo.flush();
 
         int position = 0;
         for (Map<String, Object> p : placements) {
