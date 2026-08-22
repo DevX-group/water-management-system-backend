@@ -31,20 +31,20 @@ class BillReportServiceTest {
     }
 
     @Test
-    void getAllBills_returnsList() {
+    void getBills_returnsList() {
         // Arrange
         List<BillReport> mockBills = List.of(
                 new BillReport("1", "C001", "John Doe", 500.0, LocalDate.now().plusDays(5), LocalDate.now().minusDays(5), "UNPAID"),
                 new BillReport("2", "C002", "Jane Doe", 600.0, LocalDate.now().plusDays(6), LocalDate.now().minusDays(4), "PAID")
         );
-        when(repository.findAll()).thenReturn(mockBills);
+        when(repository.findFilteredBills("")).thenReturn(mockBills);
 
         // Act
-        List<BillReport> result = service.getAllBills();
+        List<BillReport> result = service.getBills(null);
 
         // Assert
         assertEquals(2, result.size());
-        verify(repository, times(1)).findAll();
+        verify(repository, times(1)).findFilteredBills("");
     }
 
     @Test
@@ -69,23 +69,19 @@ class BillReportServiceTest {
     void getOverdueBills_returnsUnpaidAndDueDateBeforeToday() {
         // Arrange
         LocalDate today = LocalDate.now();
-        List<BillReport> mockBills = List.of(
+        List<BillReport> mockOverdueBills = List.of(
                 // Unpaid & Overdue (Due 5 days ago)
-                new BillReport("1", "C001", "John Doe", 500.0, today.minusDays(5), today.minusDays(15), "UNPAID"),
-                // Unpaid & Not Overdue (Due in 5 days)
-                new BillReport("2", "C002", "Jane Doe", 600.0, today.plusDays(5), today.minusDays(5), "UNPAID"),
-                // Paid & Overdue (Due 10 days ago but already paid)
-                new BillReport("3", "C003", "Alice Smith", 700.0, today.minusDays(10), today.minusDays(20), "PAID")
+                new BillReport("1", "C001", "John Doe", 500.0, today.minusDays(5), today.minusDays(15), "UNPAID")
         );
-        when(repository.findAll()).thenReturn(mockBills);
+        when(repository.findOverdueBills(any(LocalDate.class), eq(""))).thenReturn(mockOverdueBills);
 
         // Act
-        List<BillReport> result = service.getOverdueBills();
+        List<BillReport> result = service.getOverdueBills(null);
 
         // Assert
         assertEquals(1, result.size());
         assertEquals("1", result.get(0).getId());
-        verify(repository, times(1)).findAll();
+        verify(repository, times(1)).findOverdueBills(any(LocalDate.class), eq(""));
     }
 
     @Test
