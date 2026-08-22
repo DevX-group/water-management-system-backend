@@ -13,9 +13,12 @@ import com.backend.water_management_system.inquiry.repository.InquiryRepository;
 public class InquiryService {
 
     private final InquiryRepository inquiryRepository;
+    private final com.backend.water_management_system.user.repository.UserRepository userRepository;
 
-    public InquiryService(InquiryRepository inquiryRepository) {
+    public InquiryService(InquiryRepository inquiryRepository,
+                          com.backend.water_management_system.user.repository.UserRepository userRepository) {
         this.inquiryRepository = inquiryRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -59,7 +62,9 @@ public class InquiryService {
             .orElseThrow(() -> new RuntimeException("Inquiry not found with id: " + inquiryId));
     }
 
-    public List<Inquiry> getInquiriesByEmail(String email) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public List<Inquiry> getInquiriesForCustomer(String nic) {
+        com.backend.water_management_system.user.entity.User user = userRepository.findByNic(nic)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return inquiryRepository.findByEmail(user.getEmail());
     }
 }
