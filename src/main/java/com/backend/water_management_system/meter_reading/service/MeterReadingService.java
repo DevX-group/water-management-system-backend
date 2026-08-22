@@ -67,7 +67,8 @@ public class MeterReadingService {
                 "high",
                 "High Water Usage Detected",
                 "High usage detection",
-                usage + " Units"
+                usage + " Units",
+                customer.getSubscriptionNumber()
             );
         } else {
             // Normal reading alert
@@ -75,7 +76,8 @@ public class MeterReadingService {
                 "info",
                 "Meter Reading Submitted",
                 "A normal meter reading was submitted successfully.",
-                usage + " Units"
+                usage + " Units",
+                customer.getSubscriptionNumber()
             );
         }
 
@@ -104,5 +106,25 @@ public class MeterReadingService {
             });
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    public MeterReadingTodayResponse getLatestReadingByMeterNumber(String meterNumber) {
+        Optional<MeterReading> reading = meterReadingRepository.findTopByMeterNumberOrderByReadingDateDesc(meterNumber);
+        if (reading.isPresent()) {
+            MeterReading r = reading.get();
+            MeterReadingTodayResponse dto = new MeterReadingTodayResponse();
+            dto.readingId = r.getReadingId();
+            dto.meterNumber = r.getMeterNumber();
+            dto.previousReading = r.getPreviousReading();
+            dto.currentReading = r.getCurrentReading();
+            dto.usageUnits = r.getUsageUnits();
+            dto.readingDate = r.getReadingDate();
+            if (r.getCustomer() != null) {
+                dto.customerName = r.getCustomer().getAccountHolderName();
+                dto.subscriptionNumber = r.getCustomer().getSubscriptionNumber();
+            }
+            return dto;
+        }
+        return null;
     }
 }

@@ -56,6 +56,25 @@ public class CustomerService {
         return customerRepository.findById(subscriptionNumber).orElseThrow(() -> new RuntimeException("Customer not found by subscription number " + subscriptionNumber));
     }
 
+    public Customer getCustomerByNic(String nic) {
+        return customerRepository.findByUser_Nic(nic).orElseThrow(() -> new RuntimeException("Customer not found for NIC " + nic));
+    }
+
+    @Transactional
+    public Customer updateCustomerProfileByNic(String nic, com.backend.water_management_system.customer.dto.CustomerProfileUpdateRequest request) {
+        Customer customer = getCustomerByNic(nic);
+        customer.setAccountHolderName(request.accountHolderName());
+        
+        User user = customer.getUser();
+        if (user != null) {
+            user.setFullName(request.accountHolderName());
+            user.setEmail(request.email());
+            user.setPhoneNumber(request.phoneNumber());
+            userRepository.save(user);
+        }
+        return customerRepository.save(customer);
+    }
+
     @Transactional
     public Customer registerCustomer(CustomerRegistrationRequest request, Role requesterRole) {
         // 1. Fetch Region
