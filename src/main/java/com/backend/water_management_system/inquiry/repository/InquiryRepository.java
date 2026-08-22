@@ -14,4 +14,7 @@ public interface InquiryRepository extends JpaRepository<Inquiry, String> {
 
     /** Count inquiries by email (customer-scoped). */
     long countByEmailAndStatus(String email, String status);
+
+    /** Find inquiries by email */
+    java.util.List<Inquiry> findByEmail(String email);
 }
