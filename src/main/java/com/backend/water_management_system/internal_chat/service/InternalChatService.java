@@ -262,7 +262,7 @@ public class InternalChatService {
     private boolean isEligibleInternalChatUser(User user) {
         return user != null && user.getStatus() == UserStatus.ACTIVE && user.getRole() != Role.CUSTOMER
                 && (user.getRole() == Role.SUPER_ADMIN || user.getRole() == Role.SYSTEM_ADMIN
-                        || user.getRole() == Role.PAYMENT_HANDLER || user.getRole() == Role.METER_READER);
+                        || user.getRole() == Role.CUSTOMER_HANDLER || user.getRole() == Role.METER_READER);
     }
 
     /**
