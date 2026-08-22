@@ -93,4 +93,12 @@ public class BillReportService {
     private String normalizeSearchValue(String value) {
         return value == null ? "" : value.trim();
     }
+
+    public List<BillReport> getAllBills() {
+        return repository.findAll();
+    }
+
+    public List<BillReport> getOverdueBills() {
+        return getOverdueBills("");
+    }
 }

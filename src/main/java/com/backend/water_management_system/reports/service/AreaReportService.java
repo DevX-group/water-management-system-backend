@@ -14,10 +14,16 @@ public class AreaReportService {
 
     private final UsageRecordRepository repository;
 
-    public AreaReportService(UsageRecordRepository repository) {
+    public AreaReportService(
+            UsageRecordRepository repository
+    ) {
         this.repository = repository;
     }
 
+    /*
+     * New method used by the application.
+     * It supports filtering by year and area.
+     */
     public List<AreaReportDTO> getAreaReport(
             int year,
             String area
@@ -28,17 +34,48 @@ public class AreaReportService {
                         : area.trim().toLowerCase();
 
         List<Object[]> rows =
-                repository.getAreaReport(year, selectedArea);
+                repository.getAreaReport(
+                        year,
+                        selectedArea
+                );
 
+        return mapAreaReportRows(rows);
+    }
+
+    /*
+     * Backward-compatible method used by existing tests
+     * and any older code.
+     */
+    public List<AreaReportDTO> getAreaReport(int year) {
+        List<Object[]> rows =
+                repository.getAreaReport(year);
+
+        return mapAreaReportRows(rows);
+    }
+
+    /*
+     * Converts database rows into AreaReportDTO objects.
+     */
+    private List<AreaReportDTO> mapAreaReportRows(
+            List<Object[]> rows
+    ) {
         Map<Integer, AreaReportDTO> monthlyReports =
                 new LinkedHashMap<>();
 
         for (Object[] row : rows) {
             String month = (String) row[0];
-            int monthNumber = ((Number) row[1]).intValue();
-            String recordArea = (String) row[2];
-            double usage = ((Number) row[3]).doubleValue();
-            double revenue = ((Number) row[4]).doubleValue();
+
+            int monthNumber =
+                    ((Number) row[1]).intValue();
+
+            String recordArea =
+                    (String) row[2];
+
+            double usage =
+                    ((Number) row[3]).doubleValue();
+
+            double revenue =
+                    ((Number) row[4]).doubleValue();
 
             AreaReportDTO report =
                     monthlyReports.computeIfAbsent(
@@ -65,11 +102,13 @@ public class AreaReportService {
                 }
 
                 default -> {
-                    // Ignore unknown area values.
+                    // Ignore unsupported area values.
                 }
             }
         }
 
-        return new ArrayList<>(monthlyReports.values());
+        return new ArrayList<>(
+                monthlyReports.values()
+        );
     }
 }
