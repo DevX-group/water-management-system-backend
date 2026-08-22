@@ -45,7 +45,7 @@ public class AuthService {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = principal.getUser();
 
-        String token = jwtService.generateToken(user.getNic(), user.getRole().name());
+        String token = jwtService.generateToken(user.getNic(), user.getRole().name(), user.getTokenVersion());
 
         return new LoginResponse(token, user.getRole().name(), user.getNic(), user.getEmail());
     }

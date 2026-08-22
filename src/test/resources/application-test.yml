@@ -23,3 +23,11 @@ spring:
 jwt:
   secret: test-secret-key-for-internal-chat-authentication-1234567890
   expiry-ms: 3600000
+
+app:
+  password-reset:
+    nic-requests-per-window: 3
+    ip-requests-per-window: 20
+    verification-requests-per-window: 30
+    rate-limit-window-minutes: 15
+    otp-hmac-secret: test-only-password-reset-secret

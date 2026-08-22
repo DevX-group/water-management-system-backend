@@ -54,8 +54,14 @@ public class SecurityConfig {
 
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // Auth endpoints are public
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Existing login/activation and the three password-reset endpoints are public
+                        .requestMatchers(
+                            "/api/auth/login",
+                            "/api/auth/activate",
+                            "/api/auth/password-reset/request",
+                            "/api/auth/password-reset/verify",
+                            "/api/auth/password-reset/complete"
+                        ).permitAll()
                     // Public payment config
                     .requestMatchers("/api/public/payments/**").permitAll()
                     // PayHere notification callback
