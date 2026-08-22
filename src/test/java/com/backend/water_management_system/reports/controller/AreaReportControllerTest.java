@@ -49,7 +49,7 @@ class AreaReportControllerTest {
         dto.setArea1Usage(100.0);
         dto.setArea1Revenue(500.0);
 
-        when(service.getAreaReport(year)).thenReturn(List.of(dto));
+        when(service.getAreaReport(year, "all")).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/reports/area")
                         .param("year", String.valueOf(year))
@@ -60,6 +60,6 @@ class AreaReportControllerTest {
                 .andExpect(jsonPath("$[0].area1Usage", is(100.0)))
                 .andExpect(jsonPath("$[0].area1Revenue", is(500.0)));
 
-        verify(service, times(1)).getAreaReport(year);
+        verify(service, times(1)).getAreaReport(year, "all");
     }
 }
