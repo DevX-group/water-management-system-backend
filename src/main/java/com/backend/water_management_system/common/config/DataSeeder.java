@@ -1,4 +1,7 @@
 package com.backend.water_management_system.common.config;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +28,10 @@ public class DataSeeder implements CommandLineRunner {
     private final RegionRepository regionRepository;
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
     public DataSeeder(CustomerRepository customerRepository, UserRepository userRepository, RegionRepository regionRepository,
             BillRepository billRepository, RateRepository rateRepository) {
         this.customerRepository = customerRepository;
@@ -33,8 +40,72 @@ public class DataSeeder implements CommandLineRunner {
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
     }
+    /**
+     * Drops the stale PostgreSQL check constraint on the users.role column and
+     * recreates it with CUSTOMER_HANDLER (replacing the old PAYMENT_HANDLER value).
+     *
+     * <p>Why native SQL: Hibernate ddl-auto=update never drops/recreates CHECK constraints,
+     * so this is the only reliable way to update them without a full schema recreation.
+     *
+     * <p>The drop uses IF EXISTS and the add uses a DO block to skip if already present,
+     * making this fully idempotent.
+     */
+    @Transactional
+    private void fixRoleCheckConstraint() {
+        try {
+            // Drop the old constraint if it still exists (any name variant)
+            entityManager.createNativeQuery(
+                "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check"
+            ).executeUpdate();
+
+            // Recreate the constraint with the new CUSTOMER_HANDLER value.
+            // This is a no-op if a constraint with these exact values already exists.
+            entityManager.createNativeQuery("""
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'users_role_check_v2'
+                      AND conrelid = 'users'::regclass
+                  ) THEN
+                    ALTER TABLE users ADD CONSTRAINT users_role_check_v2
+                      CHECK (role IN (
+                        'SUPER_ADMIN','SYSTEM_ADMIN','CUSTOMER_HANDLER',
+                        'METER_READER','CUSTOMER','PAYMENT_HANDLER'
+                      ));
+                  END IF;
+                END$$
+                """).executeUpdate();
+
+            System.out.println("[DataSeeder] users_role_check constraint updated to include CUSTOMER_HANDLER.");
+        } catch (Exception e) {
+            System.out.println("[DataSeeder] Warning: could not update role check constraint: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Idempotent migration: rename any legacy PAYMENT_HANDLER rows to CUSTOMER_HANDLER.
+     * Safe to run on every startup — only updates rows that still carry the old value.
+     */
+    @Transactional
+    private void migratePaymentHandlerRole() {
+        int updated = entityManager
+                .createQuery("UPDATE User u SET u.role = com.backend.water_management_system.user.enums.Role.CUSTOMER_HANDLER "
+                        + "WHERE u.role = 'PAYMENT_HANDLER'")
+                .executeUpdate();
+        if (updated > 0) {
+            System.out.println("[DataSeeder] Migrated " + updated + " user(s) from PAYMENT_HANDLER → CUSTOMER_HANDLER");
+        }
+    }
+
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
+        // Step 1: update the DB check constraint to allow CUSTOMER_HANDLER
+        fixRoleCheckConstraint();
+        // Step 2: migrate legacy PAYMENT_HANDLER role values to CUSTOMER_HANDLER
+        migratePaymentHandlerRole();
+
         if (rateRepository.count() == 0) {
             ConnectionRate meteredRate = new ConnectionRate();
             meteredRate.setConnectionType("metered");

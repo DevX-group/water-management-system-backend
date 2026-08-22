@@ -20,7 +20,7 @@ import com.backend.water_management_system.payments.service.PaymentService;
 @CrossOrigin(origins = "http://localhost:8080")
 @RestController
 @RequestMapping("/api/payments")
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('PAYMENT_HANDLER')")
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
 public class PaymentController {
 
     private final PaymentService paymentService;
