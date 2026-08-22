@@ -69,6 +69,12 @@ public class SecurityConfig {
                         // Require authentication for all other endpoints
                         .anyRequest().authenticated()
                 )
+                
+                // Return 401 Unauthorized instead of 403 Forbidden for unauthenticated access
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> 
+                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage()))
+                )
 
                 // Register JWT filter before Spring's default auth filter
                 .addFilterBefore(jwtAuthenticationFilter,

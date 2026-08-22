@@ -55,6 +55,9 @@ public class MeterReadingController {
         if (latest != null) {
             return ResponseEntity.ok(latest);
         }
+        return ResponseEntity.notFound().build();
+    }
+    
     @PostMapping(value = "/upload-image", consumes = "multipart/form-data")
     public ResponseEntity<java.util.Map<String, String>> uploadImage(@org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
                                                                      @org.springframework.beans.factory.annotation.Autowired com.backend.water_management_system.payments.service.CloudinaryService cloudinaryService) {
