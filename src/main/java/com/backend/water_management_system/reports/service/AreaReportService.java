@@ -4,7 +4,10 @@ import com.backend.water_management_system.reports.dto.AreaReportDTO;
 import com.backend.water_management_system.reports.repository.UsageRecordRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class AreaReportService {
@@ -15,40 +18,58 @@ public class AreaReportService {
         this.repository = repository;
     }
 
-    public List<AreaReportDTO> getAreaReport(int year) {
+    public List<AreaReportDTO> getAreaReport(
+            int year,
+            String area
+    ) {
+        String selectedArea =
+                area == null || area.isBlank()
+                        ? "all"
+                        : area.trim().toLowerCase();
 
-        List<Object[]> rows = repository.getAreaReport(year);
-        Map<Integer, AreaReportDTO> map = new LinkedHashMap<>();
+        List<Object[]> rows =
+                repository.getAreaReport(year, selectedArea);
+
+        Map<Integer, AreaReportDTO> monthlyReports =
+                new LinkedHashMap<>();
 
         for (Object[] row : rows) {
-
             String month = (String) row[0];
-            int monthNum = ((Number) row[1]).intValue();
-            String area = (String) row[2];
+            int monthNumber = ((Number) row[1]).intValue();
+            String recordArea = (String) row[2];
             double usage = ((Number) row[3]).doubleValue();
-            double amount = ((Number) row[4]).doubleValue();
+            double revenue = ((Number) row[4]).doubleValue();
 
-            AreaReportDTO dto = map.getOrDefault(monthNum, new AreaReportDTO());
-            dto.setMonth(month);
+            AreaReportDTO report =
+                    monthlyReports.computeIfAbsent(
+                            monthNumber,
+                            ignored -> new AreaReportDTO()
+                    );
 
-            switch (area.toLowerCase()) {
-                case "area1":
-                    dto.setArea1Usage(usage);
-                    dto.setArea1Revenue(amount);
-                    break;
-                case "area2":
-                    dto.setArea2Usage(usage);
-                    dto.setArea2Revenue(amount);
-                    break;
-                case "area3":
-                    dto.setArea3Usage(usage);
-                    dto.setArea3Revenue(amount);
-                    break;
+            report.setMonth(month);
+
+            switch (recordArea.toLowerCase()) {
+                case "area1" -> {
+                    report.setArea1Usage(usage);
+                    report.setArea1Revenue(revenue);
+                }
+
+                case "area2" -> {
+                    report.setArea2Usage(usage);
+                    report.setArea2Revenue(revenue);
+                }
+
+                case "area3" -> {
+                    report.setArea3Usage(usage);
+                    report.setArea3Revenue(revenue);
+                }
+
+                default -> {
+                    // Ignore unknown area values.
+                }
             }
-
-            map.put(monthNum, dto);
         }
 
-        return new ArrayList<>(map.values());
+        return new ArrayList<>(monthlyReports.values());
     }
 }

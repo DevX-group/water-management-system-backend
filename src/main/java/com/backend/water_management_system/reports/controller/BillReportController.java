@@ -3,9 +3,8 @@ package com.backend.water_management_system.reports.controller;
 import com.backend.water_management_system.reports.dto.BillsSummaryDTO;
 import com.backend.water_management_system.reports.entity.BillReport;
 import com.backend.water_management_system.reports.service.BillReportService;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -16,55 +15,59 @@ public class BillReportController {
 
     private final BillReportService billService;
 
-    public BillReportController(BillReportService billService) {
+    public BillReportController(
+            BillReportService billService
+    ) {
         this.billService = billService;
     }
 
-    // ALL bills
+    /*
+     * Without customerId: returns all bills.
+     * With customerId: returns only matching bills.
+     */
     @GetMapping
-    public ResponseEntity<?> getAllBills() {
-        try {
-            List<BillReport> result = billService.getAllBills();
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to fetch bills: " + e.getMessage());
-        }
+    public ResponseEntity<List<BillReport>> getBills(
+            @RequestParam(required = false)
+            String customerId
+    ) {
+        return ResponseEntity.ok(
+                billService.getBills(customerId)
+        );
     }
 
-    // BY customer
+    /*
+     * Keep this endpoint for compatibility.
+     * It performs an exact customer-ID lookup.
+     */
     @GetMapping("/{customerId}")
-    public ResponseEntity<?> getByCustomer(@PathVariable String customerId) {
-        try {
-            List<BillReport> result = billService.getBillsByCustomer(customerId);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to fetch customer bills: " + e.getMessage());
-        }
+    public ResponseEntity<List<BillReport>> getByCustomer(
+            @PathVariable String customerId
+    ) {
+        return ResponseEntity.ok(
+                billService.getBillsByCustomer(customerId)
+        );
     }
 
-    // SUMMARY
     @GetMapping("/summary/{customerId}")
-    public ResponseEntity<?> getSummary(@PathVariable String customerId) {
-        try {
-            BillsSummaryDTO result = billService.getSummary(customerId);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to fetch summary: " + e.getMessage());
-        }
+    public ResponseEntity<BillsSummaryDTO> getSummary(
+            @PathVariable String customerId
+    ) {
+        return ResponseEntity.ok(
+                billService.getSummary(customerId)
+        );
     }
 
-    // OVERDUE BILLS
+    /*
+     * Without customerId: returns all overdue bills.
+     * With customerId: returns matching overdue bills.
+     */
     @GetMapping("/overdue")
-    public ResponseEntity<?> getOverdueBills() {
-        try {
-            List<BillReport> result = billService.getOverdueBills();
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to fetch overdue bills: " + e.getMessage());
-        }
+    public ResponseEntity<List<BillReport>> getOverdueBills(
+            @RequestParam(required = false)
+            String customerId
+    ) {
+        return ResponseEntity.ok(
+                billService.getOverdueBills(customerId)
+        );
     }
 }

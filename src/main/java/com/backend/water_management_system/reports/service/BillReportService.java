@@ -17,70 +17,80 @@ public class BillReportService {
         this.repository = repository;
     }
 
-    // ALL bills
-    public List<BillReport> getAllBills() {
-        try {
-            return repository.findAll();
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching all bills: " + e.getMessage());
-        }
+    // Returns all bills when customerId is empty.
+    // Returns filtered bills when customerId is provided.
+    public List<BillReport> getBills(String customerId) {
+        String searchValue = normalizeSearchValue(customerId);
+
+        return repository.findFilteredBills(searchValue);
     }
 
-    // Bills by customer
-    public List<BillReport> getBillsByCustomer(String customerId) {
-        try {
-            return repository.findByCustomerId(customerId);
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching bills for customer: " + customerId);
-        }
+    // Exact lookup retained for existing endpoint
+    public List<BillReport> getBillsByCustomer(
+            String customerId
+    ) {
+        return repository.findByCustomerId(customerId.trim());
     }
 
-    // Overdue bills
-    public List<BillReport> getOverdueBills() {
-        try {
-            LocalDate today = LocalDate.now();
+    // Database performs overdue and customer filtering
+    public List<BillReport> getOverdueBills(
+            String customerId
+    ) {
+        String searchValue = normalizeSearchValue(customerId);
 
-            return repository.findAll().stream()
-                    .filter(bill ->
-                            "UNPAID".equals(bill.getStatus()) &&
-                                    bill.getDueDate().isBefore(today)
-                    )
-                    .toList();
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching overdue bills: " + e.getMessage());
-        }
+        return repository.findOverdueBills(
+                LocalDate.now(),
+                searchValue
+        );
     }
 
-    // Summary
     public BillsSummaryDTO getSummary(String customerId) {
-        try {
-            List<BillReport> bills = repository.findByCustomerId(customerId);
+        List<BillReport> bills =
+                repository.findByCustomerId(customerId.trim());
 
-            double total = bills.stream()
-                    .mapToDouble(BillReport::getAmount)
-                    .sum();
+        double totalAmount = bills.stream()
+                .map(BillReport::getAmount)
+                .filter(amount -> amount != null)
+                .mapToDouble(Double::doubleValue)
+                .sum();
 
-            long unpaid = bills.stream()
-                    .filter(b -> "UNPAID".equals(b.getStatus()))
-                    .count();
+        long unpaidCount = bills.stream()
+                .filter(bill ->
+                        "UNPAID".equalsIgnoreCase(
+                                bill.getStatus()
+                        )
+                )
+                .count();
 
-            BillReport last = bills.stream()
-                    .reduce((a, b) ->
-                            a.getBillReportDate().isAfter(b.getBillReportDate()) ? a : b
-                    )
-                    .orElse(null);
+        BillReport latestBill = bills.stream()
+                .filter(bill ->
+                        bill.getBillReportDate() != null
+                )
+                .max((first, second) ->
+                        first.getBillReportDate().compareTo(
+                                second.getBillReportDate()
+                        )
+                )
+                .orElse(null);
 
-            return new BillsSummaryDTO(
-                    customerId,
-                    bills.isEmpty() ? null : bills.get(0).getCustomerName(),
-                    total,
-                    last != null ? last.getBillReportDate() : null,
-                    unpaid
-            );
+        String customerName = bills.stream()
+                .map(BillReport::getCustomerName)
+                .filter(name -> name != null && !name.isBlank())
+                .findFirst()
+                .orElse(null);
 
-        } catch (Exception e) {
-            throw new RuntimeException("Error generating bill summary: " + e.getMessage());
-        }
+        return new BillsSummaryDTO(
+                customerId,
+                customerName,
+                totalAmount,
+                latestBill == null
+                        ? null
+                        : latestBill.getBillReportDate(),
+                unpaidCount
+        );
+    }
+
+    private String normalizeSearchValue(String value) {
+        return value == null ? "" : value.trim();
     }
 }
