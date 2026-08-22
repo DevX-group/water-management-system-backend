@@ -18,7 +18,10 @@ public class AreaReportController {
     }
 
     @GetMapping("/area")
-    public List<AreaReportDTO> getAreaReport(@RequestParam int year) {
-        return service.getAreaReport(year);
+    public List<AreaReportDTO> getAreaReport(
+            @RequestParam int year,
+            @RequestParam(defaultValue = "all") String area
+    ) {
+        return service.getAreaReport(year, area);
     }
 }
