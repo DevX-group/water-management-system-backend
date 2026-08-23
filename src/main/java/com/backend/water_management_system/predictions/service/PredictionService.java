@@ -6,8 +6,6 @@ import com.backend.water_management_system.predictions.dto.MonthlyPredictionResp
 import com.backend.water_management_system.reports.repository.UsageRecordRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -29,9 +27,8 @@ import org.springframework.http.HttpHeaders;
 @Service
 public class PredictionService {
 
-    @Value("${prediction.service.url:http://127.0.0.1:5000/predict}")
-    private String flaskUrl =
-            "http://127.0.0.1:5000/predict";
+    @Value("${prediction.service.url:https://m5zktklv-5000.asse.devtunnels.ms/predict}")
+private String flaskUrl;
 
     private final UsageRecordRepository repository;
     private final RestTemplate restTemplate;
