@@ -44,7 +44,7 @@ public class CloudinaryService {
         try {
             Map<String, Object> uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
-                    ObjectUtils.emptyMap());
+                    ObjectUtils.asMap("resource_type", "auto"));
 
             return CloudinaryUploadResponse.builder()
                     .url(uploadResult.get("secure_url").toString())
