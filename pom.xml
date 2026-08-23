@@ -126,7 +126,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.32</version>
+			<version>1.18.46</version>
 			<optional>true</optional>
 		</dependency>
 
@@ -196,13 +196,7 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-							<version>1.18.32</version>
-						</path>
-					</annotationProcessorPaths>
+					<!-- Lombok is defined in dependencies, so it will be picked up from classpath -->
 				</configuration>
 			</plugin>
 			<plugin>

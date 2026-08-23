@@ -3,6 +3,7 @@ package com.backend.water_management_system.meter_reading.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +17,6 @@ import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateR
 import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateResponse;
 import com.backend.water_management_system.meter_reading.dto.MeterReadingTodayResponse;
 import com.backend.water_management_system.meter_reading.service.MeterReadingService;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/meter-readings")
@@ -25,9 +25,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 public class MeterReadingController {
 
     private final MeterReadingService meterReadingService;
+    private final com.backend.water_management_system.payments.service.CloudinaryService cloudinaryService;
 
-    public MeterReadingController(MeterReadingService meterReadingService) {
+    public MeterReadingController(MeterReadingService meterReadingService, com.backend.water_management_system.payments.service.CloudinaryService cloudinaryService) {
         this.meterReadingService = meterReadingService;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @PostMapping                  // Submit a new meter reading and generate the corresponding bill
@@ -76,13 +78,10 @@ public class MeterReadingController {
     }
     
     @PostMapping(value = "/upload-image", consumes = "multipart/form-data")
-    public ResponseEntity<java.util.Map<String, String>> uploadImage(@org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-                                                                     @org.springframework.beans.factory.annotation.Autowired com.backend.water_management_system.payments.service.CloudinaryService cloudinaryService) {
-        if (cloudinaryService.isConfigured()) {
-            com.backend.water_management_system.payments.dto.CloudinaryUploadResponse res = cloudinaryService.uploadFile(file);
-            return ResponseEntity.ok(java.util.Map.of("url", res.getUrl()));
-        } else {
-            return ResponseEntity.ok(java.util.Map.of("url", "https://via.placeholder.com/600x400?text=Meter+Reading+Image"));
-        }
+    public ResponseEntity<java.util.Map<String, String>> uploadImage(@org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        System.out.println("FORCING CLOUDINARY UPLOAD...");
+        com.backend.water_management_system.payments.dto.CloudinaryUploadResponse res = cloudinaryService.uploadFile(file);
+        System.out.println("UPLOADED TO CLOUDINARY: " + res.getUrl());
+        return ResponseEntity.ok(java.util.Map.of("url", res.getUrl()));
     }
 }

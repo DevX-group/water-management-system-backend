@@ -13,6 +13,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -41,6 +42,7 @@ class MonthlyReportControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @Test
+        @WithMockUser(roles = "SUPER_ADMIN")
     void getMonthlyReport_returnsList() throws Exception {
         int year = 2026;
 
