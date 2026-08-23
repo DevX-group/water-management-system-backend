@@ -2,6 +2,7 @@ package com.backend.water_management_system.payments.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,6 +49,7 @@ import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.customer.exceptions.CustomerNotFoundException;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
+import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.payments.dto.AddPaymentRequest;
 import com.backend.water_management_system.payments.dto.AddPaymentResponse;
 import com.backend.water_management_system.payments.dto.CustomerPaymentSummaryResponse;
@@ -686,7 +688,8 @@ class PaymentServiceTest {
                 verify(paymentAllocationRepository, org.mockito.Mockito.times(1)).save(any());
 
                 // Verify dispatcher called
-                verify(triggeredMessageDispatcher).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher).dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
         }
 
         @Test
@@ -738,7 +741,8 @@ class PaymentServiceTest {
                 verify(paymentAllocationRepository, org.mockito.Mockito.times(1)).save(any());
 
                 // Verify dispatcher called
-                verify(triggeredMessageDispatcher).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher).dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
         }
 
         @Test
@@ -783,7 +787,8 @@ class PaymentServiceTest {
 
                 verify(paymentAllocationRepository).save(any());
 
-                verify(triggeredMessageDispatcher).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher).dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
         }
 
         @Test
@@ -849,7 +854,8 @@ class PaymentServiceTest {
                 verify(paymentAllocationRepository, org.mockito.Mockito.times(2)).save(any());
 
                 // Verify dispatcher called
-                verify(triggeredMessageDispatcher).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher).dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
         }
 
         @Test
@@ -915,7 +921,8 @@ class PaymentServiceTest {
                 verify(paymentAllocationRepository, org.mockito.Mockito.times(2)).save(any());
 
                 // Verify dispatcher called
-                verify(triggeredMessageDispatcher).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher).dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
         }
 
         @Test
@@ -981,7 +988,8 @@ class PaymentServiceTest {
                 verify(paymentAllocationRepository, org.mockito.Mockito.times(2)).save(any());
 
                 // Verify dispatcher called
-                verify(triggeredMessageDispatcher).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher).dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
         }
 
         @Test
@@ -1079,7 +1087,8 @@ class PaymentServiceTest {
 
                 paymentService.addPayment(request);
 
-                verify(triggeredMessageDispatcher, org.mockito.Mockito.never()).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher, org.mockito.Mockito.never()).dispatchTriggeredMessage(
+                                eq(TriggerType.PAYMENT_CONFIRMED), any(Payment.class));
         }
 
         @Test
@@ -1109,7 +1118,8 @@ class PaymentServiceTest {
 
                 doThrow(new RuntimeException("SMS service unavailable"))
                                 .when(triggeredMessageDispatcher)
-                                .dispatchPaymentConfirmed(any());
+                                .dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
                 AddPaymentResponse response = paymentService.addPayment(request);
 
                 assertNotNull(response);
@@ -1122,7 +1132,8 @@ class PaymentServiceTest {
                 verify(paymentRepository).save(any());
 
                 // Verify dispatcher attempted
-                verify(triggeredMessageDispatcher).dispatchPaymentConfirmed(any());
+                verify(triggeredMessageDispatcher).dispatchTriggeredMessage(eq(TriggerType.PAYMENT_CONFIRMED),
+                                argThat((Payment payment) -> matchesPaymentRequest(payment, request)));
         }
 
         @Test
@@ -1944,7 +1955,7 @@ class PaymentServiceTest {
         }
 
         @Test
-        void testGetCurrentBill_NoBillsFound() {
+        void testGetCurrentBill_NoBillsFound_ReturnsNull() {
 
                 String subscriptionNumber = "SUB123";
 
@@ -1957,10 +1968,11 @@ class PaymentServiceTest {
                                 .findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber))
                                 .thenReturn(Optional.empty());
 
-                RuntimeException exception = assertThrows(RuntimeException.class,
-                                () -> paymentService.getCurrentBill(subscriptionNumber));
+                CurrentBillResponse response = paymentService.getCurrentBill(subscriptionNumber);
 
-                assertEquals("No bills found for customer: SUB123", exception.getMessage());
+                assertNull(response);
+                verify(billRepository)
+                                .findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber);
         }
 
         @Test
@@ -2410,6 +2422,14 @@ class PaymentServiceTest {
 
                 assertEquals(new BigDecimal("400"), response.getMonthlyDue());
                 assertEquals("PENDING", response.getBillStatus());
+        }
+
+        private boolean matchesPaymentRequest(Payment payment, AddPaymentRequest request) {
+                return payment != null
+                                && request.getSubscriptionNumber().equals(payment.getSubscriptionNumber())
+                                && request.getAmount().compareTo(payment.getAmount()) == 0
+                                && request.getPaymentType() == payment.getPaymentType()
+                                && request.getPaymentMethod() == payment.getPaymentMethod();
         }
 
 }
