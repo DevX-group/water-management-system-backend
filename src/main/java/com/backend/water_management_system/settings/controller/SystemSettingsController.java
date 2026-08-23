@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/system-settings")
-@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SystemSettingsController {
     
     private final SystemSettingsService systemSettingsService;
@@ -29,6 +28,7 @@ public class SystemSettingsController {
         return ResponseEntity.ok(systemSettingsService.getSystemDetails());
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PutMapping("/update")
     public ResponseEntity<SystemDetailsResponse> updateSystemDetails(@RequestBody SystemDetailsRequest request){
         return ResponseEntity.ok(systemSettingsService.updateSystemDetails(request));

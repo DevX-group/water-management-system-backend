@@ -20,6 +20,7 @@ import com.backend.water_management_system.common.entity.ConnectionRate;
 import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.backend.water_management_system.notification.service.NotificationService;
 
 @ExtendWith(MockitoExtension.class)
 public class BillingServiceTest {
@@ -29,6 +30,9 @@ public class BillingServiceTest {
 
     @Mock
     private RateRepository rateRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private BillingService billingService;

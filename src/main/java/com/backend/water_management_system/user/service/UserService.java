@@ -1,6 +1,9 @@
 package com.backend.water_management_system.user.service;
 
 import com.backend.water_management_system.auth.service.AuthService;
+import com.backend.water_management_system.activity_audit.enums.AuditAction;
+import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
 import com.backend.water_management_system.user.dto.UserCreateRequest;
 import com.backend.water_management_system.user.dto.UserResponse;
 import com.backend.water_management_system.user.dto.UserUpdateRequest;
@@ -14,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,9 +29,22 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AuthService authService;
+    private final ActivityAuditService activityAuditService;
 
     @Transactional
     public UserResponse createUser(UserCreateRequest request, Role requesterRole) {
+        return createUser(request, requesterRole, false);
+    }
+
+    @Transactional
+    public UserResponse createPublicCustomerUser(UserCreateRequest request, Role requesterRole) {
+        if (request.role() != Role.CUSTOMER) {
+            throw new IllegalArgumentException("Public registration may only create customer accounts.");
+        }
+        return createUser(request, requesterRole, true);
+    }
+
+    private UserResponse createUser(UserCreateRequest request, Role requesterRole, boolean publicRegistration) {
         // Enforce RBAC: SYSTEM_ADMIN can only create CUSTOMERs
         if (requesterRole == Role.SYSTEM_ADMIN && request.role() != Role.CUSTOMER) {
             throw new IllegalArgumentException("System Admins can only create Customer accounts.");
@@ -57,7 +75,18 @@ public class UserService {
         // Send the activation link (which creates the token and emails it)
         authService.sendActivationLink(savedUser);
 
-        log.info("Created new user with NIC: {} and sent activation link", savedUser.getNic());
+        Map<String, String> changes = Map.of(
+                "role", savedUser.getRole().name(),
+                "status", savedUser.getStatus().name());
+        if (publicRegistration) {
+            activityAuditService.recordPublicWeb(
+                    AuditAction.USER_CREATED, AuditEntityType.USER, savedUser.getId(), changes);
+        } else {
+            activityAuditService.recordAuthenticatedWeb(
+                    AuditAction.USER_CREATED, AuditEntityType.USER, savedUser.getId(), changes);
+        }
+
+        log.info("Created new user {} and sent activation link", savedUser.getId());
         return UserResponse.fromEntity(savedUser);
     }
 
@@ -90,10 +119,19 @@ public class UserService {
             throw new IllegalArgumentException("System Admins can only manage Customer accounts.");
         }
 
+        UserStatus oldStatus = user.getStatus();
         user.setStatus(newStatus);
         User savedUser = userRepository.save(user);
 
-        log.info("Updated status for user {} to {}", user.getNic(), newStatus);
+        if (oldStatus != newStatus) {
+            activityAuditService.recordAuthenticatedWeb(
+                    AuditAction.USER_STATUS_CHANGED,
+                    AuditEntityType.USER,
+                    savedUser.getId(),
+                    Map.of("status", oldStatus.name() + " -> " + newStatus.name()));
+        }
+
+        log.info("Updated status for user {} to {}", user.getId(), newStatus);
         return UserResponse.fromEntity(savedUser);
     }
 
@@ -132,6 +170,12 @@ public class UserService {
                     }
                 });
 
+        String oldFullName = user.getFullName();
+        String oldNic = user.getNic();
+        String oldEmail = user.getEmail();
+        String oldPhoneNumber = user.getPhoneNumber();
+        Role oldRole = user.getRole();
+
         user.setFullName(request.fullName());
         user.setNic(request.nic());
         user.setEmail(request.email());
@@ -139,7 +183,24 @@ public class UserService {
         user.setRole(request.role());
 
         User savedUser = userRepository.save(user);
-        log.info("Updated admin user {}", savedUser.getNic());
+
+        Map<String, String> profileChanges = new java.util.LinkedHashMap<>();
+        if (!Objects.equals(oldFullName, request.fullName())) profileChanges.put("fullName", "changed");
+        if (!Objects.equals(oldNic, request.nic())) profileChanges.put("nic", "changed");
+        if (!Objects.equals(oldEmail, request.email())) profileChanges.put("email", "changed");
+        if (!Objects.equals(oldPhoneNumber, request.phoneNumber())) profileChanges.put("phoneNumber", "changed");
+        if (!profileChanges.isEmpty()) {
+            activityAuditService.recordAuthenticatedWeb(
+                    AuditAction.USER_PROFILE_UPDATED, AuditEntityType.USER, savedUser.getId(), profileChanges);
+        }
+        if (oldRole != request.role()) {
+            activityAuditService.recordAuthenticatedWeb(
+                    AuditAction.USER_ROLE_CHANGED,
+                    AuditEntityType.USER,
+                    savedUser.getId(),
+                    Map.of("role", oldRole.name() + " -> " + request.role().name()));
+        }
+        log.info("Updated admin user {}", savedUser.getId());
         return UserResponse.fromEntity(savedUser);
     }
 }

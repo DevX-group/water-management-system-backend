@@ -19,6 +19,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import com.backend.water_management_system.billing.repository.BillRepository;
+import com.backend.water_management_system.activity_audit.enums.AuditAction;
+import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
 import com.backend.water_management_system.common.dto.PaginationResponse;
 import com.backend.water_management_system.customer.entity.Customer;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
@@ -58,6 +61,7 @@ public class BankSlipService {
         private final PaymentRepository paymentRepository;
         private final BillRepository billRepository;
         private final TriggeredMessageDispatcher triggeredMessageDispatcher;
+        private final ActivityAuditService activityAuditService;
 
         private final SimpMessagingTemplate messagingTemplate;
 
@@ -140,6 +144,8 @@ public class BankSlipService {
                                         .amount(request.getAmount())
                                         .bankReference(savedSlip.getBankReference())
                                         .filePath(savedSlip.getFilePath())
+                                        .fileName(savedSlip.getFileName())
+                                        .fileType(savedSlip.getFileType())
                                         .status(savedSlip.getStatus())
                                         .bankPaymentDate(savedSlip.getBankPaymentDate())
                                         .uploadedAt(savedSlip.getUploadedAt())
@@ -197,6 +203,8 @@ public class BankSlipService {
                                 .amount(slip.getAmount())
                                 .bankReference(slip.getBankReference())
                                 .filePath(slip.getFilePath())
+                                .fileName(slip.getFileName())
+                                .fileType(slip.getFileType())
                                 .status(slip.getStatus())
                                 .bankPaymentDate(slip.getBankPaymentDate())
                                 .uploadedAt(slip.getUploadedAt())
@@ -302,6 +310,10 @@ public class BankSlipService {
                 payment.setStatus(status);
                 paymentRepository.save(payment);
 
+                activityAuditService.recordAuthenticatedWeb(
+                                AuditAction.PAYMENT_CREATED, AuditEntityType.PAYMENT,
+                                payment.getPaymentId(), PaymentService.creationDetails(payment));
+
                 try {
                         triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
                 } catch (Exception ex) {
@@ -358,6 +370,8 @@ public class BankSlipService {
                                 .amount(slip.getAmount())
                                 .bankReference(slip.getBankReference())
                                 .filePath(slip.getFilePath())
+                                .fileName(slip.getFileName())
+                                .fileType(slip.getFileType())
                                 .status(slip.getStatus())
                                 .uploadedAt(slip.getUploadedAt())
                                 .bankPaymentDate(slip.getBankPaymentDate())
