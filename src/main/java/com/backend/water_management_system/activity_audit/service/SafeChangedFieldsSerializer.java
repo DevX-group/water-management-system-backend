@@ -33,6 +33,10 @@ public class SafeChangedFieldsSerializer {
 
     private final ObjectMapper objectMapper;
 
+    public SafeChangedFieldsSerializer() {
+        this(new ObjectMapper());
+    }
+
     public SafeChangedFieldsSerializer(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
