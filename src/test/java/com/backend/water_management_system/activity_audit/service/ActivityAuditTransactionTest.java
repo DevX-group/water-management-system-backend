@@ -63,4 +63,27 @@ class ActivityAuditTransactionTest {
         assertThat(userRepository.findById(userId[0])).isEmpty();
         assertThat(auditRepository.count()).isZero();
     }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void auditPersistenceFailureRollsBackAssociatedBusinessMutation() {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        UUID[] userId = new UUID[1];
+
+        assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
+            User savedUser = userRepository.save(User.builder()
+                    .nic("rollback-nic")
+                    .email("rollback@example.test")
+                    .role(Role.CUSTOMER)
+                    .status(UserStatus.PENDING_ACTIVATION)
+                    .build());
+            userId[0] = savedUser.getId();
+            auditService.recordSystem(
+                    AuditAction.USER_CREATED, AuditEntityType.USER, userId[0],
+                    Map.of("unsafePersonalField", "must fail"));
+        })).isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(userRepository.findById(userId[0])).isEmpty();
+        assertThat(auditRepository.count()).isZero();
+    }
 }
