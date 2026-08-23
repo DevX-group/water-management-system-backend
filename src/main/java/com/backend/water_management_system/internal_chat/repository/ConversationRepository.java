@@ -19,7 +19,7 @@ import java.util.UUID;
 public interface ConversationRepository extends JpaRepository<Conversation, UUID> {
 
     /** Returns conversations for a user, newest activity first. */
-    @Query("select c from InternalChatConversation c join c.participants p where p.user = :user order by c.updatedAt desc")
+        @Query("select c from InternalChatConversation c join c.participants p where p.user = :user and p.deletedAt is null order by c.updatedAt desc")
     List<Conversation> findAllByUserOrderByUpdatedAtDesc(@Param("user") User user);
 
     /**

@@ -85,6 +85,7 @@ public class InternalChatService {
         Optional<Conversation> existing = findDirectConversation(currentUser, targetUser);
         if (existing.isPresent()) {
             // Direct conversations are unique per pair, so repeated creation is idempotent.
+            restoreParticipant(existing.get(), currentUser);
             return buildConversationResponse(currentUser, existing.get());
         }
 
@@ -143,6 +144,7 @@ public class InternalChatService {
         ensureEligibleInternalChatUser(currentUser);
         Conversation conversation = findConversationById(conversationId);
         ensureParticipant(conversation, currentUser);
+        restoreParticipant(conversation, findOtherParticipant(conversation, currentUser));
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Message> messages = messageRepository.findByConversationOrderByCreatedAtDesc(conversation, pageable);
@@ -197,7 +199,7 @@ public class InternalChatService {
 
         Conversation conversation = findConversationById(conversationId);
         ConversationParticipant participant = conversationParticipantRepository
-                .findByConversationAndUser(conversation, currentUser)
+            .findActiveByConversationAndUser(conversation, currentUser)
                 .orElseThrow(
                         () -> new InternalChatAccessDeniedException("You are not a participant in this conversation."));
 
@@ -213,10 +215,24 @@ public class InternalChatService {
     public LocalDateTime getLastReadAt(UUID currentUserId, UUID conversationId) {
         User currentUser = findUserById(currentUserId);
         Conversation conversation = findConversationById(conversationId);
-        return conversationParticipantRepository.findByConversationAndUser(conversation, currentUser)
+        return conversationParticipantRepository.findActiveByConversationAndUser(conversation, currentUser)
                 .map(ConversationParticipant::getLastReadAt)
                 .orElseThrow(
                         () -> new InternalChatAccessDeniedException("You are not a participant in this conversation."));
+    }
+
+    /** Hides a conversation for the requesting participant without deleting its data. */
+    @Transactional
+    public void deleteConversation(UUID currentUserId, UUID conversationId) {
+        User currentUser = findUserById(currentUserId);
+        ensureEligibleInternalChatUser(currentUser);
+        Conversation conversation = findConversationById(conversationId);
+        ConversationParticipant participant = conversationParticipantRepository
+                .findActiveByConversationAndUser(conversation, currentUser)
+                .orElseThrow(() -> new InternalChatAccessDeniedException("You are not a participant in this conversation."));
+
+        participant.setDeletedAt(LocalDateTime.now());
+        conversationParticipantRepository.save(participant);
     }
 
     @Transactional(readOnly = true)
@@ -230,7 +246,7 @@ public class InternalChatService {
         Conversation conversation = findConversationById(conversationId);
         ensureParticipant(conversation, currentUser);
         ConversationParticipant participant = conversationParticipantRepository
-                .findByConversationAndUser(conversation, currentUser)
+            .findActiveByConversationAndUser(conversation, currentUser)
                 .orElseThrow(
                         () -> new InternalChatAccessDeniedException("You are not a participant in this conversation."));
         return messageRepository.countUnreadByConversationAndUser(conversation, participant.getLastReadAt(),
@@ -314,10 +330,23 @@ public class InternalChatService {
      * Enforces conversation membership before reading or writing conversation data.
      */
     private void ensureParticipant(Conversation conversation, User user) {
-        boolean isParticipant = conversationParticipantRepository.existsByConversationAndUser(conversation, user);
+        boolean isParticipant = conversationParticipantRepository
+                .existsByConversationAndUserAndDeletedAtIsNull(conversation, user);
         if (!isParticipant) {
             throw new InternalChatAccessDeniedException("You are not a participant in this conversation.");
         }
+    }
+
+    private void restoreParticipant(Conversation conversation, User user) {
+        if (user == null) {
+            return;
+        }
+        conversationParticipantRepository.findByConversationAndUser(conversation, user).ifPresent(participant -> {
+            if (participant.getDeletedAt() != null) {
+                participant.setDeletedAt(null);
+                conversationParticipantRepository.save(participant);
+            }
+        });
     }
 
     /** Loads a conversation or raises the internal-chat not-found error. */
@@ -347,7 +376,7 @@ public class InternalChatService {
         }
 
         ConversationParticipant participant = conversationParticipantRepository
-                .findByConversationAndUser(conversation, currentUser)
+            .findActiveByConversationAndUser(conversation, currentUser)
                 .orElseThrow(
                         () -> new InternalChatAccessDeniedException("You are not a participant in this conversation."));
 
