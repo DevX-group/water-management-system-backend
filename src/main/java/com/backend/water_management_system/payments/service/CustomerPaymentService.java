@@ -17,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
+import com.backend.water_management_system.activity_audit.enums.AuditAction;
+import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
 
 import com.backend.water_management_system.billing.dto.CurrentBillResponse;
 import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
@@ -50,8 +53,10 @@ public class CustomerPaymentService {
     private final PayHereConfig payHereConfig;
     private final BillRepository billRepository;
     private final TriggeredMessageDispatcher triggeredMessageDispatcher;
+    private final ActivityAuditService activityAuditService;
     private static final Logger log = LoggerFactory.getLogger(CustomerPaymentService.class);
 
+    @Transactional
     public CustomerPaymentResponse initiateCustomerPayment(CustomerAddPaymentRequest request,
             String subscriptionNumber) {
 
@@ -101,7 +106,7 @@ public class CustomerPaymentService {
 
         // Build response with all necessary parameters for frontend to redirect to
         // PayHere
-        return CustomerPaymentResponse.builder()
+        CustomerPaymentResponse response = CustomerPaymentResponse.builder()
                 .orderId(orderId)
                 .merchantId(merchantId)
                 .items("Water Bill Payment")
@@ -119,6 +124,11 @@ public class CustomerPaymentService {
                 .notifyUrl(payHereConfig.getNotifyUrl())
                 .hash(hash)
                 .build();
+
+        activityAuditService.recordAuthenticatedWeb(
+                AuditAction.PAYMENT_CREATED, AuditEntityType.PAYMENT,
+                payment.getPaymentId(), PaymentService.creationDetails(payment));
+        return response;
 
     }
 
@@ -170,8 +180,6 @@ public class CustomerPaymentService {
     @Transactional
     public void handlePayhereNotification(java.util.Map<String, String> params) {
 
-        log.info("params received = {}", params);
-
         // Clean and trim all parameters to prevent issues with whitespace or null
         // values
         Map<String, String> cleanParams = parseAndCleanParams(params);
@@ -191,6 +199,7 @@ public class CustomerPaymentService {
                     log.error("Payment not found for orderId={}", orderId);
                     return new InvalidPaymentException("Payment with order ID " + orderId + " not found");
                 });
+        PaymentStatus oldStatus = payment.getStatus();
 
         String amountStr = cleanParams.get("payhere_amount");
         if (amountStr == null || amountStr.isBlank()) {
@@ -250,6 +259,13 @@ public class CustomerPaymentService {
 
         paymentRepository.save(payment);
         Payment savedPayment = payment;
+
+        if (oldStatus != payment.getStatus()) {
+            activityAuditService.recordSystem(
+                    AuditAction.PAYMENT_STATUS_CHANGED, AuditEntityType.PAYMENT,
+                    payment.getPaymentId(),
+                    Map.of("status", oldStatus.name() + " -> " + payment.getStatus().name()));
+        }
 
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
 

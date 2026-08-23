@@ -3,6 +3,10 @@ package com.backend.water_management_system.activity_audit.service;
 import com.backend.water_management_system.activity_audit.enums.AuditAction;
 import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
 import com.backend.water_management_system.activity_audit.repository.ActivityAuditLogRepository;
+import com.backend.water_management_system.payments.entity.Payment;
+import com.backend.water_management_system.payments.enums.PaymentMethod;
+import com.backend.water_management_system.payments.enums.PaymentStatus;
+import com.backend.water_management_system.payments.repository.PaymentRepository;
 import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.enums.UserStatus;
@@ -36,6 +40,8 @@ class ActivityAuditTransactionTest {
     private ActivityAuditLogRepository auditRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PaymentRepository paymentRepository;
     @Autowired
     private PlatformTransactionManager transactionManager;
 
@@ -84,6 +90,28 @@ class ActivityAuditTransactionTest {
         })).isInstanceOf(IllegalArgumentException.class);
 
         assertThat(userRepository.findById(userId[0])).isEmpty();
+        assertThat(auditRepository.count()).isZero();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void auditFailureRollsBackPaymentMutation() {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        String paymentId = "PAY-ROLLBACK";
+
+        assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
+            paymentRepository.save(Payment.builder()
+                    .paymentId(paymentId)
+                    .amount(new java.math.BigDecimal("25"))
+                    .paymentMethod(PaymentMethod.MANUAL)
+                    .status(PaymentStatus.FULL)
+                    .build());
+            auditService.recordSystem(
+                    AuditAction.PAYMENT_CREATED, AuditEntityType.PAYMENT, paymentId,
+                    Map.of("unsafePaymentField", "must fail"));
+        })).isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(paymentRepository.findById(paymentId)).isEmpty();
         assertThat(auditRepository.count()).isZero();
     }
 }

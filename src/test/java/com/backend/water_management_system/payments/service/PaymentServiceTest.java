@@ -36,6 +36,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import com.backend.water_management_system.billing.dto.CurrentBillResponse;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
 import com.backend.water_management_system.billing.dto.OutstandingBillResponse;
 import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
 import com.backend.water_management_system.billing.entity.Bill;
@@ -81,6 +82,9 @@ class PaymentServiceTest {
 
         @Mock
         private TriggeredMessageDispatcher triggeredMessageDispatcher;
+
+        @Mock
+        private ActivityAuditService activityAuditService;
 
         // Inject mocks into the service we are testing
         @Spy
