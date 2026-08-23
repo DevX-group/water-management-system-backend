@@ -1,8 +1,15 @@
 package com.backend.water_management_system.usage.dto;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Getter
+@Setter
+@NoArgsConstructor
 public class UsageAnalyticsResponse {
-    // ── Summary stat cards ──────────────────────────────────────────────────
     public int averageUsage;   // Average monthly usage (units)
     public int peakUsage;      // Highest single-month usage
     public int minimumUsage;   // Lowest single-month usage
@@ -13,6 +20,7 @@ public class UsageAnalyticsResponse {
     public List<CategoryDataPoint> categoryData;
     // ────────────────────────────────────────────────────────────────────────
     /** One bar / area / line data-point on the month-by-month chart. */
+    @Getter @Setter @NoArgsConstructor
     public static class MonthlyDataPoint {
         public String name;   // "Jan", "Feb", …
         public int usage;     // Actual usage that month
@@ -24,6 +32,7 @@ public class UsageAnalyticsResponse {
         }
     }
     /** One slice of the pie chart (usage by connection category). */
+    @Getter @Setter @NoArgsConstructor
     public static class CategoryDataPoint {
         public String name;   // "Domestic", "Garden", "Maintenance"
         public double value;  // Percentage share
