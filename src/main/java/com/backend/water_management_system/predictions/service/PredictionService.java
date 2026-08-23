@@ -22,10 +22,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+
 @Service
 public class PredictionService {
 
-    private static final String FLASK_URL =
+    @Value("${prediction.service.url:http://127.0.0.1:5000/predict}")
+    private String flaskUrl =
             "http://127.0.0.1:5000/predict";
 
     private final UsageRecordRepository repository;
@@ -441,7 +446,7 @@ public class PredictionService {
 
         String responseBody =
                 restTemplate.postForObject(
-                        FLASK_URL,
+                        flaskUrl,
                         request,
                         String.class
                 );

@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,9 +19,12 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(MonthlyReportController.class)
 @Import(SecurityConfig.class)
@@ -41,6 +44,7 @@ class MonthlyReportControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @Test
+    @WithMockUser(username = "admin", roles = "SUPER_ADMIN")
     void getMonthlyReport_returnsList() throws Exception {
         int year = 2026;
 
@@ -51,8 +55,7 @@ class MonthlyReportControllerTest {
                 .thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/reports/monthly")
-                        .param("year", String.valueOf(year))
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .param("year", String.valueOf(year)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].month", is("Jan")))
