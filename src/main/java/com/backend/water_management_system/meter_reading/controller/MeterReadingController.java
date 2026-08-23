@@ -44,6 +44,20 @@ public class MeterReadingController {
         return ResponseEntity.ok(res);
     }
 
+    @org.springframework.web.bind.annotation.PutMapping("/{readingId}")
+    public ResponseEntity<MeterReadingCreateResponse> update(@PathVariable Long readingId, @RequestBody MeterReadingCreateRequest req) {
+        Bill bill = meterReadingService.updateReading(readingId, req);
+
+        MeterReadingCreateResponse res = new MeterReadingCreateResponse();
+        res.readingId = bill.getMeterReading().getReadingId();
+        res.usageUnits = bill.getUsageUnits();
+        res.billId = bill.getBillId();
+        res.totalAmount = bill.getTotalAmount();
+        res.status = bill.getStatus();
+
+        return ResponseEntity.ok(res);
+    }
+
     @GetMapping("/today")  // Get all meter readings submitted for a specific date (defaults to today)
     public ResponseEntity<List<MeterReadingTodayResponse>> getTodaysReadings(
             @org.springframework.web.bind.annotation.RequestParam(required = false) 

@@ -21,6 +21,8 @@ public class InquiryMessage {
     private String text;
     
     private String time;
+    
+    private String attachmentUrl;
 
     public InquiryMessage(String user) {
         this.user = user;

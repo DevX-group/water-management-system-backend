@@ -41,4 +41,14 @@ public interface BankSlipRepository extends JpaRepository<BankSlip, Long> {
                 )
             """)
     Page<BankSlip> searchPendingSlips( @Param("search") String search, Pageable pageable);
+
+    /** Count bank slips by status. */
+    long countByStatus(SlipStatus status);
+
+    /** Total amount of all PENDING bank slips. */
+    @Query("SELECT COALESCE(SUM(s.amount), 0) FROM BankSlip s WHERE s.status = 'PENDING'")
+    java.math.BigDecimal sumPendingSlipAmount();
+
+    /** Count of PENDING slips for a specific customer. */
+    long countBySubscriptionNumberAndStatus(String subscriptionNumber, SlipStatus status);
 }

@@ -22,6 +22,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PredictionServiceTest {
 
+    private static final String FLASK_URL =
+            "http://127.0.0.1:5000/predict";
+
     @Mock
     private UsageRecordRepository repository;
 
@@ -33,55 +36,150 @@ class PredictionServiceTest {
     @BeforeEach
     void setUp() {
         service = new PredictionService(repository);
-        // Inject the mocked RestTemplate
-        ReflectionTestUtils.setField(service, "restTemplate", mockRestTemplate);
+
+        ReflectionTestUtils.setField(
+                service,
+                "restTemplate",
+                mockRestTemplate
+        );
     }
 
     @Test
     void getMonthlyPrediction_success() {
         // Arrange
         int year = 2026;
-        List<Object[]> mockReport = new ArrayList<>();
-        mockReport.add(new Object[]{"Jan", 100.0});
-        mockReport.add(new Object[]{"Feb", 120.0});
 
-        when(repository.getMonthlyReport(year)).thenReturn(mockReport);
+        List<Object[]> mockReport =
+                new ArrayList<>();
 
-        String mockFlaskResponse = "[{\"yhat\": 130.0}, {\"yhat\": 140.0}]";
-        when(mockRestTemplate.postForObject(
-                eq("http://127.0.0.1:5000/predict"),
-                any(HttpEntity.class),
-                eq(String.class)
-        )).thenReturn(mockFlaskResponse);
+        /*
+         * New repository row structure:
+         * row[0] = month
+         * row[1] = month number
+         * row[2] = usage
+         * row[3] = revenue
+         */
+        mockReport.add(
+                new Object[]{
+                        "Jan",
+                        1,
+                        100.0,
+                        1500.0
+                }
+        );
+
+        mockReport.add(
+                new Object[]{
+                        "Feb",
+                        2,
+                        120.0,
+                        1800.0
+                }
+        );
+
+        when(
+                repository.getMonthlyPredictionData(year)
+        ).thenReturn(mockReport);
+
+        String usagePredictionResponse = """
+                [
+                    {"yhat": 130.0},
+                    {"yhat": 140.0}
+                ]
+                """;
+
+        String revenuePredictionResponse = """
+                [
+                    {"yhat": 1950.0},
+                    {"yhat": 2100.0}
+                ]
+                """;
+
+        /*
+         * PredictionService calls Flask twice:
+         * 1. Usage prediction
+         * 2. Revenue prediction
+         */
+        when(
+                mockRestTemplate.postForObject(
+                        eq(FLASK_URL),
+                        any(HttpEntity.class),
+                        eq(String.class)
+                )
+        ).thenReturn(
+                usagePredictionResponse,
+                revenuePredictionResponse
+        );
 
         // Act
-        List<MonthlyPredictionResponse> responses = service.getMonthlyPrediction(year);
+        List<MonthlyPredictionResponse> responses =
+                service.getMonthlyPrediction(year);
 
         // Assert
         assertNotNull(responses);
-        // Expected total responses = 2 actual data months + 2 predicted months = 4
         assertEquals(4, responses.size());
 
-        // First 2 elements should have actual usage
-        assertEquals("Jan", responses.get(0).getMonth());
-        assertEquals(100.0, responses.get(0).getUsage());
-        assertNull(responses.get(0).getPredictedUsage());
+        // January actual values
+        MonthlyPredictionResponse january =
+                responses.get(0);
 
-        assertEquals("Feb", responses.get(1).getMonth());
-        assertEquals(120.0, responses.get(1).getUsage());
-        assertNull(responses.get(1).getPredictedUsage());
+        assertEquals("Jan", january.getMonth());
+        assertEquals(100.0, january.getUsage());
+        assertEquals(1500.0, january.getRevenue());
+        assertNull(january.getPredictedUsage());
+        assertNull(january.getPredictedRevenue());
 
-        // Next 2 elements should have predicted usage (sequentially generated months starting from March)
-        assertEquals("Mar", responses.get(2).getMonth());
-        assertNull(responses.get(2).getUsage());
-        assertEquals(130.0, responses.get(2).getPredictedUsage());
+        // February actual values
+        MonthlyPredictionResponse february =
+                responses.get(1);
 
-        assertEquals("Apr", responses.get(3).getMonth());
-        assertNull(responses.get(3).getUsage());
-        assertEquals(140.0, responses.get(3).getPredictedUsage());
+        assertEquals("Feb", february.getMonth());
+        assertEquals(120.0, february.getUsage());
+        assertEquals(1800.0, february.getRevenue());
+        assertNull(february.getPredictedUsage());
+        assertNull(february.getPredictedRevenue());
 
-        verify(repository, times(1)).getMonthlyReport(year);
-        verify(mockRestTemplate, times(1)).postForObject(anyString(), any(), any());
+        // March predicted values
+        MonthlyPredictionResponse march =
+                responses.get(2);
+
+        assertEquals("Mar", march.getMonth());
+        assertNull(march.getUsage());
+        assertNull(march.getRevenue());
+        assertEquals(
+                130.0,
+                march.getPredictedUsage()
+        );
+        assertEquals(
+                1950.0,
+                march.getPredictedRevenue()
+        );
+
+        // April predicted values
+        MonthlyPredictionResponse april =
+                responses.get(3);
+
+        assertEquals("Apr", april.getMonth());
+        assertNull(april.getUsage());
+        assertNull(april.getRevenue());
+        assertEquals(
+                140.0,
+                april.getPredictedUsage()
+        );
+        assertEquals(
+                2100.0,
+                april.getPredictedRevenue()
+        );
+
+        verify(repository, times(1))
+                .getMonthlyPredictionData(year);
+
+        verify(mockRestTemplate, times(2))
+                .postForObject(
+                        eq(FLASK_URL),
+                        any(HttpEntity.class),
+                        eq(String.class)
+                );
     }
 
     @Test
@@ -89,37 +187,132 @@ class PredictionServiceTest {
         // Arrange
         String customerId = "C001";
         int year = 2026;
-        List<Object[]> mockReport = new ArrayList<>();
-        mockReport.add(new Object[]{"Jan", 10.0});
-        mockReport.add(new Object[]{"Feb", 12.0});
 
-        when(repository.getCustomerPredictionData(customerId, year)).thenReturn(mockReport);
+        List<Object[]> mockReport =
+                new ArrayList<>();
 
-        String mockFlaskResponse = "[{\"yhat\": 14.0}, {\"yhat\": 15.0}]";
-        when(mockRestTemplate.postForObject(
-                eq("http://127.0.0.1:5000/predict"),
-                any(HttpEntity.class),
-                eq(String.class)
-        )).thenReturn(mockFlaskResponse);
+        mockReport.add(
+                new Object[]{
+                        "Jan",
+                        1,
+                        10.0,
+                        150.0
+                }
+        );
+
+        mockReport.add(
+                new Object[]{
+                        "Feb",
+                        2,
+                        12.0,
+                        180.0
+                }
+        );
+
+        when(
+                repository.getCustomerPredictionData(
+                        customerId,
+                        year
+                )
+        ).thenReturn(mockReport);
+
+        String usagePredictionResponse = """
+                [
+                    {"yhat": 14.0},
+                    {"yhat": 15.0}
+                ]
+                """;
+
+        String revenuePredictionResponse = """
+                [
+                    {"yhat": 210.0},
+                    {"yhat": 225.0}
+                ]
+                """;
+
+        when(
+                mockRestTemplate.postForObject(
+                        eq(FLASK_URL),
+                        any(HttpEntity.class),
+                        eq(String.class)
+                )
+        ).thenReturn(
+                usagePredictionResponse,
+                revenuePredictionResponse
+        );
 
         // Act
-        List<CustomerPredictionResponse> responses = service.getCustomerPrediction(customerId, year);
+        List<CustomerPredictionResponse> responses =
+                service.getCustomerPrediction(
+                        customerId,
+                        year
+                );
 
         // Assert
         assertNotNull(responses);
         assertEquals(4, responses.size());
 
-        // First 2: actual data
-        assertEquals("Jan", responses.get(0).getMonth());
-        assertEquals(10.0, responses.get(0).getUsage());
-        assertNull(responses.get(0).getPredictedUsage());
+        // January actual values
+        CustomerPredictionResponse january =
+                responses.get(0);
 
-        // Next 2: predictions
-        assertEquals("Mar", responses.get(2).getMonth());
-        assertNull(responses.get(2).getUsage());
-        assertEquals(14.0, responses.get(2).getPredictedUsage());
+        assertEquals("Jan", january.getMonth());
+        assertEquals(10.0, january.getUsage());
+        assertEquals(150.0, january.getRevenue());
+        assertNull(january.getPredictedUsage());
+        assertNull(january.getPredictedRevenue());
 
-        verify(repository, times(1)).getCustomerPredictionData(customerId, year);
-        verify(mockRestTemplate, times(1)).postForObject(anyString(), any(), any());
+        // February actual values
+        CustomerPredictionResponse february =
+                responses.get(1);
+
+        assertEquals("Feb", february.getMonth());
+        assertEquals(12.0, february.getUsage());
+        assertEquals(180.0, february.getRevenue());
+
+        // March predicted values
+        CustomerPredictionResponse march =
+                responses.get(2);
+
+        assertEquals("Mar", march.getMonth());
+        assertNull(march.getUsage());
+        assertNull(march.getRevenue());
+        assertEquals(
+                14.0,
+                march.getPredictedUsage()
+        );
+        assertEquals(
+                210.0,
+                march.getPredictedRevenue()
+        );
+
+        // April predicted values
+        CustomerPredictionResponse april =
+                responses.get(3);
+
+        assertEquals("Apr", april.getMonth());
+        assertNull(april.getUsage());
+        assertNull(april.getRevenue());
+        assertEquals(
+                15.0,
+                april.getPredictedUsage()
+        );
+        assertEquals(
+                225.0,
+                april.getPredictedRevenue()
+        );
+
+        verify(repository, times(1))
+                .getCustomerPredictionData(
+                        customerId,
+                        year
+                );
+
+        verify(mockRestTemplate, times(2))
+                .postForObject(
+                        eq(FLASK_URL),
+                        any(HttpEntity.class),
+                        eq(String.class)
+                );
     }
 }

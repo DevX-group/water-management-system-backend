@@ -35,10 +35,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-/**
- * Coordinates internal-chat authorization, persistence, and response mapping.
- */
 public class InternalChatService {
 
     private static final int MAX_MESSAGE_LENGTH = 2000;
@@ -47,6 +43,17 @@ public class InternalChatService {
     private final ConversationRepository conversationRepository;
     private final ConversationParticipantRepository conversationParticipantRepository;
     private final MessageRepository messageRepository;
+
+    public InternalChatService(
+            UserRepository userRepository,
+            ConversationRepository conversationRepository,
+            ConversationParticipantRepository conversationParticipantRepository,
+            MessageRepository messageRepository) {
+        this.userRepository = userRepository;
+        this.conversationRepository = conversationRepository;
+        this.conversationParticipantRepository = conversationParticipantRepository;
+        this.messageRepository = messageRepository;
+    }
 
     /** Returns active non-customer staff users filtered by role and search text. */
     public List<InternalChatUserResponse> searchEligibleUsers(UUID currentUserId, Role role, String search) {
@@ -59,7 +66,7 @@ public class InternalChatService {
                 .filter(user -> !user.getId().equals(currentUserId))
                 .filter(user -> role == null || user.getRole() == role)
                 .filter(user -> matchesSearch(user, search))
-                .sorted(Comparator.comparing(User::getFullName, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(u -> u.getFullName() == null ? "" : u.getFullName(), String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
         return eligibleUsers.stream()
@@ -68,9 +75,6 @@ public class InternalChatService {
     }
 
     @Transactional
-    /**
-     * Creates a direct conversation or returns the existing one for the same pair.
-     */
     public ConversationResponse createConversation(UUID currentUserId, CreateConversationRequest request) {
         User currentUser = findUserById(currentUserId);
         ensureEligibleInternalChatUser(currentUser);
@@ -262,7 +266,7 @@ public class InternalChatService {
     private boolean isEligibleInternalChatUser(User user) {
         return user != null && user.getStatus() == UserStatus.ACTIVE && user.getRole() != Role.CUSTOMER
                 && (user.getRole() == Role.SUPER_ADMIN || user.getRole() == Role.SYSTEM_ADMIN
-                        || user.getRole() == Role.PAYMENT_HANDLER || user.getRole() == Role.METER_READER);
+                        || user.getRole() == Role.CUSTOMER_HANDLER || user.getRole() == Role.METER_READER);
     }
 
     /**

@@ -9,12 +9,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import com.backend.water_management_system.billing.entity.Bill;
-import com.backend.water_management_system.meter_reading.entity.MeterReading;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
 
 public interface BillRepository extends JpaRepository<Bill, Long> {
 
         List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
+
+        org.springframework.data.domain.Page<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber, org.springframework.data.domain.Pageable pageable);
 
         Optional<Bill> findByMeterReading(MeterReading meterReading);
 
@@ -44,12 +46,6 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
         List<Bill> findByCustomerSubscriptionNumberAndStatusOrderByGeneratedAtAsc(
                         String subscriptionNumber,
                         String status);
-
-        /**
-         * Returns the total unpaid balance of all PENDING bills for a given customer.
-         * This includes both current month charges and any outstanding amounts from
-         * previous billing cycles.
-         */
         @Query("""
                         SELECT COALESCE(SUM(b.balanceDue), 0)
                         FROM Bill b
@@ -57,4 +53,11 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
                         AND b.status = 'PENDING'
                         """)
         BigDecimal getTotalPendingBalance(String subscriptionNumber);
+        long countByStatus(String status);
+        @Query("SELECT COUNT(b) FROM Bill b WHERE b.balanceDue > 0")
+        long countOutstandingBills();
+        @Query("SELECT COALESCE(SUM(b.balanceDue), 0) FROM Bill b WHERE b.balanceDue > 0")
+        java.math.BigDecimal sumOutstandingAmount();
+        @Query("SELECT COUNT(b) FROM Bill b WHERE b.customer.subscriptionNumber = :subscriptionNumber AND b.status = 'PENDING'")
+        long countPendingBillsBySubscription(@org.springframework.data.repository.query.Param("subscriptionNumber") String subscriptionNumber);
 }

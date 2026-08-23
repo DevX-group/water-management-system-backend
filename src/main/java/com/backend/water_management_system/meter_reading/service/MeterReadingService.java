@@ -1,6 +1,9 @@
 package com.backend.water_management_system.meter_reading.service;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -8,6 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.backend.water_management_system.alerts.service.AlertService;
+import com.backend.water_management_system.activity_audit.enums.AuditAction;
+import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.billing.service.BillingService;
@@ -24,16 +30,19 @@ public class MeterReadingService {
     private final BillingService billingService;
     private final BillRepository billRepository;
     private final AlertService alertService;
+    private final ActivityAuditService activityAuditService;
     public MeterReadingService(MeterReadingRepository meterReadingRepository,
                                CustomerRepository customerRepository,
                                BillingService billingService,
                                BillRepository billRepository,
-                               AlertService alertService) {
+                               AlertService alertService,
+                               ActivityAuditService activityAuditService) {
         this.meterReadingRepository = meterReadingRepository;
         this.customerRepository = customerRepository;
         this.billingService = billingService;
         this.billRepository = billRepository;
         this.alertService = alertService;
+        this.activityAuditService = activityAuditService;
     }
     @Transactional
     public Bill submitReadingAndGenerateBill(MeterReadingCreateRequest req) {   //submitting a meter reading and generating a bill
@@ -82,8 +91,66 @@ public class MeterReadingService {
             );
         }
 
-        return billingService.generateBill(customer, savedReading);
+        Bill bill = billingService.generateBill(customer, savedReading);
+        activityAuditService.recordAuthenticatedWeb(
+                AuditAction.METER_READING_CREATED,
+                AuditEntityType.METER_READING,
+                savedReading.getReadingId(),
+                creationDetails(savedReading));
+        return bill;
     }
+    @Transactional
+    public Bill updateReading(Long readingId, MeterReadingCreateRequest req) {
+        MeterReading reading = meterReadingRepository.findById(readingId)
+                .orElseThrow(() -> new RuntimeException("Reading not found"));
+
+        Integer oldPreviousReading = reading.getPreviousReading();
+        Integer oldCurrentReading = reading.getCurrentReading();
+        Integer oldUsageUnits = reading.getUsageUnits();
+        LocalDate oldReadingDate = reading.getReadingDate();
+        
+        int usage = 0;
+        if (req.usageUnits != null) {
+            usage = req.usageUnits;
+        } else if (req.currentReading != null && req.previousReading != null) {
+            if (req.currentReading < req.previousReading) {
+                throw new RuntimeException("Current reading cannot be less than previous reading.");
+            }
+            usage = req.currentReading - req.previousReading;
+        }
+
+        reading.setPreviousReading(req.previousReading);
+        reading.setCurrentReading(req.currentReading);
+        reading.setUsageUnits(usage);
+        reading.setReadingDate(req.readingDate);
+        reading.setImageUrl(req.imageUrl);
+        reading.setNotes(req.notes);
+        
+        MeterReading savedReading = meterReadingRepository.save(reading);
+        
+        Optional<Bill> existingBill = billRepository.findByMeterReading(savedReading);
+        Bill bill;
+        if (existingBill.isPresent()) {
+            bill = billingService.updateBill(existingBill.get(), savedReading);
+        } else {
+            bill = billingService.generateBill(savedReading.getCustomer(), savedReading);
+        }
+
+        Map<String, String> changes = updateDetails(
+                oldPreviousReading, savedReading.getPreviousReading(),
+                oldCurrentReading, savedReading.getCurrentReading(),
+                oldUsageUnits, savedReading.getUsageUnits(),
+                oldReadingDate, savedReading.getReadingDate());
+        if (!changes.isEmpty()) {
+            activityAuditService.recordAuthenticatedWeb(
+                    AuditAction.METER_READING_UPDATED,
+                    AuditEntityType.METER_READING,
+                    savedReading.getReadingId(),
+                    changes);
+        }
+        return bill;
+    }
+
     public List<MeterReadingTodayResponse> getReadingsByDate(LocalDate date) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         List<MeterReading> readings = meterReadingRepository.findByReadingDate(targetDate);
@@ -130,5 +197,56 @@ public class MeterReadingService {
             return dto;
         }
         return null;
+    }
+
+    private static Map<String, String> creationDetails(MeterReading reading) {
+        Map<String, String> details = new LinkedHashMap<>();
+        if (reading.getPreviousReading() != null) {
+            details.put("previousReading", reading.getPreviousReading().toString());
+        }
+        if (reading.getCurrentReading() != null) {
+            details.put("currentReading", reading.getCurrentReading().toString());
+        }
+        if (reading.getUsageUnits() != null) {
+            details.put("usageUnits", reading.getUsageUnits().toString());
+        }
+        if (reading.getReadingDate() != null) {
+            details.put("readingDate", reading.getReadingDate().toString());
+        }
+        return details;
+    }
+
+    private static Map<String, String> updateDetails(
+            Integer oldPrevious, Integer newPrevious,
+            Integer oldCurrent, Integer newCurrent,
+            Integer oldUsage, Integer newUsage,
+            LocalDate oldDate, LocalDate newDate) {
+        Map<String, String> details = new LinkedHashMap<>();
+        addTransition(details, "previousReading", oldPrevious, newPrevious);
+        addTransition(details, "currentReading", oldCurrent, newCurrent);
+        addTransition(details, "usageUnits", oldUsage, newUsage);
+        if (!Objects.equals(oldDate, newDate)) {
+            if (oldDate != null && newDate != null) {
+                details.put("readingDate", oldDate + " -> " + newDate);
+            } else if (newDate != null) {
+                details.put("readingDate", newDate.toString());
+            } else if (oldDate != null) {
+                details.put("readingDate", oldDate.toString());
+            }
+        }
+        return details;
+    }
+
+    private static void addTransition(
+            Map<String, String> details, String field, Integer oldValue, Integer newValue) {
+        if (!Objects.equals(oldValue, newValue)) {
+            if (oldValue != null && newValue != null) {
+                details.put(field, oldValue + " -> " + newValue);
+            } else if (newValue != null) {
+                details.put(field, newValue.toString());
+            } else if (oldValue != null) {
+                details.put(field, oldValue.toString());
+            }
+        }
     }
 }
