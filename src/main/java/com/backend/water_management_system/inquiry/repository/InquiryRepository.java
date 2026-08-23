@@ -9,13 +9,10 @@ import com.backend.water_management_system.inquiry.entity.Inquiry;
 
 @Repository
 public interface InquiryRepository extends JpaRepository<Inquiry, String> {
-    // JpaRepository provides save(), findAll(), and findById() automatically
-
-    /** Count inquiries by status string (e.g. "open", "pending", "resolved"). */
     long countByStatus(String status);
-
-    /** Count inquiries by email (customer-scoped). */
     long countByEmailAndStatus(String email, String status);
 
     List<Inquiry> findByEmail(String email);
+    java.util.List<Inquiry> findByEmail(String email);
+    org.springframework.data.domain.Page<Inquiry> findByEmail(String email, org.springframework.data.domain.Pageable pageable);
 }

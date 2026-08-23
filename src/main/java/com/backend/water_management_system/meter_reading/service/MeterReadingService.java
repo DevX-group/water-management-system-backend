@@ -84,6 +84,38 @@ public class MeterReadingService {
 
         return billingService.generateBill(customer, savedReading);
     }
+    @Transactional
+    public Bill updateReading(Long readingId, MeterReadingCreateRequest req) {
+        MeterReading reading = meterReadingRepository.findById(readingId)
+                .orElseThrow(() -> new RuntimeException("Reading not found"));
+        
+        int usage = 0;
+        if (req.usageUnits != null) {
+            usage = req.usageUnits;
+        } else if (req.currentReading != null && req.previousReading != null) {
+            if (req.currentReading < req.previousReading) {
+                throw new RuntimeException("Current reading cannot be less than previous reading.");
+            }
+            usage = req.currentReading - req.previousReading;
+        }
+
+        reading.setPreviousReading(req.previousReading);
+        reading.setCurrentReading(req.currentReading);
+        reading.setUsageUnits(usage);
+        reading.setReadingDate(req.readingDate);
+        reading.setImageUrl(req.imageUrl);
+        reading.setNotes(req.notes);
+        
+        MeterReading savedReading = meterReadingRepository.save(reading);
+        
+        Optional<Bill> existingBill = billRepository.findByMeterReading(savedReading);
+        if (existingBill.isPresent()) {
+            return billingService.updateBill(existingBill.get(), savedReading);
+        } else {
+            return billingService.generateBill(savedReading.getCustomer(), savedReading);
+        }
+    }
+
     public List<MeterReadingTodayResponse> getReadingsByDate(LocalDate date) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         List<MeterReading> readings = meterReadingRepository.findByReadingDate(targetDate);

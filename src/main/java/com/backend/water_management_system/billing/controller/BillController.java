@@ -44,12 +44,29 @@ public class BillController {
     }
 
     @GetMapping("/customer/{subscriptionNumber}")       // Get all bills for a specific customer by subscription number
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('PAYMENT_HANDLER')")
     public ResponseEntity<List<BillResponse>> getCustomerBills(
             @PathVariable String subscriptionNumber,
             @AuthenticationPrincipal UserPrincipal principal) {
         String resolvedSubscription = customerAccessService.enforceOwnership(principal, subscriptionNumber);
         return ResponseEntity.ok(billService.getBillsForCustomer(resolvedSubscription));
+    }
+
+    @GetMapping("/customer/{subscriptionNumber}/paginated")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    public ResponseEntity<?> getCustomerBillsPaginated(
+            @PathVariable String subscriptionNumber,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            String resolvedSubscription = customerAccessService.enforceOwnership(principal, subscriptionNumber);
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+            return ResponseEntity.ok(billService.getBillsForCustomerPaginated(resolvedSubscription, pageable));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage(), "trace", java.util.Arrays.toString(e.getStackTrace())));
+        }
     }
 
     @GetMapping("/current/{subscriptionNumber}")       // Get the current bill for a specific customer by subscription number

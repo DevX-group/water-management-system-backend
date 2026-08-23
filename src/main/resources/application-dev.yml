@@ -14,6 +14,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         # default_schema: hydropay
 
+
 app:
   backup:
     directory: ${BACKUP_DIRECTORY:./backups}

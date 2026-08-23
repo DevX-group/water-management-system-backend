@@ -1,214 +1,563 @@
 package com.backend.water_management_system.predictions.service;
 
+import com.backend.water_management_system.predictions.dto.AreaPredictionResponse;
 import com.backend.water_management_system.predictions.dto.CustomerPredictionResponse;
 import com.backend.water_management_system.predictions.dto.MonthlyPredictionResponse;
 import com.backend.water_management_system.reports.repository.UsageRecordRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.TextStyle;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class PredictionService {
 
-    private final UsageRecordRepository repository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String FLASK_URL =
+            "http://127.0.0.1:5000/predict";
 
-    public PredictionService(UsageRecordRepository repository) {
+    private final UsageRecordRepository repository;
+    private final RestTemplate restTemplate;
+
+    public PredictionService(
+            UsageRecordRepository repository
+    ) {
         this.repository = repository;
+        this.restTemplate = new RestTemplate();
     }
 
-    public List<MonthlyPredictionResponse> getMonthlyPrediction(int year) {
+    // =====================================================
+    // MONTHLY PREDICTION
+    // =====================================================
 
-        List<MonthlyPredictionResponse> finalData = new ArrayList<>();
+    public List<MonthlyPredictionResponse> getMonthlyPrediction(
+            int year
+    ) {
+        List<Object[]> results =
+                repository.getMonthlyPredictionData(year);
 
-        // =========================
-        // ACTUAL DATA FROM DATABASE
-        // =========================
+        List<MonthlyPredictionResponse> finalData =
+                new ArrayList<>();
 
-        List<Object[]> results = repository.getMonthlyReport(year);
+        List<PredictionPoint> usagePoints =
+                new ArrayList<>();
 
-        List<Map<String, Object>> flaskData = new ArrayList<>();
+        List<PredictionPoint> revenuePoints =
+                new ArrayList<>();
 
-        int monthNumber = 1;
+        YearMonth lastActualMonth = null;
 
         for (Object[] row : results) {
-
             String month = row[0].toString();
+            int monthNumber =
+                    ((Number) row[1]).intValue();
 
-            Double usage = ((Number) row[1]).doubleValue();
+            double usage =
+                    ((Number) row[2]).doubleValue();
 
-            // Add actual data to frontend response
+            double revenue =
+                    ((Number) row[3]).doubleValue();
+
+            YearMonth recordMonth =
+                    YearMonth.of(year, monthNumber);
+
+            lastActualMonth = recordMonth;
+
             finalData.add(
                     new MonthlyPredictionResponse(
                             month,
                             usage,
+                            revenue,
+                            null,
                             null
                     )
             );
 
-            // Prepare data for Flask
-            Map<String, Object> item = new HashMap<>();
+            usagePoints.add(
+                    new PredictionPoint(
+                            recordMonth.atDay(1),
+                            usage
+                    )
+            );
 
-            String date = year + "-" +
-                    String.format("%02d", monthNumber) +
-                    "-01";
-
-            item.put("date", date);
-
-            item.put("value", usage);
-
-            flaskData.add(item);
-
-            monthNumber++;
+            revenuePoints.add(
+                    new PredictionPoint(
+                            recordMonth.atDay(1),
+                            revenue
+                    )
+            );
         }
 
-        // =========================
-        // CALL FLASK API
-        // =========================
+        if (lastActualMonth == null) {
+            return finalData;
+        }
 
-        String flaskUrl = "http://127.0.0.1:5000/predict";
+        List<Double> predictedUsage =
+                requestPredictions(usagePoints);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        List<Double> predictedRevenue =
+                requestPredictions(revenuePoints);
 
-        HttpEntity<List<Map<String, Object>>> request =
-                new HttpEntity<>(flaskData, headers);
-
-        String predictionResponse = restTemplate.postForObject(
-                flaskUrl,
-                request,
-                String.class
+        int predictionCount = Math.min(
+                predictedUsage.size(),
+                predictedRevenue.size()
         );
 
-        // =========================
-        // PROCESS PREDICTIONS
-        // =========================
+        for (int index = 0;
+             index < predictionCount;
+             index++) {
 
-        int lastActualIndex = results.size();
-        JSONArray predictions = new JSONArray(predictionResponse);
-
-        for (int i = 0; i < predictions.length(); i++) {
-
-            JSONObject obj = predictions.getJSONObject(i);
-
-            Double predictedUsage = obj.getDouble("yhat");
-
-            // generate next months sequentially
-            LocalDate date = LocalDate.of(year, 1, 1)
-                    .plusMonths(lastActualIndex + i);
-
-            String monthName = date.getMonth()
-                    .getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            YearMonth predictedMonth =
+                    lastActualMonth.plusMonths(index + 1);
 
             finalData.add(
                     new MonthlyPredictionResponse(
-                            monthName,
+                            getMonthName(predictedMonth),
                             null,
-                            predictedUsage
+                            null,
+                            predictedUsage.get(index),
+                            predictedRevenue.get(index)
                     )
             );
         }
 
         return finalData;
     }
+
+    // =====================================================
+    // CUSTOMER PREDICTION
+    // =====================================================
 
     public List<CustomerPredictionResponse> getCustomerPrediction(
             String customerId,
             int year
     ) {
-
-        List<CustomerPredictionResponse> finalData = new ArrayList<>();
+        String normalizedCustomerId =
+                customerId == null
+                        ? ""
+                        : customerId.trim().toUpperCase();
 
         List<Object[]> results =
-                repository.getCustomerPredictionData(customerId, year);
+                repository.getCustomerPredictionData(
+                        normalizedCustomerId,
+                        year
+                );
 
-        List<Map<String, Object>> flaskData = new ArrayList<>();
+        List<CustomerPredictionResponse> finalData =
+                new ArrayList<>();
 
-        int monthNumber = 1;
+        List<PredictionPoint> usagePoints =
+                new ArrayList<>();
 
-        // ================= ACTUAL DATA =================
+        List<PredictionPoint> revenuePoints =
+                new ArrayList<>();
+
+        YearMonth lastActualMonth = null;
 
         for (Object[] row : results) {
-
             String month = row[0].toString();
+            int monthNumber =
+                    ((Number) row[1]).intValue();
 
-            Double usage = ((Number) row[1]).doubleValue();
+            double usage =
+                    ((Number) row[2]).doubleValue();
+
+            double revenue =
+                    ((Number) row[3]).doubleValue();
+
+            YearMonth recordMonth =
+                    YearMonth.of(year, monthNumber);
+
+            lastActualMonth = recordMonth;
 
             finalData.add(
                     new CustomerPredictionResponse(
                             month,
                             usage,
+                            revenue,
+                            null,
                             null
                     )
             );
 
-            Map<String, Object> item = new HashMap<>();
+            usagePoints.add(
+                    new PredictionPoint(
+                            recordMonth.atDay(1),
+                            usage
+                    )
+            );
 
-            String date = year + "-" +
-                    String.format("%02d", monthNumber) +
-                    "-01";
-
-            item.put("date", date);
-
-            item.put("value", usage);
-
-            flaskData.add(item);
-
-            monthNumber++;
+            revenuePoints.add(
+                    new PredictionPoint(
+                            recordMonth.atDay(1),
+                            revenue
+                    )
+            );
         }
 
-        // ================= CALL FLASK =================
+        if (lastActualMonth == null) {
+            return finalData;
+        }
 
-        String flaskUrl = "http://127.0.0.1:5000/predict";
+        List<Double> predictedUsage =
+                requestPredictions(usagePoints);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        List<Double> predictedRevenue =
+                requestPredictions(revenuePoints);
 
-        HttpEntity<List<Map<String, Object>>> request =
-                new HttpEntity<>(flaskData, headers);
-
-        String predictionResponse = restTemplate.postForObject(
-                flaskUrl,
-                request,
-                String.class
+        int predictionCount = Math.min(
+                predictedUsage.size(),
+                predictedRevenue.size()
         );
 
-        JSONArray predictions = new JSONArray(predictionResponse);
+        for (int index = 0;
+             index < predictionCount;
+             index++) {
 
-        int lastActualIndex = results.size();
-
-        // ================= PREDICTIONS =================
-
-        for (int i = 0; i < predictions.length(); i++) {
-
-            JSONObject obj = predictions.getJSONObject(i);
-
-            Double predictedUsage = obj.getDouble("yhat");
-
-            LocalDate date = LocalDate.of(year, 1, 1)
-                    .plusMonths(lastActualIndex + i);
-
-            String monthName = date.getMonth()
-                    .getDisplayName(
-                            TextStyle.SHORT,
-                            Locale.ENGLISH
-                    );
+            YearMonth predictedMonth =
+                    lastActualMonth.plusMonths(index + 1);
 
             finalData.add(
                     new CustomerPredictionResponse(
-                            monthName,
+                            getMonthName(predictedMonth),
                             null,
-                            predictedUsage
+                            null,
+                            predictedUsage.get(index),
+                            predictedRevenue.get(index)
                     )
             );
         }
 
         return finalData;
+    }
+
+    // =====================================================
+    // AREA PREDICTION
+    // =====================================================
+
+    public List<AreaPredictionResponse> getAreaPrediction(
+            String area,
+            int year
+    ) {
+        String selectedArea =
+                area == null || area.isBlank()
+                        ? "all"
+                        : area.trim().toLowerCase();
+
+        List<Object[]> results =
+                repository.getAreaPredictionData(
+                        year,
+                        selectedArea
+                );
+
+        /*
+         * Keeps one DTO for each month. This preserves the
+         * wide object structure required by the area chart.
+         */
+        Map<YearMonth, AreaPredictionResponse> monthlyData =
+                new LinkedHashMap<>();
+
+        Map<String, List<PredictionPoint>> usageByArea =
+                new LinkedHashMap<>();
+
+        Map<String, List<PredictionPoint>> revenueByArea =
+                new LinkedHashMap<>();
+
+        Map<String, YearMonth> lastMonthByArea =
+                new HashMap<>();
+
+        for (Object[] row : results) {
+            String month = row[0].toString();
+            int monthNumber =
+                    ((Number) row[1]).intValue();
+
+            String recordArea =
+                    row[2].toString().toLowerCase();
+
+            double usage =
+                    ((Number) row[3]).doubleValue();
+
+            double revenue =
+                    ((Number) row[4]).doubleValue();
+
+            YearMonth recordMonth =
+                    YearMonth.of(year, monthNumber);
+
+            AreaPredictionResponse response =
+                    monthlyData.computeIfAbsent(
+                            recordMonth,
+                            ignored ->
+                                    new AreaPredictionResponse(month)
+                    );
+
+            setActualAreaValues(
+                    response,
+                    recordArea,
+                    usage,
+                    revenue
+            );
+
+            usageByArea
+                    .computeIfAbsent(
+                            recordArea,
+                            ignored -> new ArrayList<>()
+                    )
+                    .add(
+                            new PredictionPoint(
+                                    recordMonth.atDay(1),
+                                    usage
+                            )
+                    );
+
+            revenueByArea
+                    .computeIfAbsent(
+                            recordArea,
+                            ignored -> new ArrayList<>()
+                    )
+                    .add(
+                            new PredictionPoint(
+                                    recordMonth.atDay(1),
+                                    revenue
+                            )
+                    );
+
+            lastMonthByArea.put(
+                    recordArea,
+                    recordMonth
+            );
+        }
+
+        /*
+         * Generate predictions separately for every area
+         * returned by the database.
+         */
+        for (String recordArea : usageByArea.keySet()) {
+            List<Double> predictedUsage =
+                    requestPredictions(
+                            usageByArea.get(recordArea)
+                    );
+
+            List<Double> predictedRevenue =
+                    requestPredictions(
+                            revenueByArea.get(recordArea)
+                    );
+
+            int predictionCount = Math.min(
+                    predictedUsage.size(),
+                    predictedRevenue.size()
+            );
+
+            YearMonth lastActualMonth =
+                    lastMonthByArea.get(recordArea);
+
+            for (int index = 0;
+                 index < predictionCount;
+                 index++) {
+
+                YearMonth predictedMonth =
+                        lastActualMonth.plusMonths(index + 1);
+
+                AreaPredictionResponse response =
+                        monthlyData.computeIfAbsent(
+                                predictedMonth,
+                                ignored ->
+                                        new AreaPredictionResponse(
+                                                getMonthName(
+                                                        predictedMonth
+                                                )
+                                        )
+                        );
+
+                setPredictedAreaValues(
+                        response,
+                        recordArea,
+                        predictedUsage.get(index),
+                        predictedRevenue.get(index)
+                );
+            }
+        }
+
+        return new ArrayList<>(monthlyData.values());
+    }
+
+    // =====================================================
+    // FLASK COMMUNICATION
+    // =====================================================
+
+    private List<Double> requestPredictions(
+            List<PredictionPoint> points
+    ) {
+        /*
+         * Prophet needs at least two valid observations.
+         * Return no predicted rows when there is not enough
+         * historical data.
+         */
+        if (points == null || points.size() < 2) {
+            return List.of();
+        }
+
+        List<Map<String, Object>> flaskData =
+                new ArrayList<>();
+
+        for (PredictionPoint point : points) {
+            Map<String, Object> item =
+                    new HashMap<>();
+
+            item.put(
+                    "date",
+                    point.date().toString()
+            );
+
+            item.put(
+                    "value",
+                    point.value()
+            );
+
+            flaskData.add(item);
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(
+                MediaType.APPLICATION_JSON
+        );
+
+        HttpEntity<List<Map<String, Object>>> request =
+                new HttpEntity<>(
+                        flaskData,
+                        headers
+                );
+
+        String responseBody =
+                restTemplate.postForObject(
+                        FLASK_URL,
+                        request,
+                        String.class
+                );
+
+        if (responseBody == null ||
+                responseBody.isBlank()) {
+            return List.of();
+        }
+
+        JSONArray predictionArray =
+                new JSONArray(responseBody);
+
+        List<Double> predictions =
+                new ArrayList<>();
+
+        for (int index = 0;
+             index < predictionArray.length();
+             index++) {
+
+            JSONObject prediction =
+                    predictionArray.getJSONObject(index);
+
+            predictions.add(
+                    prediction.getDouble("yhat")
+            );
+        }
+
+        return predictions;
+    }
+
+    // =====================================================
+    // AREA VALUE MAPPING
+    // =====================================================
+
+    private void setActualAreaValues(
+            AreaPredictionResponse response,
+            String area,
+            double usage,
+            double revenue
+    ) {
+        switch (area) {
+            case "area1" -> {
+                response.setArea1Usage(usage);
+                response.setArea1Revenue(revenue);
+            }
+
+            case "area2" -> {
+                response.setArea2Usage(usage);
+                response.setArea2Revenue(revenue);
+            }
+
+            case "area3" -> {
+                response.setArea3Usage(usage);
+                response.setArea3Revenue(revenue);
+            }
+
+            default -> {
+                // Unknown area values are ignored.
+            }
+        }
+    }
+
+    private void setPredictedAreaValues(
+            AreaPredictionResponse response,
+            String area,
+            double predictedUsage,
+            double predictedRevenue
+    ) {
+        switch (area) {
+            case "area1" -> {
+                response.setPredictedArea1Usage(
+                        predictedUsage
+                );
+                response.setPredictedArea1Revenue(
+                        predictedRevenue
+                );
+            }
+
+            case "area2" -> {
+                response.setPredictedArea2Usage(
+                        predictedUsage
+                );
+                response.setPredictedArea2Revenue(
+                        predictedRevenue
+                );
+            }
+
+            case "area3" -> {
+                response.setPredictedArea3Usage(
+                        predictedUsage
+                );
+                response.setPredictedArea3Revenue(
+                        predictedRevenue
+                );
+            }
+
+            default -> {
+                // Unknown area values are ignored.
+            }
+        }
+    }
+
+    private String getMonthName(
+            YearMonth yearMonth
+    ) {
+        return yearMonth
+                .getMonth()
+                .getDisplayName(
+                        TextStyle.SHORT,
+                        Locale.ENGLISH
+                );
+    }
+
+    private record PredictionPoint(
+            LocalDate date,
+            double value
+    ) {
     }
 }
