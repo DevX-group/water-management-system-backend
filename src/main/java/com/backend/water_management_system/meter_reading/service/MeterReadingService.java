@@ -75,8 +75,8 @@ public class MeterReadingService {
             // Normal reading alert
             alertService.createAlert(
                 "info",
-                "Meter Reading Submitted",
-                "A normal meter reading was submitted successfully.",
+                "New Reading Recorded",
+                "Your monthly meter reading was successfully recorded by our staff.",
                 usage + " Units",
                 customer.getSubscriptionNumber()
             );
@@ -84,6 +84,7 @@ public class MeterReadingService {
 
         return billingService.generateBill(customer, savedReading);
     }
+    // Update an existing reading and its associated bill
     @Transactional
     public Bill updateReading(Long readingId, MeterReadingCreateRequest req) {
         MeterReading reading = meterReadingRepository.findById(readingId)
@@ -115,7 +116,7 @@ public class MeterReadingService {
             return billingService.generateBill(savedReading.getCustomer(), savedReading);
         }
     }
-
+   // Get all readings for a specific date
     public List<MeterReadingTodayResponse> getReadingsByDate(LocalDate date) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         List<MeterReading> readings = meterReadingRepository.findByReadingDate(targetDate);
@@ -142,7 +143,7 @@ public class MeterReadingService {
             return dto;
         }).collect(Collectors.toList());
     }
-
+    // Get the latest reading for a specific meter number
     public MeterReadingTodayResponse getLatestReadingByMeterNumber(String meterNumber) {
         Optional<MeterReading> reading = meterReadingRepository.findTopByMeterNumberOrderByReadingDateDesc(meterNumber);
         if (reading.isPresent()) {

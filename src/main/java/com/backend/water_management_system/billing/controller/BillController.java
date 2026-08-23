@@ -52,7 +52,7 @@ public class BillController {
         return ResponseEntity.ok(billService.getBillsForCustomer(resolvedSubscription));
     }
 
-    @GetMapping("/customer/{subscriptionNumber}/paginated")
+    @GetMapping("/customer/{subscriptionNumber}/paginated")           // Get paginated bills 
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<?> getCustomerBillsPaginated(
             @PathVariable String subscriptionNumber,
@@ -87,7 +87,7 @@ public class BillController {
         return ResponseEntity.ok(paymentService.getOutstandingBills(resolvedSubscription));
     }
 
-    @GetMapping("/{billId}/download")
+    @GetMapping("/{billId}/download")           // Download a specific bill as a PDF
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<byte[]> downloadBillPdf(
             @PathVariable Long billId,
@@ -111,7 +111,7 @@ public class BillController {
         }
     }
 
-    @GetMapping("/{billId}/image")
+    @GetMapping("/{billId}/image")     // Get the image representation of a specific bill
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<byte[]> getBillImage(
             @PathVariable Long billId,

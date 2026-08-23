@@ -21,14 +21,14 @@ public class InquiryService {
         this.userRepository = userRepository;
     }
 
-    @Transactional
+    @Transactional   // Create a new inquiry
     public Inquiry createInquiry(Inquiry inquiry) {
         return inquiryRepository.save(inquiry);
     }
     public List<Inquiry> getAllInquiries() {
         return inquiryRepository.findAll();
     }
-    @Transactional
+    @Transactional   // Add a message to an existing inquiry
     public Inquiry addMessage(String inquiryId, InquiryMessage newMessage) {
         return inquiryRepository.findById(inquiryId)
             .map(inquiry -> {
@@ -37,7 +37,7 @@ public class InquiryService {
             })
             .orElseThrow(() -> new RuntimeException("Inquiry not found with id: " + inquiryId));
     }
-    @Transactional
+    @Transactional   // Update the status of an existing inquiry
     public Inquiry updateStatus(String inquiryId, String status) {
         return inquiryRepository.findById(inquiryId)
             .map(inquiry -> {

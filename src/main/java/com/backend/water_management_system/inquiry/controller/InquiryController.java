@@ -46,7 +46,7 @@ public class InquiryController {
         return inquiryService.getAllInquiries();
     }
 
-    @GetMapping("/paginated")
+    @GetMapping("/paginated")    // Get paginated inquiries 
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('CUSTOMER')")
     public org.springframework.data.domain.Page<Inquiry> getInquiriesPaginated(
             @RequestParam(defaultValue = "0") int page,
@@ -61,7 +61,7 @@ public class InquiryController {
         return inquiryService.getAllInquiriesPaginated(pageable);
     }
 
-    @PostMapping("/{id}/messages")
+    @PostMapping("/{id}/messages")           // Add a message to an existing inquiry
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public Inquiry addMessage(@PathVariable String id, @RequestBody InquiryMessage message) {
         return inquiryService.addMessage(id, message);
