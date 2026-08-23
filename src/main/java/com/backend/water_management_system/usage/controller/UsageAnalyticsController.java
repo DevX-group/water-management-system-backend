@@ -49,6 +49,7 @@ public class UsageAnalyticsController {
      */
     @GetMapping("/usage")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    //@PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<UsageAnalyticsResponse> getSystemUsage(
             @RequestParam(required = false) Integer year) {
         int targetYear = (year != null) ? year : LocalDate.now().getYear();
@@ -62,7 +63,7 @@ public class UsageAnalyticsController {
      *           GET /api/analytics/usage/SUB-001?year=2025
      */
     @GetMapping("/usage/{subscriptionNumber}")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<UsageAnalyticsResponse> getCustomerUsage(
             @PathVariable String subscriptionNumber,
             @RequestParam(required = false) Integer year,
