@@ -36,7 +36,7 @@ public class InquiryController {
     }
 
     @GetMapping   // Get inquiries (admin gets all, customer gets their own)
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('PAYMENT_HANDLER') or hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('CUSTOMER')")
     public List<Inquiry> getAllInquiries(org.springframework.security.core.Authentication authentication) {
         String role = authentication.getAuthorities().iterator().next().getAuthority();
         if ("ROLE_CUSTOMER".equals(role)) {
@@ -47,7 +47,7 @@ public class InquiryController {
     }
 
     @GetMapping("/paginated")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('PAYMENT_HANDLER') or hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('CUSTOMER')")
     public org.springframework.data.domain.Page<Inquiry> getInquiriesPaginated(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -62,13 +62,13 @@ public class InquiryController {
     }
 
     @PostMapping("/{id}/messages")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public Inquiry addMessage(@PathVariable String id, @RequestBody InquiryMessage message) {
         return inquiryService.addMessage(id, message);
     }
 
     @PostMapping(value = "/upload-attachment", consumes = "multipart/form-data")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('PAYMENT_HANDLER') or hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('CUSTOMER')")
     public org.springframework.http.ResponseEntity<java.util.Map<String, String>> uploadAttachment(
             @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
         if (cloudinaryService.isConfigured()) {
@@ -80,7 +80,7 @@ public class InquiryController {
     }
 
     @PatchMapping("/{id}/status")     // Update the status of an inquiry   
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public Inquiry updateStatus(@PathVariable String id, @RequestParam String status) {
         return inquiryService.updateStatus(id, status);
     }

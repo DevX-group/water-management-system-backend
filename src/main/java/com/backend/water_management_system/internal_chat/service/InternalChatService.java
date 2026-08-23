@@ -59,7 +59,7 @@ public class InternalChatService {
                 .filter(user -> !user.getId().equals(currentUserId))
                 .filter(user -> role == null || user.getRole() == role)
                 .filter(user -> matchesSearch(user, search))
-                .sorted(Comparator.comparing(User::getFullName, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(u -> u.getFullName() == null ? "" : u.getFullName(), String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
         return eligibleUsers.stream()

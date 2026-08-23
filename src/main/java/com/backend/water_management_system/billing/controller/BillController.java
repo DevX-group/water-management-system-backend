@@ -44,7 +44,7 @@ public class BillController {
     }
 
     @GetMapping("/customer/{subscriptionNumber}")       // Get all bills for a specific customer by subscription number
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<List<BillResponse>> getCustomerBills(
             @PathVariable String subscriptionNumber,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -53,7 +53,7 @@ public class BillController {
     }
 
     @GetMapping("/customer/{subscriptionNumber}/paginated")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('PAYMENT_HANDLER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<?> getCustomerBillsPaginated(
             @PathVariable String subscriptionNumber,
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
