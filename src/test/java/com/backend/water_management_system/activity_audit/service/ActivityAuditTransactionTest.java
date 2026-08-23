@@ -7,6 +7,10 @@ import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.enums.PaymentStatus;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
+import com.backend.water_management_system.billing.entity.Bill;
+import com.backend.water_management_system.billing.repository.BillRepository;
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.backend.water_management_system.meter_reading.repository.MeterReadingRepository;
 import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.enums.UserStatus;
@@ -42,6 +46,10 @@ class ActivityAuditTransactionTest {
     private UserRepository userRepository;
     @Autowired
     private PaymentRepository paymentRepository;
+    @Autowired
+    private MeterReadingRepository meterReadingRepository;
+    @Autowired
+    private BillRepository billRepository;
     @Autowired
     private PlatformTransactionManager transactionManager;
 
@@ -112,6 +120,55 @@ class ActivityAuditTransactionTest {
         })).isInstanceOf(IllegalArgumentException.class);
 
         assertThat(paymentRepository.findById(paymentId)).isEmpty();
+        assertThat(auditRepository.count()).isZero();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void auditFailureRollsBackMeterReadingAndBillMutations() {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        Long[] readingId = new Long[1];
+        Long[] billId = new Long[1];
+
+        assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
+            MeterReading reading = new MeterReading();
+            reading.setPreviousReading(100);
+            reading.setCurrentReading(125);
+            reading.setUsageUnits(25);
+            reading.setReadingDate(java.time.LocalDate.of(2026, 8, 1));
+            MeterReading savedReading = meterReadingRepository.save(reading);
+            readingId[0] = savedReading.getReadingId();
+
+            Bill bill = new Bill();
+            bill.setMeterReading(savedReading);
+            Bill savedBill = billRepository.save(bill);
+            billId[0] = savedBill.getBillId();
+
+            auditService.recordSystem(
+                    AuditAction.METER_READING_CREATED, AuditEntityType.METER_READING,
+                    readingId[0], Map.of("unsafeReadingField", "must fail"));
+        })).isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(meterReadingRepository.findById(readingId[0])).isEmpty();
+        assertThat(billRepository.findById(billId[0])).isEmpty();
+        assertThat(auditRepository.count()).isZero();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void billingFailureRollsBackMeterReadingAndCreatesNoAudit() {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        Long[] readingId = new Long[1];
+
+        assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
+            MeterReading reading = new MeterReading();
+            reading.setUsageUnits(25);
+            MeterReading savedReading = meterReadingRepository.save(reading);
+            readingId[0] = savedReading.getReadingId();
+            throw new IllegalStateException("simulated billing failure");
+        })).isInstanceOf(IllegalStateException.class);
+
+        assertThat(meterReadingRepository.findById(readingId[0])).isEmpty();
         assertThat(auditRepository.count()).isZero();
     }
 }
