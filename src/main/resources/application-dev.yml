@@ -14,7 +14,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         # default_schema: hydropay
 
-
 app:
   backup:
     directory: ${BACKUP_DIRECTORY:./backups}
@@ -26,4 +25,3 @@ app:
   cron-job-org:
     api-key: ${CRON_JOB_ORG_API_KEY:}
     job-id: ${CRON_JOB_ORG_BACKUP_JOB_ID:}
-
