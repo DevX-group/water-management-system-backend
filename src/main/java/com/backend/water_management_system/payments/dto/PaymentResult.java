@@ -13,4 +13,5 @@ public class PaymentResult {
     private BigDecimal oldBalance;
     private BigDecimal newBalance;
     private PaymentStatus status;
+
 }

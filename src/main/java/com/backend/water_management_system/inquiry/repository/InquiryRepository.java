@@ -13,6 +13,5 @@ public interface InquiryRepository extends JpaRepository<Inquiry, String> {
     long countByEmailAndStatus(String email, String status);
 
     List<Inquiry> findByEmail(String email);
-    java.util.List<Inquiry> findByEmail(String email);
     org.springframework.data.domain.Page<Inquiry> findByEmail(String email, org.springframework.data.domain.Pageable pageable);
 }
