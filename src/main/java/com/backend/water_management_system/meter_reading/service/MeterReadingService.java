@@ -75,8 +75,8 @@ public class MeterReadingService {
         if (usage > 100) {
             alertService.createAlert(
                 "high",
-                "High Water Usage Detected",
-                "High usage detection",
+                "High Water Usage Alert",
+                "Unusually high water usage has been detected. Please check your premises for potential leaks.",
                 usage + " Units",
                 customer.getSubscriptionNumber()
             );
@@ -84,8 +84,8 @@ public class MeterReadingService {
             // Normal reading alert
             alertService.createAlert(
                 "info",
-                "New Reading Recorded",
-                "Your monthly meter reading was successfully recorded by our staff.",
+                "Meter Reading Recorded",
+                "Your latest meter reading has been successfully recorded by our authorized staff.",
                 usage + " Units",
                 customer.getSubscriptionNumber()
             );
