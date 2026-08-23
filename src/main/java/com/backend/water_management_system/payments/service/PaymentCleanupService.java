@@ -10,6 +10,10 @@ import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.enums.PaymentStatus;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
+import com.backend.water_management_system.activity_audit.enums.AuditAction;
+import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
+import java.util.Map;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class PaymentCleanupService {
 
     private final PaymentRepository paymentRepository;
+    private final ActivityAuditService activityAuditService;
 
     @Scheduled(fixedRate = 3600000) // every hour
     @Transactional
@@ -33,10 +38,14 @@ public class PaymentCleanupService {
                 cutoff
             );
 
-        for (Payment payment : oldPendingPayments) {
-            payment.setStatus(PaymentStatus.EXPIRED);
-        }
+        List<Payment> changedPayments = oldPendingPayments.stream()
+            .filter(payment -> payment.getStatus() == PaymentStatus.PENDING)
+            .toList();
+        changedPayments.forEach(payment -> payment.setStatus(PaymentStatus.EXPIRED));
 
-        paymentRepository.saveAll(oldPendingPayments);
+        paymentRepository.saveAll(changedPayments);
+        changedPayments.forEach(payment -> activityAuditService.recordSystem(
+                AuditAction.PAYMENT_STATUS_CHANGED, AuditEntityType.PAYMENT,
+                payment.getPaymentId(), Map.of("status", "PENDING -> EXPIRED")));
     }
 }

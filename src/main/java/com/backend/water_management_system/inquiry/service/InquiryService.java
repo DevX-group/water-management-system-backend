@@ -21,25 +21,14 @@ public class InquiryService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Saves a new inquiry thread started by a customer
-     */
-    @Transactional
+    @Transactional   // Create a new inquiry
     public Inquiry createInquiry(Inquiry inquiry) {
         return inquiryRepository.save(inquiry);
     }
-
-    /**
-     * Retrieves all inquiries for the admin dashboard
-     */
     public List<Inquiry> getAllInquiries() {
         return inquiryRepository.findAll();
     }
-
-    /**
-     * Adds a new message to an existing conversation
-     */
-    @Transactional
+    @Transactional   // Add a message to an existing inquiry
     public Inquiry addMessage(String inquiryId, InquiryMessage newMessage) {
         return inquiryRepository.findById(inquiryId)
             .map(inquiry -> {
@@ -48,11 +37,7 @@ public class InquiryService {
             })
             .orElseThrow(() -> new RuntimeException("Inquiry not found with id: " + inquiryId));
     }
-
-    /**
-     * Updates the ticket status (e.g., 'open' to 'resolved')
-     */
-    @Transactional
+    @Transactional   // Update the status of an existing inquiry
     public Inquiry updateStatus(String inquiryId, String status) {
         return inquiryRepository.findById(inquiryId)
             .map(inquiry -> {
@@ -66,5 +51,15 @@ public class InquiryService {
         com.backend.water_management_system.user.entity.User user = userRepository.findByNic(nic)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return inquiryRepository.findByEmail(user.getEmail());
+    }
+
+    public org.springframework.data.domain.Page<Inquiry> getAllInquiriesPaginated(org.springframework.data.domain.Pageable pageable) {
+        return inquiryRepository.findAll(pageable);
+    }
+
+    public org.springframework.data.domain.Page<Inquiry> getInquiriesForCustomerPaginated(String nic, org.springframework.data.domain.Pageable pageable) {
+        com.backend.water_management_system.user.entity.User user = userRepository.findByNic(nic)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return inquiryRepository.findByEmail(user.getEmail(), pageable);
     }
 }

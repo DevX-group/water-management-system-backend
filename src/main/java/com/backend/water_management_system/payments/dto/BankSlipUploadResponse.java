@@ -21,6 +21,8 @@ public class BankSlipUploadResponse {
     private BigDecimal amount;
     private String bankReference;
     private String filePath;
+    private String fileName;
+    private String fileType;
     private SlipStatus status;
     private LocalDateTime uploadedAt;
     private LocalDate bankPaymentDate;

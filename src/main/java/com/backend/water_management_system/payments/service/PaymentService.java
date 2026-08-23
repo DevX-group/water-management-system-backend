@@ -3,6 +3,8 @@ package com.backend.water_management_system.payments.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.backend.water_management_system.billing.dto.CurrentBillResponse;
+import com.backend.water_management_system.activity_audit.enums.AuditAction;
+import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
 import com.backend.water_management_system.billing.dto.OutstandingBillResponse;
 import com.backend.water_management_system.billing.dto.OutstandingBillsSummaryResponse;
 import com.backend.water_management_system.billing.entity.Bill;
@@ -59,6 +64,7 @@ public class PaymentService {
     private final PaymentAllocationRepository paymentAllocationRepository;
     private final TriggeredMessageDispatcher triggeredMessageDispatcher;
     private final NotificationService notificationService;
+    private final ActivityAuditService activityAuditService;
 
     // Main entry point for adding a manual payment. Handles validation, bill
     // selection and processing
@@ -125,6 +131,10 @@ public class PaymentService {
                     payment.getPaymentId(),
                     ex.getMessage());
         }
+
+        activityAuditService.recordAuthenticatedWeb(
+                AuditAction.PAYMENT_CREATED, AuditEntityType.PAYMENT,
+                payment.getPaymentId(), creationDetails(payment));
 
         return buildResponse(payment, result, subscriptionNumber, request.getPaymentType(), request.getPaymentMethod());
     }
@@ -502,6 +512,8 @@ public class PaymentService {
         // Fetch existing payment
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
+        BigDecimal oldAmount = payment.getAmount();
+        PaymentStatus oldStatus = payment.getStatus();
 
         // Validate new amount
         if (newAmount == null || newAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -528,6 +540,21 @@ public class PaymentService {
 
         // Save updated payment.
         paymentRepository.save(payment);
+
+        boolean amountChanged = oldAmount == null || oldAmount.compareTo(newAmount) != 0;
+        boolean statusChanged = oldStatus != newStatus;
+        if (amountChanged || statusChanged) {
+            Map<String, String> changes = new LinkedHashMap<>();
+            if (oldAmount != null) changes.put("amount", amountTransition(oldAmount, newAmount));
+            if (oldStatus != null && newStatus != null) {
+                changes.put("status", oldStatus.name() + " -> " + newStatus.name());
+            }
+            if (!changes.isEmpty()) {
+                activityAuditService.recordAuthenticatedWeb(
+                        AuditAction.PAYMENT_UPDATED, AuditEntityType.PAYMENT,
+                        payment.getPaymentId(), changes);
+            }
+        }
 
         AddPaymentResponse response = new AddPaymentResponse();
         response.setMessage("Payment updated successfully");
@@ -618,8 +645,29 @@ public class PaymentService {
     public void deletePayment(String paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
+        Map<String, String> deletionDetails = creationDetails(payment);
 
         reversePaymentEffect(payment);
         paymentRepository.delete(payment);
+        activityAuditService.recordAuthenticatedWeb(
+                AuditAction.PAYMENT_DELETED, AuditEntityType.PAYMENT,
+                payment.getPaymentId(), deletionDetails);
+    }
+
+    static Map<String, String> creationDetails(Payment payment) {
+        Map<String, String> details = new LinkedHashMap<>();
+        if (payment.getAmount() != null) details.put("amount", safeAmount(payment.getAmount()));
+        if (payment.getPaymentType() != null) details.put("paymentType", payment.getPaymentType().name());
+        if (payment.getPaymentMethod() != null) details.put("paymentMethod", payment.getPaymentMethod().name());
+        if (payment.getStatus() != null) details.put("status", payment.getStatus().name());
+        return details;
+    }
+
+    private static String amountTransition(BigDecimal oldAmount, BigDecimal newAmount) {
+        return safeAmount(oldAmount) + " -> " + safeAmount(newAmount);
+    }
+
+    private static String safeAmount(BigDecimal amount) {
+        return amount.stripTrailingZeros().toPlainString();
     }
 }

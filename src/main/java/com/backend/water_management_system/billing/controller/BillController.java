@@ -44,12 +44,29 @@ public class BillController {
     }
 
     @GetMapping("/customer/{subscriptionNumber}")       // Get all bills for a specific customer by subscription number
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<List<BillResponse>> getCustomerBills(
             @PathVariable String subscriptionNumber,
             @AuthenticationPrincipal UserPrincipal principal) {
         String resolvedSubscription = customerAccessService.enforceOwnership(principal, subscriptionNumber);
         return ResponseEntity.ok(billService.getBillsForCustomer(resolvedSubscription));
+    }
+
+    @GetMapping("/customer/{subscriptionNumber}/paginated")           // Get paginated bills 
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
+    public ResponseEntity<?> getCustomerBillsPaginated(
+            @PathVariable String subscriptionNumber,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            String resolvedSubscription = customerAccessService.enforceOwnership(principal, subscriptionNumber);
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+            return ResponseEntity.ok(billService.getBillsForCustomerPaginated(resolvedSubscription, pageable));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage(), "trace", java.util.Arrays.toString(e.getStackTrace())));
+        }
     }
 
     @GetMapping("/current/{subscriptionNumber}")       // Get the current bill for a specific customer by subscription number
@@ -70,7 +87,7 @@ public class BillController {
         return ResponseEntity.ok(paymentService.getOutstandingBills(resolvedSubscription));
     }
 
-    @GetMapping("/{billId}/download")
+    @GetMapping("/{billId}/download")           // Download a specific bill as a PDF
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<byte[]> downloadBillPdf(
             @PathVariable Long billId,
@@ -94,7 +111,7 @@ public class BillController {
         }
     }
 
-    @GetMapping("/{billId}/image")
+    @GetMapping("/{billId}/image")     // Get the image representation of a specific bill
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public ResponseEntity<byte[]> getBillImage(
             @PathVariable Long billId,

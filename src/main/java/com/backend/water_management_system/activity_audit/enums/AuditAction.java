@@ -1,0 +1,15 @@
+package com.backend.water_management_system.activity_audit.enums;
+
+public enum AuditAction {
+    USER_CREATED,
+    USER_PROFILE_UPDATED,
+    USER_STATUS_CHANGED,
+    USER_ROLE_CHANGED,
+    USER_ACTIVATED,
+    PAYMENT_CREATED,
+    PAYMENT_UPDATED,
+    PAYMENT_STATUS_CHANGED,
+    PAYMENT_DELETED,
+    METER_READING_CREATED,
+    METER_READING_UPDATED
+}
