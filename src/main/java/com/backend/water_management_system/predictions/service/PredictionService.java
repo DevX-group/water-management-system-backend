@@ -6,8 +6,6 @@ import com.backend.water_management_system.predictions.dto.MonthlyPredictionResp
 import com.backend.water_management_system.reports.repository.UsageRecordRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -22,11 +20,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+
 @Service
 public class PredictionService {
 
-    private static final String FLASK_URL =
-            "http://127.0.0.1:5000/predict";
+    @Value("${prediction.service.url:https://m5zktklv-5000.asse.devtunnels.ms/predict}")
+private String flaskUrl;
 
     private final UsageRecordRepository repository;
     private final RestTemplate restTemplate;
@@ -441,7 +443,7 @@ public class PredictionService {
 
         String responseBody =
                 restTemplate.postForObject(
-                        FLASK_URL,
+                        flaskUrl,
                         request,
                         String.class
                 );

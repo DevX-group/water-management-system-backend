@@ -1,6 +1,14 @@
 spring:
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  spring:
+    datasource:
+      url: ${HOSTED_DATABASE_URL}
+      username: ${HOSTED_DATABASE_USERNAME}
+      password: ${HOSTED_DATABASE_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: none
@@ -60,7 +68,20 @@ app:
     nic: ${SUPER_ADMIN_NIC}
     email: ${SUPER_ADMIN_EMAIL}
     password: ${SUPER_ADMIN_PASSWORD}
+  backup:
+    directory: ${BACKUP_DIRECTORY:./backups}
+    pg-dump-path: ${PG_DUMP_PATH:pg_dump}
+    pg-restore-path: ${PG_RESTORE_PATH:pg_restore}
+    psql-path: ${PSQL_PATH:psql}
+    cron:
+      secret-key: ${BACKUP_CRON_SECRET}
   cron-job-org:
     api-key: ${CRON_JOB_ORG_API_KEY}
     job-id: ${CRON_JOB_ORG_BACKUP_JOB_ID}
+
+
+
+prediction:
+  service:
+    url: ${PREDICTION_SERVICE_URL:http://127.0.0.1:5000/predict}
 

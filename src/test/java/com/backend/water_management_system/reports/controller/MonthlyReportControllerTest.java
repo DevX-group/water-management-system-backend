@@ -16,6 +16,14 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,7 +52,7 @@ class MonthlyReportControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @Test
-        @WithMockUser(roles = "SUPER_ADMIN")
+    @WithMockUser(username = "admin", roles = "SUPER_ADMIN")
     void getMonthlyReport_returnsList() throws Exception {
         int year = 2026;
 
@@ -55,8 +63,7 @@ class MonthlyReportControllerTest {
                 .thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/reports/monthly")
-                        .param("year", String.valueOf(year))
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .param("year", String.valueOf(year)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].month", is("Jan")))
