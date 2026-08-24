@@ -19,9 +19,9 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
     /** Finds one user's membership in a conversation. */
     Optional<ConversationParticipant> findByConversationAndUser(Conversation conversation, User user);
 
-        /** Finds visible membership for authorization and active conversation views. */
-        @Query("select cp from InternalChatConversationParticipant cp where cp.conversation = :conversation and cp.user = :user and cp.deletedAt is null")
-        Optional<ConversationParticipant> findActiveByConversationAndUser(@Param("conversation") Conversation conversation,
+    /** Finds visible membership for authorization and active conversation views. */
+    @Query("select cp from InternalChatConversationParticipant cp where cp.conversation = :conversation and cp.user = :user and cp.deletedAt is null")
+    Optional<ConversationParticipant> findActiveByConversationAndUser(@Param("conversation") Conversation conversation,
             @Param("user") User user);
 
     /** Returns all members of a conversation. */
