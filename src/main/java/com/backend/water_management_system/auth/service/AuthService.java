@@ -1,6 +1,9 @@
 package com.backend.water_management_system.auth.service;
 
 import com.backend.water_management_system.auth.dto.ActivationRequest;
+import com.backend.water_management_system.activity_audit.enums.AuditAction;
+import com.backend.water_management_system.activity_audit.enums.AuditEntityType;
+import com.backend.water_management_system.activity_audit.service.ActivityAuditService;
 import com.backend.water_management_system.auth.dto.LoginRequest;
 import com.backend.water_management_system.auth.dto.LoginResponse;
 import com.backend.water_management_system.security.JwtService;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class AuthService {
     private final ActivationTokenRepository activationTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final ActivationMessageService activationMessageService;
+    private final ActivityAuditService activityAuditService;
 
     @Value("${app.activation-token-expiry-hours:72}")
     private int activationTokenExpiryHours;
@@ -100,11 +105,20 @@ public class AuthService {
         if (user.getStatus() == UserStatus.INACTIVE || user.getStatus() == UserStatus.SUSPENDED) {
             throw new IllegalStateException("This account is deactivated. Please contact support.");
         }
+        UserStatus oldStatus = user.getStatus();
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
 
         activationToken.setUsed(true);
         activationTokenRepository.save(activationToken);
+
+        if (oldStatus != UserStatus.ACTIVE) {
+            activityAuditService.recordPublicWeb(
+                    AuditAction.USER_ACTIVATED,
+                    AuditEntityType.USER,
+                    user.getId(),
+                    Map.of("status", oldStatus.name() + " -> " + UserStatus.ACTIVE.name()));
+        }
     }
 }

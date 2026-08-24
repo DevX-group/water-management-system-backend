@@ -26,6 +26,9 @@ public class InquiryController {
     @Autowired
     private InquiryService inquiryService; // Use the service instead of repository
 
+    @Autowired
+    private com.backend.water_management_system.payments.service.CloudinaryService cloudinaryService;
+
     @PostMapping     // Create a new inquiry
     @PreAuthorize("hasRole('CUSTOMER')")
     public Inquiry createInquiry(@RequestBody Inquiry inquiry) {
@@ -33,7 +36,7 @@ public class InquiryController {
     }
 
     @GetMapping   // Get inquiries (admin gets all, customer gets their own)
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('CUSTOMER')")
     public List<Inquiry> getAllInquiries(org.springframework.security.core.Authentication authentication) {
         String role = authentication.getAuthorities().iterator().next().getAuthority();
         if ("ROLE_CUSTOMER".equals(role)) {
@@ -43,14 +46,41 @@ public class InquiryController {
         return inquiryService.getAllInquiries();
     }
 
-    @PostMapping("/{id}/messages")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @GetMapping("/paginated")    // Get paginated inquiries 
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('CUSTOMER')")
+    public org.springframework.data.domain.Page<Inquiry> getInquiriesPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            org.springframework.security.core.Authentication authentication) {
+        String role = authentication.getAuthorities().iterator().next().getAuthority();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("createdAt").descending());
+        if ("ROLE_CUSTOMER".equals(role)) {
+            String nic = authentication.getName();
+            return inquiryService.getInquiriesForCustomerPaginated(nic, pageable);
+        }
+        return inquiryService.getAllInquiriesPaginated(pageable);
+    }
+
+    @PostMapping("/{id}/messages")           // Add a message to an existing inquiry
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public Inquiry addMessage(@PathVariable String id, @RequestBody InquiryMessage message) {
         return inquiryService.addMessage(id, message);
     }
 
+    @PostMapping(value = "/upload-attachment", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('CUSTOMER')")
+    public org.springframework.http.ResponseEntity<java.util.Map<String, String>> uploadAttachment(
+            @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        if (cloudinaryService.isConfigured()) {
+            com.backend.water_management_system.payments.dto.CloudinaryUploadResponse res = cloudinaryService.uploadFile(file);
+            return org.springframework.http.ResponseEntity.ok(java.util.Map.of("url", res.getUrl()));
+        } else {
+            return org.springframework.http.ResponseEntity.status(500).body(java.util.Map.of("error", "Cloudinary not configured"));
+        }
+    }
+
     @PatchMapping("/{id}/status")     // Update the status of an inquiry   
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public Inquiry updateStatus(@PathVariable String id, @RequestParam String status) {
         return inquiryService.updateStatus(id, status);
     }

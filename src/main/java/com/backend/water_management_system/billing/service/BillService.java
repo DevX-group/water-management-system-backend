@@ -24,6 +24,11 @@ public class BillService {
                 .toList();
     }
 
+    public org.springframework.data.domain.Page<BillResponse> getBillsForCustomerPaginated(String subscriptionNumber, org.springframework.data.domain.Pageable pageable) {
+        return billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber, pageable)
+                .map(this::toDto);
+    }
+
     public Bill getBillEntityById(Long id) {       // Retrieve a Bill entity by its ID, used for generating PDF or image 
         return billRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bill not found: " + id));

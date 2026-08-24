@@ -44,6 +44,7 @@ public class ChatbotService {
         systemPrompt.append("Your job is to help customers of the local Water Board. ");
         systemPrompt.append("You can answer general questions about water bills, how to reduce water usage, how to report leaks, and other related topics. ");
         systemPrompt.append("Keep your answers concise, clear, and polite. ");
+        systemPrompt.append("IMPORTANT FORMATTING RULE: Do NOT use asterisks (*) or markdown for formatting, bolding, or lists. Instead, separate points using plain new lines and spaces. ");
 
         // Append personalized billing data if available
         if (subscriptionNumber != null && !subscriptionNumber.isEmpty()) {

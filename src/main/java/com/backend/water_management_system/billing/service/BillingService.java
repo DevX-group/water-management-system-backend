@@ -93,7 +93,6 @@ public class BillingService {
 
         return bill;
     }
-
     public Bill updateBill(Bill bill, MeterReading reading) {
         Customer customer = bill.getCustomer();
         final String type = (customer.getConnectionType() != null)

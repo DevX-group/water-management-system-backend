@@ -1,11 +1,12 @@
 package com.backend.water_management_system.common.config;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.common.entity.ConnectionRate;
@@ -13,14 +14,15 @@ import com.backend.water_management_system.common.entity.Region;
 import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.common.repository.RegionRepository;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.enums.UserStatus;
 import com.backend.water_management_system.user.repository.UserRepository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 @Component
 public class DataSeeder implements CommandLineRunner {
     private final CustomerRepository customerRepository;
@@ -28,17 +30,22 @@ public class DataSeeder implements CommandLineRunner {
     private final RegionRepository regionRepository;
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Value("${spring.datasource.driver-class-name:}")
+    private String databaseDriver;
+
     public DataSeeder(CustomerRepository customerRepository, UserRepository userRepository, RegionRepository regionRepository,
-            BillRepository billRepository, RateRepository rateRepository) {
+            BillRepository billRepository, RateRepository rateRepository, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
         this.userRepository = userRepository;
         this.regionRepository = regionRepository;
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
+        this.passwordEncoder = passwordEncoder;
     }
     /**
      * Drops the stale PostgreSQL check constraint on the users.role column and
@@ -52,6 +59,10 @@ public class DataSeeder implements CommandLineRunner {
      */
     @Transactional
     private void fixRoleCheckConstraint() {
+        if (!"org.postgresql.Driver".equals(databaseDriver)) {
+            return;
+        }
+
         try {
             // Drop the old constraint if it still exists (any name variant)
             entityManager.createNativeQuery(
@@ -90,8 +101,8 @@ public class DataSeeder implements CommandLineRunner {
     @Transactional
     private void migratePaymentHandlerRole() {
         int updated = entityManager
-                .createQuery("UPDATE User u SET u.role = com.backend.water_management_system.user.enums.Role.CUSTOMER_HANDLER "
-                        + "WHERE u.role = 'PAYMENT_HANDLER'")
+            .createNativeQuery("UPDATE users SET role = 'CUSTOMER_HANDLER' "
+                + "WHERE CAST(role AS VARCHAR) = 'PAYMENT_HANDLER'")
                 .executeUpdate();
         if (updated > 0) {
             System.out.println("[DataSeeder] Migrated " + updated + " user(s) from PAYMENT_HANDLER → CUSTOMER_HANDLER");
@@ -247,27 +258,28 @@ public class DataSeeder implements CommandLineRunner {
         regionRepository.save(eastRegion);
         regionRepository.save(westRegion);
         regionRepository.save(centerRegion);
-        User u1 = User.builder().nic("921234567V").email("xyz@gmail.com").phoneNumber("0711234567").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        String defaultPassword = passwordEncoder.encode("password123");
+        User u1 = User.builder().nic("921234567V").email("xyz@gmail.com").phoneNumber("0711234567").passwordHash(defaultPassword).role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u1);
         Customer c1 = new Customer("SK-2341", "Amal Perera", u1, "12 Lake Road, Colombo", "metered", northRegion);
         c1.setOutstandingBalance(new BigDecimal("0.00"));
 
-        User u2 = User.builder().nic("881234568V").email("abc@gmail.com").phoneNumber("0721234568").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u2 = User.builder().nic("881234568V").email("abc@gmail.com").phoneNumber("0721234568").passwordHash(defaultPassword).role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u2);
         Customer c2 = new Customer("SP-4589", "Kasun Kalhara", u2, "45 Temple Street, Galle", "metered", southRegion);
         c2.setOutstandingBalance(new BigDecimal("500.00"));
 
-        User u3 = User.builder().nic("901234569V").email("kamani@example.com").phoneNumber("0771234569").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u3 = User.builder().nic("901234569V").email("kamani@example.com").phoneNumber("0771234569").passwordHash(defaultPassword).role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u3);
         Customer c3 = new Customer("KS-7892", "Kamani Silva", u3, "78 Main Street, Kandy", "non_metered", northRegion);
         c3.setOutstandingBalance(new BigDecimal("1200.00"));
 
-        User u4 = User.builder().nic("851234570V").email("ruwan@example.com").phoneNumber("0751234570").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u4 = User.builder().nic("851234570V").email("ruwan@example.com").phoneNumber("0751234570").passwordHash(defaultPassword).role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u4);
         Customer c4 = new Customer("RJ-1234", "Ruwan Jayawardena", u4, "101 Beach Road, Trincomalee", "metered", eastRegion);
         c4.setOutstandingBalance(new BigDecimal("2750.00"));
 
-        User u5 = User.builder().nic("931234571V").email("priyantha@example.com").phoneNumber("0761234571").role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
+        User u5 = User.builder().nic("931234571V").email("priyantha@example.com").phoneNumber("0761234571").passwordHash(defaultPassword).role(Role.CUSTOMER).status(UserStatus.ACTIVE).build();
         userRepository.save(u5);
         Customer c5 = new Customer("PD-5678", "Priyantha De Silva", u5, "22 Forest Avenue, Kurunegala", "non_metered", westRegion);
         c5.setOutstandingBalance(new BigDecimal("0.00"));

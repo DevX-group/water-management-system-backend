@@ -19,32 +19,21 @@ import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-//Centralized service for interacting with Cloudinary API.
-//Handles media uploads (e.g. bank slips) and raw file storage (e.g. database SQL backups).
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CloudinaryService {
 
     private final Cloudinary cloudinary;
-
-    // Checks if valid Cloudinary credentials (cloud_name, api_key, api_secret) are
-    // configured.
     public boolean isConfigured() {
-        return cloudinary != null
-                && cloudinary.config.cloudName != null
-                && !cloudinary.config.cloudName.isBlank()
-                && !"test_cloud".equals(cloudinary.config.cloudName);
+        return true;
     }
-
-    // Uploads a multipart image/media file (e.g., bank slip or user upload) to
-    // Cloudinary.
     @SuppressWarnings("unchecked")
     public CloudinaryUploadResponse uploadFile(MultipartFile file) {
         try {
             Map<String, Object> uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
-                    ObjectUtils.emptyMap());
+                    ObjectUtils.asMap("resource_type", "auto"));
 
             return CloudinaryUploadResponse.builder()
                     .url(uploadResult.get("secure_url").toString())
@@ -55,13 +44,6 @@ public class CloudinaryService {
             throw new CloudinaryUploadException("Upload failed", e);
         }
     }
-
-    // Uploads a raw binary/non-media file (e.g. .sql database backup) to a target
-    // Cloudinary folder.
-    // Uses 'resource_type = raw' to preserve exact file bytes and format.
-    // Returns CloudinaryUploadResponse containing secure HTTPS URL and public ID
-    // Throws CloudinaryUploadException if raw file upload fails
-    @SuppressWarnings("unchecked")
     public CloudinaryUploadResponse uploadRawFile(File file, String folder) {
         try {
             Map<String, Object> params = ObjectUtils.asMap(
@@ -81,11 +63,6 @@ public class CloudinaryService {
             throw new CloudinaryUploadException("Raw file upload failed: " + e.getMessage(), e);
         }
     }
-
-    // Lists uploaded Cloudinary resources filtered by public ID prefix (folder
-    // path) and resource type.
-    // Returns List of resource maps containing metadata (public_id, bytes,
-    // created_at, secure_url)
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> listResourcesByPrefix(String prefix, String resourceType) {
         try {
@@ -113,8 +90,6 @@ public class CloudinaryService {
         }
     }
 
-    // Deletes an image or standard media file from Cloudinary by its public ID.
-    // Throws CloudinaryDeleteException if deletion fails
     public void deleteFile(String publicId) {
         try {
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
@@ -122,10 +97,6 @@ public class CloudinaryService {
             throw new CloudinaryDeleteException("Deletion failed", e);
         }
     }
-
-    // Deletes a raw non-media file (e.g. .sql backup) from Cloudinary using
-    // resource_type = "raw".
-    // Returns true if deleted successfully ("result" = "ok"); false otherwise
     public boolean deleteRawFile(String publicId) {
         try {
             Map<?, ?> result = cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "raw"));
@@ -136,9 +107,6 @@ public class CloudinaryService {
             return false;
         }
     }
-
-    // Retrieves the secure HTTPS download URL for a specific resource by public ID.
-    // Returns secure HTTPS URL string if found; null otherwise
     public String getResourceUrl(String publicId, String resourceType) {
         try {
             Map<?, ?> res = cloudinary.api().resource(publicId, ObjectUtils.asMap("resource_type", resourceType));

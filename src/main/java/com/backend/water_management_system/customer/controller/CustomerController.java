@@ -33,7 +33,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<Customer> registerCustomer(
             @Valid @RequestBody CustomerRegistrationRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -43,21 +43,21 @@ public class CustomerController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public List<CustomerSearchResponse> searchCustomers(
             @RequestParam String query) {
         return customerService.searchCustomers(query);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public List<Customer> getAllCustomers() 
     {
         return customerService.getAllCustomers();
     }
 
     @GetMapping("{subscriptionNumber}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('METER_READER')")
     public Customer getCustomerById(@PathVariable String subscriptionNumber)
     {
         return customerService.getCustomerById(subscriptionNumber);
@@ -80,7 +80,7 @@ public class CustomerController {
     }
 
     @org.springframework.web.bind.annotation.PutMapping("/{subscriptionNumber}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<Customer> updateCustomer(
             @PathVariable String subscriptionNumber,
             @Valid @RequestBody com.backend.water_management_system.customer.dto.CustomerUpdateRequest request) {
@@ -89,7 +89,7 @@ public class CustomerController {
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{subscriptionNumber}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<Void> deleteCustomer(@PathVariable String subscriptionNumber) {
         customerService.deleteCustomer(subscriptionNumber);
         return ResponseEntity.noContent().build();

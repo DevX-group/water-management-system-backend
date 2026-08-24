@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/rates")
 @CrossOrigin(origins = { "http://localhost:8080" })
-@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('METER_READER')")
 public class RateController {
 
     private final RateRepository rateRepository;
