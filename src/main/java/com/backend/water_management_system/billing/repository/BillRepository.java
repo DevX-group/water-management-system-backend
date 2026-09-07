@@ -15,6 +15,15 @@ import com.backend.water_management_system.meter_reading.entity.MeterReading;
 public interface BillRepository extends JpaRepository<Bill, Long> {
 
         List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
+        
+        @Query("SELECT b FROM Bill b LEFT JOIN b.customer c LEFT JOIN c.user u " +
+               "WHERE LOWER(c.accountHolderName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+               "OR LOWER(u.nic) LIKE LOWER(CONCAT('%', :query, '%')) " +
+               "OR LOWER(c.subscriptionNumber) LIKE LOWER(CONCAT('%', :query, '%')) " +
+               "OR (CAST(b.billId AS string) = :query) " +
+               "OR (CONCAT('n-', CAST(b.billId AS string)) = LOWER(:query)) " +
+               "ORDER BY b.billDate DESC")
+        List<Bill> searchBills(@org.springframework.data.repository.query.Param("query") String query);
 
         org.springframework.data.domain.Page<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber, org.springframework.data.domain.Pageable pageable);
 

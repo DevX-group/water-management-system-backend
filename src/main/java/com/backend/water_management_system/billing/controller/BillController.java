@@ -52,6 +52,13 @@ public class BillController {
         return ResponseEntity.ok(billService.getBillsForCustomer(resolvedSubscription));
     }
 
+    @GetMapping("/search")       // Search bills for admin side
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
+    public ResponseEntity<List<BillResponse>> searchBills(
+            @org.springframework.web.bind.annotation.RequestParam String query) {
+        return ResponseEntity.ok(billService.searchBills(query));
+    }
+
     @GetMapping("/customer/{subscriptionNumber}/paginated")           // Get paginated bills 
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('SUPER_ADMIN') or hasRole('CUSTOMER_HANDLER')")
     public ResponseEntity<?> getCustomerBillsPaginated(
