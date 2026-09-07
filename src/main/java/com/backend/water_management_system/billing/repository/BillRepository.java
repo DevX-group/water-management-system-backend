@@ -16,6 +16,8 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
 
         List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
         
+        Optional<Bill> findByShareToken(String shareToken);
+        
         @Query("SELECT b FROM Bill b LEFT JOIN b.customer c LEFT JOIN c.user u " +
                "WHERE LOWER(c.accountHolderName) LIKE LOWER(CONCAT('%', :query, '%')) " +
                "OR LOWER(u.nic) LIKE LOWER(CONCAT('%', :query, '%')) " +

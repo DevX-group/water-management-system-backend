@@ -20,4 +20,5 @@ public class BillResponse {
     public String customerName;
     public String nic;
     public String subscriptionNumber;
+    public String shareToken;
 }

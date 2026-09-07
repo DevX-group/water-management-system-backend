@@ -64,6 +64,8 @@ public class SecurityConfig {
                         ).permitAll()
                     // Public payment config
                     .requestMatchers("/api/public/payments/**").permitAll()
+                    // Public bills view
+                    .requestMatchers("/api/public/bills/**").permitAll()
                     // PayHere notification callback
                     .requestMatchers(HttpMethod.POST, "/api/customer/payments/notify").permitAll()
                     // Cron job trigger for scheduled backups

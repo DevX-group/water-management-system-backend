@@ -42,6 +42,12 @@ public class BillService {
     }
 
 
+    public BillResponse getBillByShareToken(String shareToken) {
+        return billRepository.findByShareToken(shareToken)
+                .map(this::toDto)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired bill link."));
+    }
+
     private BillResponse toDto(Bill bill) {
         BillResponse dto = new BillResponse();
         dto.billId = bill.getBillId();
@@ -65,6 +71,7 @@ public class BillService {
         dto.totalAmount = bill.getTotalAmount();
         dto.balanceDue = bill.getBalanceDue();
         dto.status = bill.getStatus();
+        dto.shareToken = bill.getShareToken();
         
         if (bill.getCustomer() != null) {
             dto.customerName = bill.getCustomer().getAccountHolderName();
