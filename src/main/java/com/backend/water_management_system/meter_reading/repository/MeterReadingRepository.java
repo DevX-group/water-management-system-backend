@@ -17,6 +17,7 @@ public interface MeterReadingRepository extends JpaRepository<MeterReading, Long
     // Existing method
     List<MeterReading> findByReadingDate(LocalDate readingDate);
     Optional<MeterReading> findTopByMeterNumberOrderByReadingDateDesc(String meterNumber);
+    boolean existsByCustomer_SubscriptionNumberAndReadingDate(String subscriptionNumber, LocalDate readingDate);
 
     // 1. Fix for: findAllByYear(int)
     @Query("SELECT m FROM MeterReading m WHERE YEAR(m.readingDate) = :year")

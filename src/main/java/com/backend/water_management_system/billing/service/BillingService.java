@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 
+import com.backend.water_management_system.alerts.service.AlertService;
 import org.springframework.stereotype.Service;
 
 import com.backend.water_management_system.billing.entity.Bill;
@@ -24,12 +25,14 @@ public class BillingService {
     private final BillRepository billRepository;
     private final RateRepository rateRepository;
     private final NotificationService notificationService;
+    private final AlertService alertService;
 
     public BillingService(BillRepository billRepository, RateRepository rateRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService, AlertService alertService) {
         this.billRepository = billRepository;
         this.rateRepository = rateRepository;
         this.notificationService = notificationService;
+        this.alertService = alertService;
     }
 
     public Bill generateBill(Customer customer, MeterReading reading) {
@@ -90,6 +93,16 @@ public class BillingService {
                         .title("New Monthly Bill")
                         .message(notificationMessage)
                         .build());
+                        
+        if (total.compareTo(new BigDecimal("5000")) > 0) {
+            alertService.createAlert(
+                "critical",
+                "High Bill Alert",
+                "Your recent water bill has exceeded 5000 LKR. Total: Rs. " + total,
+                "N/A",
+                customer.getSubscriptionNumber()
+            );
+        }
 
         return bill;
     }

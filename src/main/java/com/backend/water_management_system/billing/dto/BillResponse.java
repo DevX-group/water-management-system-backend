@@ -17,4 +17,8 @@ public class BillResponse {
     public BigDecimal totalAmount;
     public BigDecimal balanceDue;
     public String status;
+    public String customerName;
+    public String nic;
+    public String subscriptionNumber;
+    public String shareToken;
 }

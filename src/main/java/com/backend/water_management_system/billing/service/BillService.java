@@ -24,6 +24,13 @@ public class BillService {
                 .toList();
     }
 
+    public List<BillResponse> searchBills(String query) {
+        return billRepository.searchBills(query)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     public org.springframework.data.domain.Page<BillResponse> getBillsForCustomerPaginated(String subscriptionNumber, org.springframework.data.domain.Pageable pageable) {
         return billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber, pageable)
                 .map(this::toDto);
@@ -34,6 +41,12 @@ public class BillService {
                 .orElseThrow(() -> new RuntimeException("Bill not found: " + id));
     }
 
+
+    public BillResponse getBillByShareToken(String shareToken) {
+        return billRepository.findByShareToken(shareToken)
+                .map(this::toDto)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired bill link."));
+    }
 
     private BillResponse toDto(Bill bill) {
         BillResponse dto = new BillResponse();
@@ -58,6 +71,13 @@ public class BillService {
         dto.totalAmount = bill.getTotalAmount();
         dto.balanceDue = bill.getBalanceDue();
         dto.status = bill.getStatus();
+        dto.shareToken = bill.getShareToken();
+        
+        if (bill.getCustomer() != null) {
+            dto.customerName = bill.getCustomer().getAccountHolderName();
+            dto.nic = bill.getCustomer().getNic();
+            dto.subscriptionNumber = bill.getCustomer().getSubscriptionNumber();
+        }
         return dto;
     }
 }

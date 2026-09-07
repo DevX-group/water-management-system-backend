@@ -44,7 +44,18 @@ public class Bill {
     @JsonIgnoreProperties("customer") // Tells Jackson: "When serializing this reading, do not serialize its customer field"
     private MeterReading meterReading;
 
+    private String shareToken;
+    
+    @PrePersist
+    public void prePersist() {
+        if (this.shareToken == null) {
+            this.shareToken = java.util.UUID.randomUUID().toString();
+        }
+    }
+    
     // getters/setters
+    public String getShareToken() { return shareToken; }
+    public void setShareToken(String shareToken) { this.shareToken = shareToken; }
     public Long getBillId() { return billId; }
     public void setBillId(Long billId) { this.billId = billId; }
     public Customer getCustomer() { return customer; }
