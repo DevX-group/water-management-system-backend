@@ -9,6 +9,11 @@ public class BillResponse {
     public LocalDate billDate;
     public LocalDate dueDate;
     public Integer usageUnits;
+    public Integer previousReading;
+    public Integer currentReading;
+    public BigDecimal baseCharge;
+    public BigDecimal usageCharge;
+    public BigDecimal taxAmount;
     public BigDecimal totalAmount;
     public BigDecimal balanceDue;
     public String status;

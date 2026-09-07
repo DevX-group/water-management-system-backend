@@ -25,8 +25,17 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 
+import com.backend.water_management_system.common.entity.ConnectionRate;
+import com.backend.water_management_system.common.repository.RateRepository;
+
 @Service
 public class BillDocumentService {
+
+    private final RateRepository rateRepository;
+
+    public BillDocumentService(RateRepository rateRepository) {
+        this.rateRepository = rateRepository;
+    }
 
     public byte[] generateBillPdf(Bill bill) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -126,15 +135,47 @@ public class BillDocumentService {
         }
 
         // Data Rows
-        String usage = bill.getUsageUnits() != null ? bill.getUsageUnits().toString() : "0";
+        int units = bill.getUsageUnits() != null ? bill.getUsageUnits() : 0;
+        String type = bill.getCustomer() != null && bill.getCustomer().getConnectionType() != null ? bill.getCustomer().getConnectionType() : "metered";
+        ConnectionRate rate = rateRepository.findById(type).orElse(null);
 
-        // WATER
-        itemsTable.addCell(createCell("WATER", boldFont, Rectangle.LEFT | Rectangle.RIGHT));
-        itemsTable.addCell(createCellCenter(usage, regularFont, Rectangle.LEFT | Rectangle.RIGHT));
-        itemsTable.addCell(createCellRight(formatAmt(bill.getUsageCharge()), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+        // WATER TOTAL
+        itemsTable.addCell(createCell("WATER USAGE (TOTAL)", boldFont, Rectangle.LEFT | Rectangle.RIGHT));
+        itemsTable.addCell(createCellCenter(String.valueOf(units), boldFont, Rectangle.LEFT | Rectangle.RIGHT));
+        itemsTable.addCell(createCellRight(formatAmt(bill.getUsageCharge()), boldFont, Rectangle.LEFT | Rectangle.RIGHT));
+
+        if (rate != null && "metered".equalsIgnoreCase(type)) {
+            int limit1 = (rate.getTier1Limit() != null) ? rate.getTier1Limit() : 50;
+            int limit2 = (rate.getTier2Limit() != null) ? rate.getTier2Limit() : 100;
+
+            int tier1Units = Math.min(units, limit1);
+            int tier2Units = Math.min(Math.max(units - limit1, 0), limit2 - limit1);
+            int tier3Units = Math.max(units - limit2, 0);
+
+            BigDecimal r1 = BigDecimal.valueOf(rate.getUnitRateTier1() != null ? rate.getUnitRateTier1() : 0.0);
+            BigDecimal r2 = BigDecimal.valueOf(rate.getUnitRateTier2() != null ? rate.getUnitRateTier2() : 0.0);
+            BigDecimal r3 = BigDecimal.valueOf(rate.getUnitRateTier3() != null ? rate.getUnitRateTier3() : 0.0);
+
+            if (tier1Units > 0) {
+                itemsTable.addCell(createCell("  - Tier 1 (0-" + limit1 + " units) @ Rs." + r1, regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+                itemsTable.addCell(createCellCenter(String.valueOf(tier1Units), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+                itemsTable.addCell(createCellRight(formatAmt(r1.multiply(BigDecimal.valueOf(tier1Units))), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+            }
+            if (tier2Units > 0) {
+                itemsTable.addCell(createCell("  - Tier 2 (" + (limit1 + 1) + "-" + limit2 + " units) @ Rs." + r2, regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+                itemsTable.addCell(createCellCenter(String.valueOf(tier2Units), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+                itemsTable.addCell(createCellRight(formatAmt(r2.multiply(BigDecimal.valueOf(tier2Units))), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+            }
+            if (tier3Units > 0) {
+                itemsTable.addCell(createCell("  - Tier 3 (>" + limit2 + " units) @ Rs." + r3, regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+                itemsTable.addCell(createCellCenter(String.valueOf(tier3Units), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+                itemsTable.addCell(createCellRight(formatAmt(r3.multiply(BigDecimal.valueOf(tier3Units))), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
+            }
+        }
 
         // METER RENT (Base Charge)
-        itemsTable.addCell(createCell("METER RENT", boldFont, Rectangle.LEFT | Rectangle.RIGHT));
+        String baseRentLabel = rate != null ? "METER RENT @ Rs." + formatAmt(BigDecimal.valueOf(rate.getBaseRate() != null ? rate.getBaseRate() : 0.0)) : "METER RENT";
+        itemsTable.addCell(createCell(baseRentLabel, boldFont, Rectangle.LEFT | Rectangle.RIGHT));
         itemsTable.addCell(createCellCenter("", regularFont, Rectangle.LEFT | Rectangle.RIGHT));
         itemsTable.addCell(createCellRight(formatAmt(bill.getBaseCharge()), regularFont, Rectangle.LEFT | Rectangle.RIGHT));
 
@@ -318,18 +359,56 @@ public class BillDocumentService {
 
         // Data Rows
         int dataY = tableY + 70;
-        g2d.setFont(boldFont);
-        g2d.drawString("WATER", 60, dataY);
         
-        g2d.setFont(regularFont);
-        String usage = bill.getUsageUnits() != null ? bill.getUsageUnits().toString() : "0";
-        
-        g2d.drawString(usage, 460, dataY);
-        g2d.drawString(formatAmt(bill.getUsageCharge()), 720, dataY);
+        int units = bill.getUsageUnits() != null ? bill.getUsageUnits() : 0;
+        String type = bill.getCustomer() != null && bill.getCustomer().getConnectionType() != null ? bill.getCustomer().getConnectionType() : "metered";
+        ConnectionRate rate = rateRepository.findById(type).orElse(null);
 
-        dataY += 40;
         g2d.setFont(boldFont);
-        g2d.drawString("METER RENT", 60, dataY);
+        g2d.drawString("WATER USAGE (TOTAL)", 60, dataY);
+        g2d.drawString(String.valueOf(units), 460, dataY);
+        g2d.drawString(formatAmt(bill.getUsageCharge()), 720, dataY);
+        dataY += 30;
+
+        if (rate != null && "metered".equalsIgnoreCase(type)) {
+            int limit1 = (rate.getTier1Limit() != null) ? rate.getTier1Limit() : 50;
+            int limit2 = (rate.getTier2Limit() != null) ? rate.getTier2Limit() : 100;
+
+            int tier1Units = Math.min(units, limit1);
+            int tier2Units = Math.min(Math.max(units - limit1, 0), limit2 - limit1);
+            int tier3Units = Math.max(units - limit2, 0);
+
+            BigDecimal r1 = BigDecimal.valueOf(rate.getUnitRateTier1() != null ? rate.getUnitRateTier1() : 0.0);
+            BigDecimal r2 = BigDecimal.valueOf(rate.getUnitRateTier2() != null ? rate.getUnitRateTier2() : 0.0);
+            BigDecimal r3 = BigDecimal.valueOf(rate.getUnitRateTier3() != null ? rate.getUnitRateTier3() : 0.0);
+
+            g2d.setFont(regularFont);
+            if (tier1Units > 0) {
+                g2d.drawString("  - Tier 1 (0-" + limit1 + ") @ Rs." + r1, 60, dataY);
+                g2d.drawString(String.valueOf(tier1Units), 460, dataY);
+                g2d.drawString(formatAmt(r1.multiply(BigDecimal.valueOf(tier1Units))), 720, dataY);
+                dataY += 30;
+            }
+            if (tier2Units > 0) {
+                g2d.drawString("  - Tier 2 (" + (limit1 + 1) + "-" + limit2 + ") @ Rs." + r2, 60, dataY);
+                g2d.drawString(String.valueOf(tier2Units), 460, dataY);
+                g2d.drawString(formatAmt(r2.multiply(BigDecimal.valueOf(tier2Units))), 720, dataY);
+                dataY += 30;
+            }
+            if (tier3Units > 0) {
+                g2d.drawString("  - Tier 3 (>" + limit2 + ") @ Rs." + r3, 60, dataY);
+                g2d.drawString(String.valueOf(tier3Units), 460, dataY);
+                g2d.drawString(formatAmt(r3.multiply(BigDecimal.valueOf(tier3Units))), 720, dataY);
+                dataY += 30;
+            }
+            dataY += 10;
+        } else {
+            dataY += 10;
+        }
+
+        g2d.setFont(boldFont);
+        String baseRentLabel = rate != null ? "METER RENT @ Rs." + formatAmt(BigDecimal.valueOf(rate.getBaseRate() != null ? rate.getBaseRate() : 0.0)) : "METER RENT";
+        g2d.drawString(baseRentLabel, 60, dataY);
         g2d.setFont(regularFont);
         g2d.drawString(formatAmt(bill.getBaseCharge()), 720, dataY);
 

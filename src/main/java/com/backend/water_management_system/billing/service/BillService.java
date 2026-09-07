@@ -42,6 +42,19 @@ public class BillService {
         dto.billDate = bill.getBillDate();
         dto.dueDate = bill.getDueDate();
         dto.usageUnits = bill.getUsageUnits();
+        
+        if (bill.getMeterReading() != null) {
+            dto.previousReading = bill.getMeterReading().getPreviousReading();
+            dto.currentReading = bill.getMeterReading().getCurrentReading();
+        } else {
+            dto.previousReading = 0;
+            dto.currentReading = 0;
+        }
+
+        dto.baseCharge = bill.getBaseCharge();
+        dto.usageCharge = bill.getUsageCharge();
+        dto.taxAmount = bill.getTaxAmount();
+
         dto.totalAmount = bill.getTotalAmount();
         dto.balanceDue = bill.getBalanceDue();
         dto.status = bill.getStatus();
