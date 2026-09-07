@@ -48,6 +48,12 @@ public class MeterReadingService {
     public Bill submitReadingAndGenerateBill(MeterReadingCreateRequest req) {   //submitting a meter reading and generating a bill
         Customer customer = customerRepository.findById(req.subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + req.subscriptionNumber));
+                
+        // Validation: one reading per day
+        if (meterReadingRepository.existsByCustomer_SubscriptionNumberAndReadingDate(req.subscriptionNumber, req.readingDate)) {
+            throw new RuntimeException("A meter reading has already been submitted for this customer today.");
+        }
+
         int usage = 0;
         if (req.usageUnits != null) {
             usage = req.usageUnits;
