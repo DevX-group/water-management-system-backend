@@ -53,26 +53,33 @@ public class UsageAnalyticsService {
             int month = r.getReadingDate().getMonthValue();
             usageByMonth.merge(month, r.getUsageUnits(), Integer::sum);
         }
-         // ── 2. Build MonthlyDataPoint list (Bar / Mix chart) ───────────────────────
-        List<MonthlyDataPoint> monthlyData = new ArrayList<>();
-        for (Map.Entry<Integer, Integer> entry : usageByMonth.entrySet()) {
-            String monthName = Month.of(entry.getKey())
-                    .getDisplayName(TextStyle.SHORT, Locale.ENGLISH); // "Jan", "Feb" …
-            monthlyData.add(new MonthlyDataPoint(monthName, entry.getValue(), MONTHLY_LIMIT));
-        }
-        response.monthlyData = monthlyData;
-        
-
-        // ── 3. Calculate summary statistics ──────────────────────────────────
+        // 2. Calculate summary statistics FIRST to determine the dynamic limit
         List<Integer> monthlyValues = new ArrayList<>(usageByMonth.values());
         int total = monthlyValues.stream().mapToInt(Integer::intValue).sum();
         int peak  = monthlyValues.stream().mapToInt(Integer::intValue).max().orElse(0);
         int min   = monthlyValues.stream().mapToInt(Integer::intValue).min().orElse(0);
+        
+        long nonZeroMonths = monthlyValues.stream().filter(v -> v > 0).count();
+        int trueAvg = nonZeroMonths == 0 ? 0 : (int) (total / nonZeroMonths);
+        
+        // Dynamic Limit: 25% above the true average, fallback to 150 if no data
+        int dynamicLimit = trueAvg > 0 ? (int) (trueAvg * 1.25) : 150;
+        
         int avg   = monthlyValues.isEmpty() ? 0 : total / monthlyValues.size();
         response.totalUsage   = total;
         response.peakUsage    = peak;
         response.minimumUsage = min;
         response.averageUsage = avg;
+
+        // 3. Build MonthlyDataPoint list (Bar / Mix chart) with Dynamic Limit
+        List<MonthlyDataPoint> monthlyData = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> entry : usageByMonth.entrySet()) {
+            String monthName = Month.of(entry.getKey())
+                    .getDisplayName(TextStyle.SHORT, Locale.ENGLISH); // "Jan", "Feb"
+            monthlyData.add(new MonthlyDataPoint(monthName, entry.getValue(), dynamicLimit));
+        }
+        response.monthlyData = monthlyData;
+
         response.categoryData = buildCategoryData(readings, total);
         return response;
     }
