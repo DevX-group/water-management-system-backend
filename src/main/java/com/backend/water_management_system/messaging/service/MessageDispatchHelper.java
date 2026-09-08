@@ -210,6 +210,7 @@ public class MessageDispatchHelper {
         return "Pradeshiya Sabha Water Bill";
     }
 
+    // creates the body of the message from the template sections or the custom content
     public String buildBodyFromTemplate(MessageTemplate template) {
         if (template == null) {
             return "";
