@@ -31,7 +31,6 @@ import com.backend.water_management_system.messaging.service.TriggeredMessageDis
 import com.backend.water_management_system.notification.dto.NotificationRequest;
 import com.backend.water_management_system.notification.enums.NotificationType;
 import com.backend.water_management_system.notification.service.NotificationService;
-import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.payments.dto.AdminBankSlipResponse;
 import com.backend.water_management_system.payments.dto.BankSlipActionRequest;
 import com.backend.water_management_system.payments.dto.BankSlipUploadRequest;
@@ -264,8 +263,7 @@ public class BankSlipService {
                         bankSlipRepository.save(slip);
 
                         try {
-                                triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.BANK_SLIP_REJECTED,
-                                                slip);
+                                triggeredMessageDispatcher.dispatchBankSlipRejected(slip);
                         } catch (Exception ex) {
                                 // Slip rejection is already persisted; messaging failures should not fail
                                 // review.
@@ -315,7 +313,7 @@ public class BankSlipService {
                                 payment.getPaymentId(), PaymentService.creationDetails(payment));
 
                 try {
-                        triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
+                        triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
                 } catch (Exception ex) {
                         // Payment is recorded; messaging failures should not fail approval flow.
                 }

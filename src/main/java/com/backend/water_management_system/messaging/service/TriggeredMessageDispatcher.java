@@ -29,14 +29,9 @@ public class TriggeredMessageDispatcher {
     private final BillRepository billRepository;
     private final MessageDispatchHelper dispatchHelper;
 
-    // Compatibility wrapper for existing payment-confirmation callers.
-    public void dispatchPaymentConfirmed(Payment payment) {
-        dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
-    }
-
     //for confirmed payments
-    public void dispatchTriggeredMessage(TriggerType triggerType, Payment payment) {
-        if (payment == null || triggerType == null) {
+    public void dispatchPaymentConfirmed(Payment payment) {
+        if (payment == null) {
             return;
         }
 
@@ -46,16 +41,16 @@ public class TriggeredMessageDispatcher {
             return;
         }
 
-        dispatchTriggeredMessage(triggerType, payment, payment.getBankSlip());
+        dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment, payment.getBankSlip());
     }
 
     //for rejected bank slips
-    public void dispatchTriggeredMessage(TriggerType triggerType, BankSlip bankSlip) {
-        if (bankSlip == null || triggerType == null) {
+    public void dispatchBankSlipRejected(BankSlip bankSlip) {
+        if (bankSlip == null) {
             return;
         }
 
-        dispatchTriggeredMessage(triggerType, null, bankSlip);
+        dispatchTriggeredMessage(TriggerType.BANK_SLIP_REJECTED, null, bankSlip);
     }
 
     private void dispatchTriggeredMessage(TriggerType triggerType, Payment payment, BankSlip bankSlip) {
