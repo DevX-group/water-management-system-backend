@@ -43,6 +43,9 @@ public class ConversationParticipant {
     @Column(nullable = false)
     private LocalDateTime lastReadAt;
 
+    /** Time this conversation was hidden by this participant, or null when visible. */
+    private LocalDateTime deletedAt;
+
     @PrePersist
     protected void onCreate() {
         // A new participant has read everything that existed before joining.
