@@ -21,6 +21,7 @@ public enum MessagePlaceholder {
     DUE_DATE("due_date"),
     OVERDUE_THRESHOLD("overdue_threshold_(LKR)"),
     RECONNECTION_FEE("reconnection_fee_(LKR)"),
+    DISCONNECTION_GRACE_PERIOD("disconnection_grace_period_(days)"),
     PRADESHIYA_SABHA_ACC_NO("pradeshiya_sabha_acc_no"),
     WHATSAPP_NUMBER("whatsApp_number"),
     ONLINE_BILL_PORTAL_LINK("online_bill_portal_link"),
