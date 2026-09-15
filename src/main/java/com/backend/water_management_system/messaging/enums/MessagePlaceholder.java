@@ -9,6 +9,7 @@ import lombok.Getter;
 public enum MessagePlaceholder {
     CUSTOMER_NAME("customer_name"),
     CUSTOMER_NUMBER("customer_number"),
+    CURRENT_METER_READING("current_meter_reading"),
     BILLING_PERIOD("billing_period"),
     BILL_DATE("bill_date"),
     BASE_CHARGE("base_charge"),
