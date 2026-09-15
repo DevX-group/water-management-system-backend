@@ -1,5 +1,6 @@
 package com.backend.water_management_system.settings.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
@@ -35,6 +36,11 @@ public class SystemDetails {
     private String branch;
     private String accountNumber;
     private String accountName;
+
+    private BigDecimal overdueThreshold;
+    private Integer disconnectionGracePeriodDays;
+    private BigDecimal reconnectionFee;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

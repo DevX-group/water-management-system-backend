@@ -1,5 +1,7 @@
 package com.backend.water_management_system.settings.dto;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,4 +21,7 @@ public class SystemDetailsResponse {
     private String branch;
     private String accountNumber;
     private String accountName;
+    private BigDecimal overdueThreshold;
+    private Integer disconnectionGracePeriodDays;
+    private BigDecimal reconnectionFee;
 }
