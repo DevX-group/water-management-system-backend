@@ -35,6 +35,9 @@ public class SystemSettingsService {
                 .branch(details.getBranch())
                 .accountNumber(details.getAccountNumber())
                 .accountName(details.getAccountName())
+                .overdueThreshold(details.getOverdueThreshold())
+                .disconnectionGracePeriodDays(details.getDisconnectionGracePeriodDays())
+                .reconnectionFee(details.getReconnectionFee())
                 .build();
     }
 
@@ -59,6 +62,16 @@ public class SystemSettingsService {
         updateIfNotBlank(request.getBranch(), details::setBranch);
         updateIfNotBlank(request.getAccountNumber(), details::setAccountNumber);
         updateIfNotBlank(request.getAccountName(), details::setAccountName);
+
+        if (request.getOverdueThreshold() != null) {
+            details.setOverdueThreshold(request.getOverdueThreshold());
+        }
+        if (request.getDisconnectionGracePeriodDays() != null) {
+            details.setDisconnectionGracePeriodDays(request.getDisconnectionGracePeriodDays());
+        }
+        if (request.getReconnectionFee() != null) {
+            details.setReconnectionFee(request.getReconnectionFee());
+        }
 
         details.setUpdatedAt(LocalDateTime.now());
 

@@ -1,5 +1,6 @@
 package com.backend.water_management_system.settings.config;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.springframework.boot.CommandLineRunner;
@@ -35,6 +36,11 @@ public class SystemDetailsInitializer implements CommandLineRunner {
             details.setBranch("Colombo Main");
             details.setAccountNumber("001-2031-4567");
             details.setAccountName("NWSB – Water Services");
+
+            // overdue, disconnection & reconnection settings
+            details.setOverdueThreshold(new BigDecimal("5000.00"));
+            details.setDisconnectionGracePeriodDays(14);
+            details.setReconnectionFee(new BigDecimal("1500.00"));
 
             systemDetailsRepository.save(details);
         }

@@ -13,6 +13,7 @@ import com.backend.water_management_system.settings.dto.SystemDetailsRequest;
 import com.backend.water_management_system.settings.dto.SystemDetailsResponse;
 import com.backend.water_management_system.settings.service.SystemSettingsService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @CrossOrigin(origins = "*")
@@ -30,7 +31,7 @@ public class SystemSettingsController {
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PutMapping("/update")
-    public ResponseEntity<SystemDetailsResponse> updateSystemDetails(@RequestBody SystemDetailsRequest request){
+    public ResponseEntity<SystemDetailsResponse> updateSystemDetails(@Valid @RequestBody SystemDetailsRequest request){
         return ResponseEntity.ok(systemSettingsService.updateSystemDetails(request));
     }
 }
