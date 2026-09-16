@@ -50,9 +50,9 @@ public class MeterReadingService {
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + req.subscriptionNumber));
                 
         // Validation: one reading per day
-        if (meterReadingRepository.existsByCustomer_SubscriptionNumberAndReadingDate(req.subscriptionNumber, req.readingDate)) {
-            throw new RuntimeException("A meter reading has already been submitted for this customer today.");
-        }
+        // if (meterReadingRepository.existsByCustomer_SubscriptionNumberAndReadingDate(req.subscriptionNumber, req.readingDate)) {
+        //     throw new RuntimeException("A meter reading has already been submitted for this customer today.");
+        // }
 
         int usage = 0;
         if (req.usageUnits != null) {
