@@ -1,11 +1,12 @@
 package com.backend.water_management_system.common.config;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.billing.repository.BillRepository;
 import com.backend.water_management_system.common.entity.ConnectionRate;
@@ -13,14 +14,15 @@ import com.backend.water_management_system.common.entity.Region;
 import com.backend.water_management_system.common.repository.RateRepository;
 import com.backend.water_management_system.common.repository.RegionRepository;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.user.entity.User;
 import com.backend.water_management_system.user.enums.Role;
 import com.backend.water_management_system.user.enums.UserStatus;
 import com.backend.water_management_system.user.repository.UserRepository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 @Component
 public class DataSeeder implements CommandLineRunner {
     private final CustomerRepository customerRepository;
@@ -32,6 +34,9 @@ public class DataSeeder implements CommandLineRunner {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Value("${spring.datasource.driver-class-name:}")
+    private String databaseDriver;
 
     public DataSeeder(CustomerRepository customerRepository, UserRepository userRepository, RegionRepository regionRepository,
             BillRepository billRepository, RateRepository rateRepository, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
@@ -54,6 +59,10 @@ public class DataSeeder implements CommandLineRunner {
      */
     @Transactional
     private void fixRoleCheckConstraint() {
+        if (!"org.postgresql.Driver".equals(databaseDriver)) {
+            return;
+        }
+
         try {
             // Drop the old constraint if it still exists (any name variant)
             entityManager.createNativeQuery(
@@ -92,8 +101,8 @@ public class DataSeeder implements CommandLineRunner {
     @Transactional
     private void migratePaymentHandlerRole() {
         int updated = entityManager
-                .createQuery("UPDATE User u SET u.role = com.backend.water_management_system.user.enums.Role.CUSTOMER_HANDLER "
-                        + "WHERE u.role = 'PAYMENT_HANDLER'")
+            .createNativeQuery("UPDATE users SET role = 'CUSTOMER_HANDLER' "
+                + "WHERE CAST(role AS VARCHAR) = 'PAYMENT_HANDLER'")
                 .executeUpdate();
         if (updated > 0) {
             System.out.println("[DataSeeder] Migrated " + updated + " user(s) from PAYMENT_HANDLER → CUSTOMER_HANDLER");

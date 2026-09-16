@@ -24,6 +24,13 @@ public class BillService {
                 .toList();
     }
 
+    public List<BillResponse> searchBills(String query) {
+        return billRepository.searchBills(query)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     public org.springframework.data.domain.Page<BillResponse> getBillsForCustomerPaginated(String subscriptionNumber, org.springframework.data.domain.Pageable pageable) {
         return billRepository.findByCustomer_SubscriptionNumberOrderByBillDateDesc(subscriptionNumber, pageable)
                 .map(this::toDto);
@@ -35,6 +42,12 @@ public class BillService {
     }
 
 
+    public BillResponse getBillByShareToken(String shareToken) {
+        return billRepository.findByShareToken(shareToken)
+                .map(this::toDto)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired bill link."));
+    }
+
     private BillResponse toDto(Bill bill) {
         BillResponse dto = new BillResponse();
         dto.billId = bill.getBillId();
@@ -42,9 +55,29 @@ public class BillService {
         dto.billDate = bill.getBillDate();
         dto.dueDate = bill.getDueDate();
         dto.usageUnits = bill.getUsageUnits();
+        
+        if (bill.getMeterReading() != null) {
+            dto.previousReading = bill.getMeterReading().getPreviousReading();
+            dto.currentReading = bill.getMeterReading().getCurrentReading();
+        } else {
+            dto.previousReading = 0;
+            dto.currentReading = 0;
+        }
+
+        dto.baseCharge = bill.getBaseCharge();
+        dto.usageCharge = bill.getUsageCharge();
+        dto.taxAmount = bill.getTaxAmount();
+
         dto.totalAmount = bill.getTotalAmount();
         dto.balanceDue = bill.getBalanceDue();
         dto.status = bill.getStatus();
+        dto.shareToken = bill.getShareToken();
+        
+        if (bill.getCustomer() != null) {
+            dto.customerName = bill.getCustomer().getAccountHolderName();
+            dto.nic = bill.getCustomer().getNic();
+            dto.subscriptionNumber = bill.getCustomer().getSubscriptionNumber();
+        }
         return dto;
     }
 }

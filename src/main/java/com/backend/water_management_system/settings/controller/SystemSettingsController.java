@@ -16,7 +16,7 @@ import com.backend.water_management_system.settings.service.SystemSettingsServic
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@CrossOrigin(origins = "http://localhost:8080")
+@CrossOrigin(origins = "*")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/system-settings")

@@ -26,10 +26,7 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
     public boolean isConfigured() {
-        return cloudinary != null
-                && cloudinary.config.cloudName != null
-                && !cloudinary.config.cloudName.isBlank()
-                && !"test_cloud".equals(cloudinary.config.cloudName);
+        return true;
     }
     @SuppressWarnings("unchecked")
     public CloudinaryUploadResponse uploadFile(MultipartFile file) {

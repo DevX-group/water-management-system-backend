@@ -98,6 +98,16 @@ public class InternalChatController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/conversations/{conversationId}")
+    @PreAuthorize("isAuthenticated()")
+    /** Soft-deletes a conversation for the authenticated participant. */
+    public ResponseEntity<Void> deleteConversation(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID conversationId) {
+        internalChatService.deleteConversation(principal.getUser().getId(), conversationId);
+        return ResponseEntity.noContent().build();
+    }
+
     private void publishMessage(UUID senderId, UUID conversationId, MessageResponse response) {
         messagingTemplate.convertAndSend("/topic/internal-chat/conversation/" + conversationId, response);
         var recipient = internalChatService.getOtherParticipant(senderId, conversationId);

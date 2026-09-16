@@ -64,6 +64,8 @@ public class SecurityConfig {
                         ).permitAll()
                     // Public payment config
                     .requestMatchers("/api/public/payments/**").permitAll()
+                    // Public bills view
+                    .requestMatchers("/api/public/bills/**").permitAll()
                     // PayHere notification callback
                     .requestMatchers(HttpMethod.POST, "/api/customer/payments/notify").permitAll()
                     // Cron job trigger for scheduled backups
@@ -74,6 +76,9 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         // Actuator health (if present)
                         .requestMatchers("/actuator/health").permitAll()
+                        // MCP exposes administrative audit data and must never be anonymous.
+                        .requestMatchers("/mcp", "/mcp/**")
+                        .hasAnyRole("SUPER_ADMIN", "SYSTEM_ADMIN")
                         // Require authentication for all other endpoints
                         .anyRequest().authenticated()
                 )

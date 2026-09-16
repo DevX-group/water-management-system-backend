@@ -1,4 +1,8 @@
 spring:
+  ai:
+    mcp:
+      server:
+        enabled: ${MCP_SERVER_ENABLED:true}
   datasource:
     url: ${LOCAL_DATABASE_URL}?sslmode=disable
     username: ${LOCAL_DATABASE_USERNAME}

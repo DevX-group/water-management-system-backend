@@ -48,6 +48,12 @@ public class MeterReadingService {
     public Bill submitReadingAndGenerateBill(MeterReadingCreateRequest req) {   //submitting a meter reading and generating a bill
         Customer customer = customerRepository.findById(req.subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + req.subscriptionNumber));
+                
+        // Validation: one reading per day
+        if (meterReadingRepository.existsByCustomer_SubscriptionNumberAndReadingDate(req.subscriptionNumber, req.readingDate)) {
+            throw new RuntimeException("A meter reading has already been submitted for this customer today.");
+        }
+
         int usage = 0;
         if (req.usageUnits != null) {
             usage = req.usageUnits;
@@ -75,8 +81,8 @@ public class MeterReadingService {
         if (usage > 100) {
             alertService.createAlert(
                 "high",
-                "High Water Usage Detected",
-                "High usage detection",
+                "High Water Usage Alert",
+                "Unusually high water usage has been detected. Please check your premises for potential leaks.",
                 usage + " Units",
                 customer.getSubscriptionNumber()
             );
@@ -84,8 +90,8 @@ public class MeterReadingService {
             // Normal reading alert
             alertService.createAlert(
                 "info",
-                "Meter Reading Submitted",
-                "A normal meter reading was submitted successfully.",
+                "Meter Reading Recorded",
+                "Your latest meter reading has been successfully recorded by our authorized staff.",
                 usage + " Units",
                 customer.getSubscriptionNumber()
             );
@@ -99,6 +105,7 @@ public class MeterReadingService {
                 creationDetails(savedReading));
         return bill;
     }
+    // Update an existing reading and its associated bill
     @Transactional
     public Bill updateReading(Long readingId, MeterReadingCreateRequest req) {
         MeterReading reading = meterReadingRepository.findById(readingId)
@@ -150,7 +157,7 @@ public class MeterReadingService {
         }
         return bill;
     }
-
+   // Get all readings for a specific date
     public List<MeterReadingTodayResponse> getReadingsByDate(LocalDate date) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         List<MeterReading> readings = meterReadingRepository.findByReadingDate(targetDate);
@@ -177,7 +184,7 @@ public class MeterReadingService {
             return dto;
         }).collect(Collectors.toList());
     }
-
+    // Get the latest reading for a specific meter number
     public MeterReadingTodayResponse getLatestReadingByMeterNumber(String meterNumber) {
         Optional<MeterReading> reading = meterReadingRepository.findTopByMeterNumberOrderByReadingDateDesc(meterNumber);
         if (reading.isPresent()) {

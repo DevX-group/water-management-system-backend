@@ -81,6 +81,22 @@ class InternalChatServiceTest {
     }
 
     @Test
+    void shouldSoftDeleteConversationForCurrentUserAndRestoreItWithoutCreatingAnother() {
+        CreateConversationRequest request = new CreateConversationRequest(targetUser.getId());
+        var created = internalChatService.createConversation(currentUser.getId(), request);
+
+        internalChatService.deleteConversation(currentUser.getId(), created.id());
+
+        assertThat(internalChatService.getConversationList(currentUser.getId(), null, null))
+                .extracting("id")
+                .doesNotContain(created.id());
+
+        var restored = internalChatService.createConversation(currentUser.getId(), request);
+
+        assertThat(restored.id()).isEqualTo(created.id());
+    }
+
+    @Test
     /**
      * Confirms that the service rejects attempts to start a conversation with
      * oneself.

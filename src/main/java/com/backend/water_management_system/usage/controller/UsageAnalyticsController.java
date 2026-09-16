@@ -17,17 +17,7 @@ import com.backend.water_management_system.security.UserPrincipal;
 import com.backend.water_management_system.usage.dto.UsageAnalyticsResponse;
 import com.backend.water_management_system.usage.service.UsageAnalyticsService;
 
-/**
- * REST endpoints for the Usage Trends analytics page.
- *
- * GET /api/analytics/usage?year=2026
- *      → System-wide monthly usage for the given year (admin view).
- *
- * GET /api/analytics/usage/{subscriptionNumber}?year=2026
- *      → Usage analytics scoped to a single customer.
- *
- * Both endpoints default to the current calendar year when 'year' is omitted.
- */
+
 @RestController
 @RequestMapping("/api/analytics")
 @CrossOrigin
@@ -41,12 +31,7 @@ public class UsageAnalyticsController {
         this.customerAccessService = customerAccessService;
     }
 
-    /**
-     * System-wide usage analytics.
-     *
-     * Example:  GET /api/analytics/usage
-     *           GET /api/analytics/usage?year=2025
-     */
+  
     @GetMapping("/usage")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN')")
     //@PreAuthorize("hasRole('CUSTOMER')")
@@ -56,12 +41,7 @@ public class UsageAnalyticsController {
         return ResponseEntity.ok(usageAnalyticsService.getAnalytics(targetYear));
     }
 
-    /**
-     * Per-customer usage analytics.
-     *
-     * Example:  GET /api/analytics/usage/SUB-001
-     *           GET /api/analytics/usage/SUB-001?year=2025
-     */
+  
     @GetMapping("/usage/{subscriptionNumber}")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<UsageAnalyticsResponse> getCustomerUsage(

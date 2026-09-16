@@ -1,6 +1,22 @@
 spring:
   profiles:
     active: dev
+  ai:
+    mcp:
+      server:
+        enabled: ${MCP_SERVER_ENABLED:false}
+        protocol: STATELESS
+        type: SYNC
+        name: water-management-system
+        version: 1.0.0
+        instructions: "Read-only administrative tools for Water Bill Management System activity audits."
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+        annotation-scanner:
+          enabled: true
   jpa:
     hibernate:
       ddl-auto: none

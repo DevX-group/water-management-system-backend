@@ -57,7 +57,7 @@ public class CustomerController {
     }
 
     @GetMapping("{subscriptionNumber}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('CUSTOMER_HANDLER') or hasRole('METER_READER')")
     public Customer getCustomerById(@PathVariable String subscriptionNumber)
     {
         return customerService.getCustomerById(subscriptionNumber);
