@@ -61,5 +61,7 @@ public class ScheduledMessageDto {
     public static class TemplatesDto {
         private MessageTemplateDto sms;
         private MessageTemplateDto email;
+        private MessageTemplateDto overdueAlertSms;
+        private MessageTemplateDto overdueAlertEmail;
     }
 }

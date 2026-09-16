@@ -2,6 +2,7 @@ package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
 import com.backend.water_management_system.payments.entity.BankSlip;
 import com.backend.water_management_system.messaging.dto.SMSGatewayRequestDTO;
 import com.backend.water_management_system.messaging.dto.SMSGatewayResponseDTO;
@@ -72,11 +73,12 @@ public class MessageDispatchHelper {
         return "";
     }
 
-    // dispatches a due scheduled message or a triggered message except bank slip rejections to a single
+    // dispatches a due scheduled message or a triggered message except bank slip
+    // rejections to a single
     // customer as a SMS
     public boolean dispatchSMS(Customer customer, String toPhone, String smsTemplateToUse, Bill currentBill,
             Payment payment) {
-        return dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment, null);
+        return dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment, null, null);
     }
 
     // dispatches a triggered message to a single customer as a SMS
@@ -86,15 +88,26 @@ public class MessageDispatchHelper {
             Bill currentBill,
             Payment payment,
             BankSlip bankSlip) {
+        return dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment, bankSlip, null);
+    }
+
+    public boolean dispatchSMS(Customer customer,
+            String toPhone,
+            String smsTemplateToUse,
+            Bill currentBill,
+            Payment payment,
+            BankSlip bankSlip,
+            MeterReading meterReading) {
         String smsBody = messagePlaceholderService.replacePlaceholders(smsTemplateToUse, customer, currentBill,
-                payment, bankSlip);
+                payment, bankSlip, meterReading);
 
         boolean smsOk = sendSms(toPhone, smsBody);
 
         return smsOk;
     }
 
-    // dispatches a due message except bank slip rejectionsto a single customer as an email
+    // dispatches a due message except bank slip rejectionsto a single customer as
+    // an email
     public boolean dispatchEmail(Customer customer,
             String toEmail,
             String fromAddressForMail,
@@ -104,7 +117,7 @@ public class MessageDispatchHelper {
             Payment payment) {
 
         return dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate, emailTemplateToUse, currentBill,
-                payment, null);
+                payment, null, null);
     }
 
     // dispatches a triggered message to a single customer as an email
@@ -116,11 +129,24 @@ public class MessageDispatchHelper {
             Bill currentBill,
             Payment payment,
             BankSlip bankSlip) {
+        return dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate, emailTemplateToUse, currentBill,
+                payment, bankSlip, null);
+    }
+
+    public boolean dispatchEmail(Customer customer,
+            String toEmail,
+            String fromAddressForMail,
+            String subjectTemplate,
+            String emailTemplateToUse,
+            Bill currentBill,
+            Payment payment,
+            BankSlip bankSlip,
+            MeterReading meterReading) {
 
         String subject = messagePlaceholderService.replacePlaceholders(subjectTemplate, customer, currentBill, payment,
-                bankSlip);
+                bankSlip, meterReading);
         String body = messagePlaceholderService.replacePlaceholders(emailTemplateToUse, customer, currentBill, payment,
-                bankSlip);
+                bankSlip, meterReading);
 
         try {
             SimpleMailMessage mail = new SimpleMailMessage();
@@ -210,7 +236,8 @@ public class MessageDispatchHelper {
         return "Pradeshiya Sabha Water Bill";
     }
 
-    // creates the body of the message from the template sections or the custom content
+    // creates the body of the message from the template sections or the custom
+    // content
     public String buildBodyFromTemplate(MessageTemplate template) {
         if (template == null) {
             return "";

@@ -13,6 +13,8 @@ import java.util.List;
 
 @Repository
 public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessage, Long> {
+    boolean existsByName(String name);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
                     SELECT sm

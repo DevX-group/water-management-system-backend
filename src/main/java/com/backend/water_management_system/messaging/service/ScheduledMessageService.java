@@ -114,6 +114,10 @@ public class ScheduledMessageService {
         return repository.count();
     }
 
+    public boolean existsByName(String name) {
+        return repository.existsByName(name);
+    }
+
     @Transactional
     public void saveAll(List<ScheduledMessageDto> messages) {
         messages.forEach(dto -> repository.save(toEntity(dto)));
@@ -141,6 +145,8 @@ public class ScheduledMessageService {
         TemplatesDto templates = new TemplatesDto();
         templates.setSms(toTemplateDto(e.getSmsTemplate()));
         templates.setEmail(toTemplateDto(e.getEmailTemplate()));
+        templates.setOverdueAlertSms(toTemplateDto(e.getOverdueAlertSmsTemplate()));
+        templates.setOverdueAlertEmail(toTemplateDto(e.getOverdueAlertEmailTemplate()));
         dto.setTemplates(templates);
 
         return dto;
@@ -203,6 +209,10 @@ public class ScheduledMessageService {
             // Update SMS and Email Templates instead of replacing
             e.setSmsTemplate(mergeTemplate(e.getSmsTemplate(), dto.getTemplates().getSms()));
             e.setEmailTemplate(mergeTemplate(e.getEmailTemplate(), dto.getTemplates().getEmail()));
+            e.setOverdueAlertSmsTemplate(
+                    mergeTemplate(e.getOverdueAlertSmsTemplate(), dto.getTemplates().getOverdueAlertSms()));
+            e.setOverdueAlertEmailTemplate(
+                    mergeTemplate(e.getOverdueAlertEmailTemplate(), dto.getTemplates().getOverdueAlertEmail()));
         }
 
         // checks if something related to scheduling is updated (either in a recurring

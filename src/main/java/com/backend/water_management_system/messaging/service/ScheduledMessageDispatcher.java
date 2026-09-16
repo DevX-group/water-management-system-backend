@@ -12,7 +12,10 @@ import com.backend.water_management_system.messaging.enums.MessageChannel;
 import com.backend.water_management_system.messaging.enums.ScheduleType;
 import com.backend.water_management_system.messaging.repository.ScheduledMessageRepository;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
+import com.backend.water_management_system.settings.entity.SystemDetails;
+import com.backend.water_management_system.settings.service.SystemSettingsService;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,6 +39,7 @@ public class ScheduledMessageDispatcher {
     private final BillRepository billRepository;
     private final SentMessageService sentMessageService;
     private final MessageDispatchHelper dispatchHelper;
+    private final SystemSettingsService systemSettingsService;
 
     @Scheduled(fixedDelayString = "${app.messaging.scheduler-delay-ms:60000}")
     @Transactional
@@ -133,8 +137,15 @@ public class ScheduledMessageDispatcher {
             boolean canSendEmail) {
 
         String subjectTemplate = dispatchHelper.buildSubject(message);
-        String emailBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getEmailTemplate());
-        String smsBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getSmsTemplate());
+        String baseEmailBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getEmailTemplate());
+        String baseSmsBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getSmsTemplate());
+
+        boolean hasOverdueAlertTemplates = message.getOverdueAlertEmailTemplate() != null
+                || message.getOverdueAlertSmsTemplate() != null;
+        SystemDetails systemDetails = hasOverdueAlertTemplates ? systemSettingsService.findSystemDetails() : null;
+
+        BigDecimal overdueThreshold = systemDetails != null ? systemDetails.getOverdueThreshold() : null;
+        // log.info("Overdue Threshold: {}", overdueThreshold);
 
         String fromAddressForMail = dispatchHelper.resolveFromAddress();
 
@@ -157,6 +168,17 @@ public class ScheduledMessageDispatcher {
         for (Customer customer : customers) {
             // prepare current bill for placeholders
             Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
+            String emailBodyTemplate = baseEmailBodyTemplate;
+            String smsBodyTemplate = baseSmsBodyTemplate;
+            if (hasOverdueAlertTemplates && currentBill != null
+                    && currentBill.getOutstandingAtIssue() != null
+                    && overdueThreshold != null
+                    && currentBill.getOutstandingAtIssue().compareTo(overdueThreshold) > 0) {
+                emailBodyTemplate = appendTemplate(emailBodyTemplate,
+                        dispatchHelper.buildBodyFromTemplate(message.getOverdueAlertEmailTemplate()));
+                smsBodyTemplate = appendTemplate(smsBodyTemplate,
+                        dispatchHelper.buildBodyFromTemplate(message.getOverdueAlertSmsTemplate()));
+            }
 
             // SMS attempt
             boolean smsAttempted = false;
@@ -172,7 +194,8 @@ public class ScheduledMessageDispatcher {
                     counts.totalSms++;
                     String smsTemplateToUse = dispatchHelper.resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
 
-                    boolean smsOk = dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, null);
+                    boolean smsOk = dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, null,
+                            null, currentBill != null ? currentBill.getMeterReading() : null);
 
                     if (smsOk) {
                         counts.smsSuccessCount++;
@@ -192,7 +215,8 @@ public class ScheduledMessageDispatcher {
 
                     boolean emailOk = dispatchHelper.dispatchEmail(customer, toEmail, fromAddressForMail,
                             subjectTemplate,
-                            emailTemplateToUse, currentBill, null);
+                            emailTemplateToUse, currentBill, null, null,
+                            currentBill != null ? currentBill.getMeterReading() : null);
 
                     if (emailOk) {
                         counts.emailSuccessCount++;
@@ -214,6 +238,16 @@ public class ScheduledMessageDispatcher {
         }
 
         return counts;
+    }
+
+    private String appendTemplate(String mainTemplate, String alertTemplate) {
+        if (alertTemplate == null || alertTemplate.isBlank()) {
+            return mainTemplate;
+        }
+        if (mainTemplate == null || mainTemplate.isBlank()) {
+            return alertTemplate;
+        }
+        return mainTemplate + "\n\n" + alertTemplate;
     }
 
     // returns whether the actual date and time the message should be sent is passed

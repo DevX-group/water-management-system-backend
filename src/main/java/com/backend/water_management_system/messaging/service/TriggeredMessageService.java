@@ -60,6 +60,10 @@ public class TriggeredMessageService {
         repository.deleteById(id);
     }
 
+    public boolean existsByName(String name) {
+        return repository.existsByName(name);
+    }
+
     private void validateTriggered(TriggeredMessageDto dto) {
         if (dto == null) {
             throw new MessagingValidationException("Please provide message details.");
@@ -124,6 +128,8 @@ public class TriggeredMessageService {
         TemplatesDto templates = new TemplatesDto();
         templates.setSms(toTemplateDto(e.getSmsTemplate()));
         templates.setEmail(toTemplateDto(e.getEmailTemplate()));
+        templates.setOverdueAlertSms(toTemplateDto(e.getOverdueAlertSmsTemplate()));
+        templates.setOverdueAlertEmail(toTemplateDto(e.getOverdueAlertEmailTemplate()));
         dto.setTemplates(templates);
 
         return dto;
@@ -171,6 +177,10 @@ public class TriggeredMessageService {
         if (dto.getTemplates() != null) {
             e.setSmsTemplate(mergeTemplate(e.getSmsTemplate(), dto.getTemplates().getSms()));
             e.setEmailTemplate(mergeTemplate(e.getEmailTemplate(), dto.getTemplates().getEmail()));
+            e.setOverdueAlertSmsTemplate(
+                    mergeTemplate(e.getOverdueAlertSmsTemplate(), dto.getTemplates().getOverdueAlertSms()));
+            e.setOverdueAlertEmailTemplate(
+                    mergeTemplate(e.getOverdueAlertEmailTemplate(), dto.getTemplates().getOverdueAlertEmail()));
         }
     }
 
