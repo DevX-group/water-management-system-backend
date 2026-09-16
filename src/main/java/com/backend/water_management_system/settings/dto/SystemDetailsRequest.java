@@ -42,6 +42,7 @@ public class SystemDetailsRequest {
     @Size(max = 100, message = "Branch name must not exceed 100 characters")
     private String branch;
 
+    @Pattern(regexp = "^[0-9]*$", message = "Account number must contain only numbers")
     @Size(max = 50, message = "Account number must not exceed 50 characters")
     private String accountNumber;
 
