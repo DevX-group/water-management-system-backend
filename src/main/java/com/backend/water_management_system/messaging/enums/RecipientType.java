@@ -6,8 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public enum RecipientType {
-    ALL_CUSTOMERS("All Customers"),
-    OVERDUE_CUSTOMERS("Overdue Customers");
+    ALL_CUSTOMERS("All Customers");
 
     private final String label;
 
@@ -28,10 +27,6 @@ public enum RecipientType {
         }
 
         String normalized = value.trim().toLowerCase();
-
-        if (normalized.contains("overdue")) {
-            return OVERDUE_CUSTOMERS;
-        }
 
         return ALL_CUSTOMERS;
     }

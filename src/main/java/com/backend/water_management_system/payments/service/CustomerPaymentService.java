@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +37,6 @@ import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.payments.repository.PaymentRepository;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
 import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
-import com.backend.water_management_system.messaging.enums.TriggerType;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -270,7 +268,7 @@ public class CustomerPaymentService {
         log.info("Payment record saved. orderId={}, status={}", orderId, payment.getStatus());
 
         try {
-            triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, savedPayment);
+            triggeredMessageDispatcher.dispatchPaymentConfirmed(savedPayment);
         } catch (Exception ex) {
             log.warn("Failed to dispatch payment confirmation for {}: {}", savedPayment.getPaymentId(),
                     ex.getMessage());

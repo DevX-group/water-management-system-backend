@@ -9,5 +9,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TriggeredMessageRepository extends JpaRepository<TriggeredMessage, Long> {
+    boolean existsByName(String name);
+
     List<TriggeredMessage> findByTriggerTypeAndActiveTrue(TriggerType triggerType);
 }

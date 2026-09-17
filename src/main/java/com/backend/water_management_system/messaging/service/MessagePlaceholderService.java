@@ -2,11 +2,14 @@ package com.backend.water_management_system.messaging.service;
 
 import com.backend.water_management_system.billing.entity.Bill;
 import com.backend.water_management_system.customer.entity.Customer;
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
 import com.backend.water_management_system.payments.entity.BankSlip;
 import com.backend.water_management_system.messaging.enums.MessagePlaceholder;
 import com.backend.water_management_system.payments.entity.Payment;
+import com.backend.water_management_system.settings.entity.SystemDetails;
+import com.backend.water_management_system.settings.service.SystemSettingsService;
 
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,8 +19,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-@NoArgsConstructor
+@RequiredArgsConstructor
 public class MessagePlaceholderService {
+
+        private final SystemSettingsService systemSettingsService;
 
         // Takes a template string and replaces placeholders with actual values from the
         // relevant customer and their bill.
@@ -28,7 +33,7 @@ public class MessagePlaceholderService {
         // Takes a template string and replaces placeholders with actual values from the
         // relevant customer, bill, and optional payment.
         public String replacePlaceholders(String template, Customer customer, Bill currentBill, Payment payment) {
-                return replacePlaceholders(template, customer, currentBill, payment, null);
+                return replacePlaceholders(template, customer, currentBill, payment, null, null);
         }
 
         // Takes a template string and replaces placeholders with actual values from the
@@ -38,6 +43,15 @@ public class MessagePlaceholderService {
                         Bill currentBill,
                         Payment payment,
                         BankSlip bankSlip) {
+                return replacePlaceholders(template, customer, currentBill, payment, bankSlip, null);
+        }
+
+        public String replacePlaceholders(String template,
+                        Customer customer,
+                        Bill currentBill,
+                        Payment payment,
+                        BankSlip bankSlip,
+                        MeterReading meterReading) {
                 if (template == null || template.isBlank()) {
                         return "";
                 }
@@ -47,8 +61,10 @@ public class MessagePlaceholderService {
                                 safe(customer != null ? customer.getAccountHolderName() : null));
                 values.put(MessagePlaceholder.CUSTOMER_NUMBER.getKey(),
                                 safe(customer != null ? customer.getSubscriptionNumber() : null));
+                values.put(MessagePlaceholder.CURRENT_METER_READING.getKey(),
+                                formatInt(meterReading != null ? meterReading.getCurrentReading() : null));
                 values.put(MessagePlaceholder.OUTSTANDING_BALANCE.getKey(),
-                                formatNumber(customer != null ? customer.getOutstandingBalance() : null));
+                                formatNumber(currentBill != null ? currentBill.getOutstandingAtIssue() : null));
 
                 values.put(MessagePlaceholder.BILLING_PERIOD.getKey(),
                                 safe(currentBill != null ? currentBill.getBillingPeriod() : null));
@@ -65,7 +81,7 @@ public class MessagePlaceholderService {
                 values.put(MessagePlaceholder.MONTHLY_FEE.getKey(),
                                 formatNumber(currentBill != null ? currentBill.getTotalAmount() : null));
                 values.put(MessagePlaceholder.TOTAL_BALANCE.getKey(),
-                                formatNumber(currentBill != null ? currentBill.getBalanceDue() : null));
+                                formatNumber(totalBalance(currentBill)));
                 values.put(MessagePlaceholder.DUE_DATE.getKey(),
                                 formatDate(currentBill != null ? currentBill.getDueDate() : null));
 
@@ -89,8 +105,13 @@ public class MessagePlaceholderService {
                 values.put(MessagePlaceholder.BANK_SLIP_REJECTION_REASON.getKey(),
                                 safe(bankSlip != null ? bankSlip.getRejectionReason() : null));
 
-                values.put(MessagePlaceholder.OVERDUE_THRESHOLD.getKey(), "");
-                values.put(MessagePlaceholder.RECONNECTION_FEE.getKey(), "");
+                SystemDetails systemDetails = systemSettingsService.findSystemDetails();
+                values.put(MessagePlaceholder.OVERDUE_THRESHOLD.getKey(),
+                                formatNumber(systemDetails.getOverdueThreshold()));
+                values.put(MessagePlaceholder.DISCONNECTION_GRACE_PERIOD.getKey(),
+                                formatInt(systemDetails.getDisconnectionGracePeriodDays()));
+                values.put(MessagePlaceholder.RECONNECTION_FEE.getKey(),
+                                formatNumber(systemDetails.getReconnectionFee()));
                 values.put(MessagePlaceholder.PRADESHIYA_SABHA_ACC_NO.getKey(), "");
                 values.put(MessagePlaceholder.WHATSAPP_NUMBER.getKey(), "");
                 values.put(MessagePlaceholder.ONLINE_BILL_PORTAL_LINK.getKey(), "");
@@ -100,6 +121,17 @@ public class MessagePlaceholderService {
                         result = result.replace("{" + entry.getKey() + "}", entry.getValue());
                 }
                 return result;
+        }
+
+        private BigDecimal totalBalance(Bill bill) {
+                if (bill == null) {
+                        return null;
+                }
+                BigDecimal outstanding = bill.getOutstandingAtIssue() != null
+                                ? bill.getOutstandingAtIssue()
+                                : BigDecimal.ZERO;
+                BigDecimal total = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
+                return outstanding.add(total);
         }
 
         private String safe(String value) {

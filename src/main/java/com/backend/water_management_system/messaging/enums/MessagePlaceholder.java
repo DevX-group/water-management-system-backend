@@ -9,6 +9,7 @@ import lombok.Getter;
 public enum MessagePlaceholder {
     CUSTOMER_NAME("customer_name"),
     CUSTOMER_NUMBER("customer_number"),
+    CURRENT_METER_READING("current_meter_reading"),
     BILLING_PERIOD("billing_period"),
     BILL_DATE("bill_date"),
     BASE_CHARGE("base_charge"),
@@ -21,6 +22,7 @@ public enum MessagePlaceholder {
     DUE_DATE("due_date"),
     OVERDUE_THRESHOLD("overdue_threshold_(LKR)"),
     RECONNECTION_FEE("reconnection_fee_(LKR)"),
+    DISCONNECTION_GRACE_PERIOD("disconnection_grace_period_(days)"),
     PRADESHIYA_SABHA_ACC_NO("pradeshiya_sabha_acc_no"),
     WHATSAPP_NUMBER("whatsApp_number"),
     ONLINE_BILL_PORTAL_LINK("online_bill_portal_link"),

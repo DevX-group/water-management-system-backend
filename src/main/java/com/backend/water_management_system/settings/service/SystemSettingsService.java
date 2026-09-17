@@ -18,7 +18,7 @@ public class SystemSettingsService {
 
     private final SystemDetailsRepository systemDetailsRepository;
 
-    private SystemDetails findSystemDetails() {
+    public SystemDetails findSystemDetails() {
 
         return systemDetailsRepository.findById(1L)
                 .orElseThrow(() -> new RuntimeException("System details not initialized"));

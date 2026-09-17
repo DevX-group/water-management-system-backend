@@ -2,10 +2,13 @@ package com.backend.water_management_system.messaging.config;
 
 import com.backend.water_management_system.messaging.dto.ScheduledMessageDto;
 import com.backend.water_management_system.messaging.dto.ScheduledMessageDto.*;
+import com.backend.water_management_system.messaging.dto.TriggeredMessageDto;
 import com.backend.water_management_system.messaging.enums.MessageChannel;
 import com.backend.water_management_system.messaging.enums.RecipientType;
 import com.backend.water_management_system.messaging.enums.ScheduleType;
 import com.backend.water_management_system.messaging.service.ScheduledMessageService;
+import com.backend.water_management_system.messaging.service.TriggeredMessageService;
+import com.backend.water_management_system.messaging.enums.TriggerType;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -25,30 +28,33 @@ import java.util.List;
 public class MessagingDataSeeder implements ApplicationRunner {
 
     private final ScheduledMessageService service;
+    private final TriggeredMessageService triggeredMessageService;
 
-    public MessagingDataSeeder(ScheduledMessageService service) {
+    public MessagingDataSeeder(ScheduledMessageService service, TriggeredMessageService triggeredMessageService) {
         this.service = service;
+        this.triggeredMessageService = triggeredMessageService;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        if (service.count() > 0)
-            return; // already seeded
-
-        service.saveAll(buildSeedData());
+        if (!service.existsByName("Monthly Bill + Outstanding Alert")) {
+            service.saveAll(buildSeedData());
+        }
+        if (!triggeredMessageService.existsByName("Monthly Bill + Outstanding Alert")) {
+            triggeredMessageService.create(buildTriggeredMonthlyBillMessage());
+        }
     }
 
     private List<ScheduledMessageDto> buildSeedData() {
         return Arrays.asList(
                 buildMonthlyBillMessage(),
-                buildOverdueAlert(),
                 buildWaterCutoff(),
                 buildCustomMessageA());
     }
 
     private ScheduledMessageDto buildMonthlyBillMessage() {
         ScheduledMessageDto dto = new ScheduledMessageDto();
-        dto.setName("Monthly Bill Message");
+        dto.setName("Monthly Bill + Outstanding Alert");
         dto.setChannels(Arrays.asList(MessageChannel.SMS, MessageChannel.EMAIL));
         dto.setIsDefault(true);
         dto.setRecipients(RecipientType.ALL_CUSTOMERS);
@@ -65,6 +71,8 @@ public class MessagingDataSeeder implements ApplicationRunner {
         TemplatesDto templates = new TemplatesDto();
         templates.setSms(sms);
         templates.setEmail(email);
+        templates.setOverdueAlertSms(buildDefaultAlertTemplate());
+        templates.setOverdueAlertEmail(buildDefaultAlertTemplate());
         dto.setTemplates(templates);
 
         return dto;
@@ -95,41 +103,52 @@ public class MessagingDataSeeder implements ApplicationRunner {
         return t;
     }
 
-    private ScheduledMessageDto buildOverdueAlert() {
-        ScheduledMessageDto dto = new ScheduledMessageDto();
-        dto.setName("Overdue Alert");
-        dto.setChannels(Arrays.asList(MessageChannel.SMS));
-        dto.setIsDefault(true);
-        dto.setRecipients(RecipientType.OVERDUE_CUSTOMERS);
-
-        ScheduleDto schedule = new ScheduleDto();
-        schedule.setType(ScheduleType.RECURRING);
-        schedule.setDayOfMonth(25);
-        schedule.setTime(LocalTime.of(9, 0));
-        dto.setSchedule(schedule);
-
+    private MessageTemplateDto buildDefaultAlertTemplate() {
         MessageTemplateDto sms = new MessageTemplateDto();
         sms.setIsCustom(false);
         sms.setContent("");
         sms.setSections(Arrays.asList(
                 section("1", "Greeting", "Dear {customer_name},"),
-                section("2", "Exceeding Threshould", "Your balance exceeds the threshold of LKR {overdue_threshold}"),
+                section("2", "Outstanding Alert",
+                        "Your outstanding balance of LKR {outstanding_balance} exceeds the threshold of LKR {overdue_threshold}."),
                 section("3", "Disconnection Notice",
-                        "The Pradeshiya Sabha can disconnect the water line if payment is missed."),
+                        "The Pradeshiya Sabha can disconnect the water line if payment is missed. Grace period: {disconnection_grace_period_(days)} days."),
                 section("4", "Reconnection Fee",
-                        "After disconnection, an additional charge of LKR {reconnection_fee} will be applied for reconnection.")));
+                        "After disconnection, an additional charge of LKR {reconnection_fee_(LKR)} will be applied for reconnection.")));
+        return sms;
+    }
 
-        MessageTemplateDto email = new MessageTemplateDto();
-        email.setIsCustom(false);
-        email.setContent("");
-        email.setSections(Arrays.asList());
+    private TriggeredMessageDto buildTriggeredMonthlyBillMessage() {
+        TriggeredMessageDto dto = new TriggeredMessageDto();
+        dto.setName("Monthly Bill + Outstanding Alert");
+        dto.setChannels(Arrays.asList(MessageChannel.SMS, MessageChannel.EMAIL));
+        dto.setIsDefault(true);
+        dto.setRecipients(RecipientType.ALL_CUSTOMERS);
+        dto.setTriggerType(TriggerType.BILL_AND_OVERDUE);
+        dto.setActive(true);
 
-        TemplatesDto templates = new TemplatesDto();
-        templates.setSms(sms);
-        templates.setEmail(email);
+        TriggeredMessageDto.TemplatesDto templates = new TriggeredMessageDto.TemplatesDto();
+        templates.setSms(toTriggeredTemplate(buildDefaultBillTemplate()));
+        templates.setEmail(toTriggeredTemplate(buildDefaultBillTemplate()));
+        templates.setOverdueAlertSms(toTriggeredTemplate(buildDefaultAlertTemplate()));
+        templates.setOverdueAlertEmail(toTriggeredTemplate(buildDefaultAlertTemplate()));
         dto.setTemplates(templates);
-
         return dto;
+    }
+
+    private TriggeredMessageDto.MessageTemplateDto toTriggeredTemplate(ScheduledMessageDto.MessageTemplateDto source) {
+        TriggeredMessageDto.MessageTemplateDto target = new TriggeredMessageDto.MessageTemplateDto();
+        target.setIsCustom(source.getIsCustom());
+        target.setContent(source.getContent());
+        target.setSubject(source.getSubject());
+        target.setSections(source.getSections().stream().map(section -> {
+            TriggeredMessageDto.TemplateSectionDto targetSection = new TriggeredMessageDto.TemplateSectionDto();
+            targetSection.setId(section.getId());
+            targetSection.setName(section.getName());
+            targetSection.setContent(section.getContent());
+            return targetSection;
+        }).toList());
+        return target;
     }
 
     private ScheduledMessageDto buildWaterCutoff() {

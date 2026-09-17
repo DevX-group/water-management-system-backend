@@ -1,4 +1,5 @@
 package com.backend.water_management_system.meter_reading.service;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.LinkedHashMap;
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.backend.water_management_system.alerts.service.AlertService;
 import com.backend.water_management_system.activity_audit.enums.AuditAction;
@@ -23,6 +25,8 @@ import com.backend.water_management_system.meter_reading.dto.MeterReadingCreateR
 import com.backend.water_management_system.meter_reading.dto.MeterReadingTodayResponse;
 import com.backend.water_management_system.meter_reading.entity.MeterReading;
 import com.backend.water_management_system.meter_reading.repository.MeterReadingRepository;
+import com.backend.water_management_system.messaging.service.TriggeredMessageDispatcher;
+
 @Service
 public class MeterReadingService {
     private final MeterReadingRepository meterReadingRepository;
@@ -31,28 +35,48 @@ public class MeterReadingService {
     private final BillRepository billRepository;
     private final AlertService alertService;
     private final ActivityAuditService activityAuditService;
+    private final TriggeredMessageDispatcher triggeredMessageDispatcher;
+
     public MeterReadingService(MeterReadingRepository meterReadingRepository,
-                               CustomerRepository customerRepository,
-                               BillingService billingService,
-                               BillRepository billRepository,
-                               AlertService alertService,
-                               ActivityAuditService activityAuditService) {
+            CustomerRepository customerRepository,
+            BillingService billingService,
+            BillRepository billRepository,
+            AlertService alertService,
+            ActivityAuditService activityAuditService) {
+        this(meterReadingRepository, customerRepository, billingService, billRepository, alertService,
+                activityAuditService, null);
+    }
+
+    @Autowired
+    public MeterReadingService(MeterReadingRepository meterReadingRepository,
+            CustomerRepository customerRepository,
+            BillingService billingService,
+            BillRepository billRepository,
+            AlertService alertService,
+            ActivityAuditService activityAuditService,
+            TriggeredMessageDispatcher triggeredMessageDispatcher) {
         this.meterReadingRepository = meterReadingRepository;
         this.customerRepository = customerRepository;
         this.billingService = billingService;
         this.billRepository = billRepository;
         this.alertService = alertService;
         this.activityAuditService = activityAuditService;
+        this.triggeredMessageDispatcher = triggeredMessageDispatcher;
     }
+
     @Transactional
-    public Bill submitReadingAndGenerateBill(MeterReadingCreateRequest req) {   //submitting a meter reading and generating a bill
+    public Bill submitReadingAndGenerateBill(MeterReadingCreateRequest req) { // submitting a meter reading and
+                                                                              // generating a bill
         Customer customer = customerRepository.findById(req.subscriptionNumber)
                 .orElseThrow(() -> new RuntimeException("Customer not found: " + req.subscriptionNumber));
-                
+
         // Validation: one reading per day
-        if (meterReadingRepository.existsByCustomer_SubscriptionNumberAndReadingDate(req.subscriptionNumber, req.readingDate)) {
-            throw new RuntimeException("A meter reading has already been submitted for this customer today.");
-        }
+        // if
+        // (meterReadingRepository.existsByCustomer_SubscriptionNumberAndReadingDate(req.subscriptionNumber,
+        // req.readingDate)) {
+        // throw new RuntimeException("A meter reading has already been submitted for
+        // this customer today.");
+        // }
 
         int usage = 0;
         if (req.usageUnits != null) {
@@ -80,24 +104,26 @@ public class MeterReadingService {
         // Check for high usage (e.g., > 100 units) and create an alert
         if (usage > 100) {
             alertService.createAlert(
-                "high",
-                "High Water Usage Alert",
-                "Unusually high water usage has been detected. Please check your premises for potential leaks.",
-                usage + " Units",
-                customer.getSubscriptionNumber()
-            );
+                    "high",
+                    "High Water Usage Alert",
+                    "Unusually high water usage has been detected. Please check your premises for potential leaks.",
+                    usage + " Units",
+                    customer.getSubscriptionNumber());
         } else {
             // Normal reading alert
             alertService.createAlert(
-                "info",
-                "Meter Reading Recorded",
-                "Your latest meter reading has been successfully recorded by our authorized staff.",
-                usage + " Units",
-                customer.getSubscriptionNumber()
-            );
+                    "info",
+                    "Meter Reading Recorded",
+                    "Your latest meter reading has been successfully recorded by our authorized staff.",
+                    usage + " Units",
+                    customer.getSubscriptionNumber());
         }
 
         Bill bill = billingService.generateBill(customer, savedReading);
+        // Send the bill trigger with the exact reading and bill just created.
+        if (triggeredMessageDispatcher != null) {
+            triggeredMessageDispatcher.dispatchBillAndOverdue(savedReading, bill, customer);
+        }
         activityAuditService.recordAuthenticatedWeb(
                 AuditAction.METER_READING_CREATED,
                 AuditEntityType.METER_READING,
@@ -105,6 +131,7 @@ public class MeterReadingService {
                 creationDetails(savedReading));
         return bill;
     }
+
     // Update an existing reading and its associated bill
     @Transactional
     public Bill updateReading(Long readingId, MeterReadingCreateRequest req) {
@@ -115,7 +142,7 @@ public class MeterReadingService {
         Integer oldCurrentReading = reading.getCurrentReading();
         Integer oldUsageUnits = reading.getUsageUnits();
         LocalDate oldReadingDate = reading.getReadingDate();
-        
+
         int usage = 0;
         if (req.usageUnits != null) {
             usage = req.usageUnits;
@@ -132,9 +159,9 @@ public class MeterReadingService {
         reading.setReadingDate(req.readingDate);
         reading.setImageUrl(req.imageUrl);
         reading.setNotes(req.notes);
-        
+
         MeterReading savedReading = meterReadingRepository.save(reading);
-        
+
         Optional<Bill> existingBill = billRepository.findByMeterReading(savedReading);
         Bill bill;
         if (existingBill.isPresent()) {
@@ -157,7 +184,8 @@ public class MeterReadingService {
         }
         return bill;
     }
-   // Get all readings for a specific date
+
+    // Get all readings for a specific date
     public List<MeterReadingTodayResponse> getReadingsByDate(LocalDate date) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         List<MeterReading> readings = meterReadingRepository.findByReadingDate(targetDate);
@@ -184,6 +212,7 @@ public class MeterReadingService {
             return dto;
         }).collect(Collectors.toList());
     }
+
     // Get the latest reading for a specific meter number
     public MeterReadingTodayResponse getLatestReadingByMeterNumber(String meterNumber) {
         Optional<MeterReading> reading = meterReadingRepository.findTopByMeterNumberOrderByReadingDateDesc(meterNumber);

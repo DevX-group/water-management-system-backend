@@ -56,4 +56,12 @@ public abstract class Message {
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "email_template_id")
     private MessageTemplate emailTemplate;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "overdue_alert_sms_template_id")
+    private MessageTemplate overdueAlertSmsTemplate;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "overdue_alert_email_template_id")
+    private MessageTemplate overdueAlertEmailTemplate;
 }

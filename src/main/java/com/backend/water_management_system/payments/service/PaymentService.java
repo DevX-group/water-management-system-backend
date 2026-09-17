@@ -32,7 +32,6 @@ import com.backend.water_management_system.messaging.service.TriggeredMessageDis
 import com.backend.water_management_system.notification.dto.NotificationRequest;
 import com.backend.water_management_system.notification.enums.NotificationType;
 import com.backend.water_management_system.notification.service.NotificationService;
-import com.backend.water_management_system.messaging.enums.TriggerType;
 import com.backend.water_management_system.payments.dto.AddPaymentRequest;
 import com.backend.water_management_system.payments.dto.AddPaymentResponse;
 import com.backend.water_management_system.payments.dto.CustomerPaymentSummaryResponse;
@@ -111,7 +110,7 @@ public class PaymentService {
 
         if (request.getPaymentMethod() == PaymentMethod.MANUAL) {
             try {
-                triggeredMessageDispatcher.dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
+                triggeredMessageDispatcher.dispatchPaymentConfirmed(payment);
             } catch (Exception ex) {
                 log.warn("Failed to dispatch payment confirmation for {}: {}", payment.getPaymentId(), ex.getMessage());
             }

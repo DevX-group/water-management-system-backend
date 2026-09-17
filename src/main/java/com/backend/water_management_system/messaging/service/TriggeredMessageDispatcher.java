@@ -11,7 +11,11 @@ import com.backend.water_management_system.payments.entity.BankSlip;
 import com.backend.water_management_system.payments.entity.Payment;
 import com.backend.water_management_system.payments.enums.PaymentMethod;
 import com.backend.water_management_system.customer.repository.CustomerRepository;
+import com.backend.water_management_system.meter_reading.entity.MeterReading;
+import com.backend.water_management_system.settings.entity.SystemDetails;
+import com.backend.water_management_system.settings.service.SystemSettingsService;
 
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -28,15 +32,11 @@ public class TriggeredMessageDispatcher {
     private final CustomerRepository customerRepository;
     private final BillRepository billRepository;
     private final MessageDispatchHelper dispatchHelper;
+    private final SystemSettingsService systemSettingsService;
 
-    // Compatibility wrapper for existing payment-confirmation callers.
+    // for confirmed payments
     public void dispatchPaymentConfirmed(Payment payment) {
-        dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
-    }
-
-    //for confirmed payments
-    public void dispatchTriggeredMessage(TriggerType triggerType, Payment payment) {
-        if (payment == null || triggerType == null) {
+        if (payment == null) {
             return;
         }
 
@@ -46,23 +46,54 @@ public class TriggeredMessageDispatcher {
             return;
         }
 
-        dispatchTriggeredMessage(triggerType, payment, payment.getBankSlip());
+        dispatchTriggeredMessage(TriggerType.PAYMENT_CONFIRMED, payment);
     }
 
-    //for rejected bank slips
-    public void dispatchTriggeredMessage(TriggerType triggerType, BankSlip bankSlip) {
-        if (bankSlip == null || triggerType == null) {
+    // for rejected bank slips
+    public void dispatchBankSlipRejected(BankSlip bankSlip) {
+        if (bankSlip == null) {
             return;
         }
 
-        dispatchTriggeredMessage(triggerType, null, bankSlip);
+        dispatchTriggeredMessage(TriggerType.BANK_SLIP_REJECTED, null, bankSlip, null, null, null);
     }
 
-    private void dispatchTriggeredMessage(TriggerType triggerType, Payment payment, BankSlip bankSlip) {
-        String subscriptionNumber = payment != null ? payment.getSubscriptionNumber()
-                : bankSlip != null ? bankSlip.getSubscriptionNumber() : null;
+    // Sends the monthly bill message immediately after a new meter reading creates
+    // a bill.
+    public void dispatchBillAndOverdue(MeterReading reading, Bill bill, Customer customer) {
+        dispatchTriggeredMessage(TriggerType.BILL_AND_OVERDUE, null, null, reading, bill, customer);
+    }
 
-        if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
+    // Kept as the stable dispatcher entry point for existing payment flows and
+    // tests.
+    public void dispatchTriggeredMessage(TriggerType triggerType, Payment payment) {
+        dispatchTriggeredMessage(triggerType, payment, payment != null ? payment.getBankSlip() : null,
+                null, null, null);
+    }
+
+    private void dispatchTriggeredMessage(TriggerType triggerType, Payment payment, BankSlip bankSlip,
+            MeterReading meterReading, Bill currentBill, Customer customer) {
+        // Payment and bank-slip triggers resolve their customer and latest bill here.
+        // The bill trigger already supplies both objects from the meter-reading flow.
+        if (payment != null || bankSlip != null) {
+            String subscriptionNumber = payment != null ? payment.getSubscriptionNumber()
+                    : bankSlip.getSubscriptionNumber();
+            if (subscriptionNumber == null || subscriptionNumber.isBlank()) {
+                return;
+            }
+
+            customer = customerRepository.findById(subscriptionNumber).orElse(null);
+            if (customer == null) {
+                log.warn("Customer not found for triggered message {}: {}", triggerType, subscriptionNumber);
+                return;
+            }
+
+            currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).stream()
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (customer == null) {
             return;
         }
 
@@ -81,13 +112,16 @@ public class TriggeredMessageDispatcher {
             return;
         }
 
-        Customer customer = customerRepository.findById(subscriptionNumber).orElse(null);
-        if (customer == null) {
-            log.warn("Customer not found for triggered message {}: {}", triggerType, subscriptionNumber);
-            return;
-        }
+        SystemDetails systemDetails = systemSettingsService.findSystemDetails();
 
-        Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
+        BigDecimal overdueThreshold = systemDetails.getOverdueThreshold();
+        // log.info("Overdue threshold: {}", overdueThreshold);
+
+        boolean exceedsOverdueThreshold = currentBill != null
+                && currentBill.getOutstandingAtIssue() != null
+                && overdueThreshold != null
+                && currentBill.getOutstandingAtIssue().compareTo(overdueThreshold) > 0;
+        // log.info("Outstanding value: {}", currentBill.getOutstandingAtIssue());
 
         for (TriggeredMessage message : messages) {
             List<MessageChannel> channels = message.getChannels();
@@ -97,13 +131,20 @@ public class TriggeredMessageDispatcher {
             String subjectTemplate = dispatchHelper.buildSubject(message);
             String emailBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getEmailTemplate());
             String smsBodyTemplate = dispatchHelper.buildBodyFromTemplate(message.getSmsTemplate());
+            if (exceedsOverdueThreshold) {
+                emailBodyTemplate = appendTemplate(emailBodyTemplate,
+                        dispatchHelper.buildBodyFromTemplate(message.getOverdueAlertEmailTemplate()));
+                smsBodyTemplate = appendTemplate(smsBodyTemplate,
+                        dispatchHelper.buildBodyFromTemplate(message.getOverdueAlertSmsTemplate()));
+            }
             String fromAddressForMail = dispatchHelper.resolveFromAddress();
 
             if (shouldSendSMS && canSendSms) {
                 String toPhone = customer.getMobileNumber() != null ? customer.getMobileNumber().trim() : "";
                 if (!toPhone.isEmpty()) {
                     String smsTemplateToUse = dispatchHelper.resolveTemplateBody(smsBodyTemplate, emailBodyTemplate);
-                    dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment, bankSlip);
+                    dispatchHelper.dispatchSMS(customer, toPhone, smsTemplateToUse, currentBill, payment, bankSlip,
+                            meterReading);
                 }
             }
 
@@ -112,9 +153,19 @@ public class TriggeredMessageDispatcher {
                 if (dispatchHelper.isValidEmail(toEmail)) {
                     String emailTemplateToUse = dispatchHelper.resolveTemplateBody(emailBodyTemplate, smsBodyTemplate);
                     dispatchHelper.dispatchEmail(customer, toEmail, fromAddressForMail, subjectTemplate,
-                            emailTemplateToUse, currentBill, payment, bankSlip);
+                            emailTemplateToUse, currentBill, payment, bankSlip, meterReading);
                 }
             }
         }
+    }
+
+    private String appendTemplate(String mainTemplate, String alertTemplate) {
+        if (alertTemplate == null || alertTemplate.isBlank()) {
+            return mainTemplate;
+        }
+        if (mainTemplate == null || mainTemplate.isBlank()) {
+            return alertTemplate;
+        }
+        return mainTemplate + "\n\n" + alertTemplate;
     }
 }
