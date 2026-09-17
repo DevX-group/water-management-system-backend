@@ -15,19 +15,20 @@ import com.backend.water_management_system.meter_reading.entity.MeterReading;
 public interface BillRepository extends JpaRepository<Bill, Long> {
 
         List<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
-        
+
         Optional<Bill> findByShareToken(String shareToken);
-        
+
         @Query("SELECT b FROM Bill b LEFT JOIN b.customer c LEFT JOIN c.user u " +
-               "WHERE LOWER(c.accountHolderName) LIKE LOWER(CONCAT('%', :query, '%')) " +
-               "OR LOWER(u.nic) LIKE LOWER(CONCAT('%', :query, '%')) " +
-               "OR LOWER(c.subscriptionNumber) LIKE LOWER(CONCAT('%', :query, '%')) " +
-               "OR (CAST(b.billId AS string) = :query) " +
-               "OR (CONCAT('n-', CAST(b.billId AS string)) = LOWER(:query)) " +
-               "ORDER BY b.billDate DESC")
+                        "WHERE LOWER(c.accountHolderName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+                        "OR LOWER(u.nic) LIKE LOWER(CONCAT('%', :query, '%')) " +
+                        "OR LOWER(c.subscriptionNumber) LIKE LOWER(CONCAT('%', :query, '%')) " +
+                        "OR (CAST(b.billId AS string) = :query) " +
+                        "OR (CONCAT('n-', CAST(b.billId AS string)) = LOWER(:query)) " +
+                        "ORDER BY b.billDate DESC")
         List<Bill> searchBills(@org.springframework.data.repository.query.Param("query") String query);
 
-        org.springframework.data.domain.Page<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber, org.springframework.data.domain.Pageable pageable);
+        org.springframework.data.domain.Page<Bill> findByCustomer_SubscriptionNumberOrderByBillDateDesc(
+                        String subscriptionNumber, org.springframework.data.domain.Pageable pageable);
 
         Optional<Bill> findByMeterReading(MeterReading meterReading);
 
@@ -50,13 +51,16 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
 
         Optional<Bill> findTopByCustomer_SubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
 
-        Optional<Bill> findTopByCustomerOrderByBillDateDesc(Customer customer);
+        @Query("SELECT b FROM Bill b WHERE b.customer = :customer ORDER BY b.billDate DESC, b.billId DESC")
+        List<Bill> findTopByCustomerOrderByBillDateDesc(
+                        @org.springframework.data.repository.query.Param("customer") Customer customer);
 
         Optional<Bill> findTopByCustomerSubscriptionNumberOrderByBillDateDesc(String subscriptionNumber);
 
         List<Bill> findByCustomerSubscriptionNumberAndStatusOrderByGeneratedAtAsc(
                         String subscriptionNumber,
                         String status);
+
         @Query("""
                         SELECT COALESCE(SUM(b.balanceDue), 0)
                         FROM Bill b
@@ -64,11 +68,16 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
                         AND b.status = 'PENDING'
                         """)
         BigDecimal getTotalPendingBalance(String subscriptionNumber);
+
         long countByStatus(String status);
+
         @Query("SELECT COUNT(b) FROM Bill b WHERE b.balanceDue > 0")
         long countOutstandingBills();
+
         @Query("SELECT COALESCE(SUM(b.balanceDue), 0) FROM Bill b WHERE b.balanceDue > 0")
         java.math.BigDecimal sumOutstandingAmount();
+
         @Query("SELECT COUNT(b) FROM Bill b WHERE b.customer.subscriptionNumber = :subscriptionNumber AND b.status = 'PENDING'")
-        long countPendingBillsBySubscription(@org.springframework.data.repository.query.Param("subscriptionNumber") String subscriptionNumber);
+        long countPendingBillsBySubscription(
+                        @org.springframework.data.repository.query.Param("subscriptionNumber") String subscriptionNumber);
 }

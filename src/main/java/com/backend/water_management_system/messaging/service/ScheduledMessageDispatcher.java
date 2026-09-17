@@ -167,7 +167,9 @@ public class ScheduledMessageDispatcher {
 
         for (Customer customer : customers) {
             // prepare current bill for placeholders
-            Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
+            Bill currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).stream()
+                    .findFirst()
+                    .orElse(null);
             String emailBodyTemplate = baseEmailBodyTemplate;
             String smsBodyTemplate = baseSmsBodyTemplate;
             if (hasOverdueAlertTemplates && currentBill != null

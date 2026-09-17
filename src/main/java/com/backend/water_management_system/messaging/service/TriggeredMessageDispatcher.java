@@ -88,7 +88,9 @@ public class TriggeredMessageDispatcher {
                 return;
             }
 
-            currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).orElse(null);
+            currentBill = billRepository.findTopByCustomerOrderByBillDateDesc(customer).stream()
+                    .findFirst()
+                    .orElse(null);
         }
 
         if (customer == null) {
@@ -113,13 +115,13 @@ public class TriggeredMessageDispatcher {
         SystemDetails systemDetails = systemSettingsService.findSystemDetails();
 
         BigDecimal overdueThreshold = systemDetails.getOverdueThreshold();
-        //log.info("Overdue threshold: {}", overdueThreshold);
+        // log.info("Overdue threshold: {}", overdueThreshold);
 
         boolean exceedsOverdueThreshold = currentBill != null
                 && currentBill.getOutstandingAtIssue() != null
                 && overdueThreshold != null
                 && currentBill.getOutstandingAtIssue().compareTo(overdueThreshold) > 0;
-        //log.info("Outstanding value: {}", currentBill.getOutstandingAtIssue());
+        // log.info("Outstanding value: {}", currentBill.getOutstandingAtIssue());
 
         for (TriggeredMessage message : messages) {
             List<MessageChannel> channels = message.getChannels();
