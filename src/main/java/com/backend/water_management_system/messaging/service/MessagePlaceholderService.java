@@ -22,6 +22,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MessagePlaceholderService {
 
+        private static final String BILL_PORTAL_ROUTE_PREFIX = "http://localhost:8080/bills/shared/";
+
         private final SystemSettingsService systemSettingsService;
 
         // Takes a template string and replaces placeholders with actual values from the
@@ -114,7 +116,8 @@ public class MessagePlaceholderService {
                                 formatNumber(systemDetails.getReconnectionFee()));
                 values.put(MessagePlaceholder.PRADESHIYA_SABHA_ACC_NO.getKey(), "");
                 values.put(MessagePlaceholder.WHATSAPP_NUMBER.getKey(), "");
-                values.put(MessagePlaceholder.ONLINE_BILL_PORTAL_LINK.getKey(), "");
+                values.put(MessagePlaceholder.ONLINE_BILL_PORTAL_LINK.getKey(),
+                                billPortalLink(currentBill));
 
                 String result = template;
                 for (Map.Entry<String, String> entry : values.entrySet()) {
@@ -132,6 +135,13 @@ public class MessagePlaceholderService {
                                 : BigDecimal.ZERO;
                 BigDecimal total = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
                 return outstanding.add(total);
+        }
+
+        private String billPortalLink(Bill bill) {
+                if (bill == null || bill.getShareToken() == null || bill.getShareToken().isBlank()) {
+                        return "";
+                }
+                return BILL_PORTAL_ROUTE_PREFIX + bill.getShareToken().trim();
         }
 
         private String safe(String value) {
