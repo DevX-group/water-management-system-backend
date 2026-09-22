@@ -23,6 +23,7 @@ import java.util.Map;
 public class MessagePlaceholderService {
 
         private static final String BILL_PORTAL_ROUTE_PREFIX = "http://localhost:8080/bills/shared/";
+        private static final String ONLINE_PAYMENT_ROUTE_PREFIX = "http://localhost:8080";
 
         private final SystemSettingsService systemSettingsService;
 
@@ -114,10 +115,12 @@ public class MessagePlaceholderService {
                                 formatInt(systemDetails.getDisconnectionGracePeriodDays()));
                 values.put(MessagePlaceholder.RECONNECTION_FEE.getKey(),
                                 formatNumber(systemDetails.getReconnectionFee()));
-                values.put(MessagePlaceholder.PRADESHIYA_SABHA_ACC_NO.getKey(), "");
-                values.put(MessagePlaceholder.WHATSAPP_NUMBER.getKey(), "");
                 values.put(MessagePlaceholder.ONLINE_BILL_PORTAL_LINK.getKey(),
                                 billPortalLink(currentBill));
+                values.put(MessagePlaceholder.ONLINE_PAYMENT_LINK.getKey(),
+                                ONLINE_PAYMENT_ROUTE_PREFIX);
+                values.put(MessagePlaceholder.PRADESHIYA_SABHA_ACC_NO.getKey(), "");
+                values.put(MessagePlaceholder.WHATSAPP_NUMBER.getKey(), "");
 
                 String result = template;
                 for (Map.Entry<String, String> entry : values.entrySet()) {
