@@ -26,6 +26,7 @@ public enum MessagePlaceholder {
     PRADESHIYA_SABHA_ACC_NO("pradeshiya_sabha_acc_no"),
     WHATSAPP_NUMBER("whatsApp_number"),
     ONLINE_BILL_PORTAL_LINK("online_bill_portal_link"),
+    ONLINE_PAYMENT_LINK("online_payment_link"),
     AMOUNT_PAID("amount_paid"),
     PAYMENT_DATE("payment_date"),
     PAYMENT_TIME("payment_time"),
